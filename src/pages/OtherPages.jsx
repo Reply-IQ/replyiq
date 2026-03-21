@@ -498,7 +498,8 @@ export function Settings() {
       const data = await res.json()
       if (data.error) { showToast('Google error: '+data.error+'. '+(data.message||''),'error'); setConn(false); return }
       setGInfo(data)
-      // Save place ID and update clinic rating
+
+      // Save place ID and update clinic rating with REAL total from Google
       const { data: updated, error } = await updateClinic({
         google_place_id: placeId.trim(),
         google_connected: true,
@@ -509,13 +510,15 @@ export function Settings() {
         phone: form.phone || data.phone,
       })
       if (!error && updated) updateClinicInState(updated)
-      // Upsert reviews into DB
+
+      // Delete demo reviews first, then insert real ones
+      const { deleteDemoReviews, upsertReviews } = await import('../lib/supabase.js')
+      await deleteDemoReviews(clinic.id)
       if (data.reviews?.length > 0) {
-        const { upsertReviews } = await import('../lib/supabase.js')
         await upsertReviews(clinic.id, data.reviews)
-        await loadAll()
       }
-      showToast(`Connected! Imported ${data.reviews?.length||0} reviews from Google.`,'success')
+      await loadAll()
+      showToast(`Connected! Imported ${data.reviews?.length||0} real reviews. Total on Google: ${data.totalReviews}.`,'success')
     } catch(e) { showToast('Connection failed: '+e.message,'error') }
     setConn(false)
   }
@@ -551,9 +554,12 @@ export function Settings() {
             </Button>
             {googleInfo && (
               <div style={{marginTop:12,padding:'12px 14px',background:'rgba(2,131,144,.08)',border:'1px solid var(--border)',borderRadius:8,fontSize:'0.82rem',color:'var(--silver)'}}>
-                <div style={{fontWeight:600,color:'var(--white)',marginBottom:4}}>Found: {googleInfo.name}</div>
+                <div style={{fontWeight:600,color:'var(--white)',marginBottom:4}}>✓ Connected: {googleInfo.name}</div>
                 <div>{googleInfo.address}</div>
-                <div style={{marginTop:4}}>Rating: <span style={{color:'var(--gold)'}}>{googleInfo.rating}★</span> · {googleInfo.totalReviews} total reviews · {googleInfo.reviews?.length} imported</div>
+                <div style={{marginTop:6}}>Rating: <span style={{color:'var(--gold)'}}>{googleInfo.rating}★</span> · <span style={{color:'var(--white)'}}>{googleInfo.totalReviews} total reviews on Google</span></div>
+                <div style={{marginTop:6,padding:'8px 10px',background:'rgba(244,162,97,.08)',border:'1px solid rgba(244,162,97,.2)',borderRadius:6,color:'var(--gold)',fontSize:'0.78rem'}}>
+                  ⚠ Google Places API provides the 5 most recent reviews. {googleInfo.reviews?.length} reviews imported into your dashboard. This is a Google API limitation — not a ReplyIQ limitation.
+                </div>
               </div>
             )}
           </Card>

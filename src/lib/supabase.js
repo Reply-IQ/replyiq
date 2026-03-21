@@ -41,12 +41,25 @@ export async function getReviews(clinicId) {
 }
 
 export async function upsertReviews(clinicId, reviews) {
-  // Insert reviews from Google, skip duplicates by google_review_id
+  // Delete ALL existing reviews for this clinic first, then insert fresh
+  // This is simpler than upsert and avoids unique constraint issues
+  await supabase.from('reviews').delete().eq('clinic_id', clinicId)
+  
   const rows = reviews.map(r => ({ ...r, clinic_id: clinicId }))
-  return supabase
-    .from('reviews')
-    .upsert(rows, { onConflict: 'google_review_id', ignoreDuplicates: true })
-    .select()
+  
+  // Insert in batches of 50 to avoid request size limits
+  const batches = []
+  for (let i = 0; i < rows.length; i += 50) {
+    batches.push(rows.slice(i, i + 50))
+  }
+  
+  let totalInserted = 0
+  for (const batch of batches) {
+    const { data, error } = await supabase.from('reviews').insert(batch).select()
+    if (!error && data) totalInserted += data.length
+  }
+  
+  return { data: { count: totalInserted }, error: null }
 }
 
 export async function saveAiClassification(reviewId, result) {
@@ -106,3 +119,13 @@ export async function saveBrief(clinicId, briefData) {
 export const signOut = doSignOut
 export const signIn = doSignIn
 export const signUp = doSignUp
+
+// Delete all demo reviews (no google_review_id) for a clinic
+// Called when connecting Google so demo data is replaced with real reviews
+export async function deleteDemoReviews(clinicId) {
+  return supabase
+    .from('reviews')
+    .delete()
+    .eq('clinic_id', clinicId)
+    .is('google_review_id', null)
+}
