@@ -581,7 +581,10 @@ export function Settings() {
             <div style={{background:'rgba(2,131,144,.08)',border:'1px solid rgba(2,195,154,.2)',borderRadius:10,padding:16,marginBottom:14}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                 <div style={{fontFamily:'var(--font-serif)',fontSize:'1.2rem'}}>Starter Plan</div>
-                <div style={{fontFamily:'var(--font-serif)',fontSize:'1.5rem',color:'var(--mint)'}}>CHF 199<span style={{fontSize:'0.75rem',color:'var(--mid)'}}>/mo</span></div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontFamily:'var(--font-serif)',fontSize:'1.5rem',color:'var(--mint)'}}>CHF 249<span style={{fontSize:'0.75rem',color:'var(--mid)'}}>/mo</span></div>
+                  <div style={{fontSize:'0.72rem',color:'var(--gold)',marginTop:2}}>or CHF 2,490/yr <span style={{background:'rgba(244,162,97,.15)',border:'1px solid rgba(244,162,97,.3)',borderRadius:10,padding:'1px 7px',fontWeight:700}}>2 months free</span></div>
+                </div>
               </div>
               {clinic?.created_at&&<div style={{fontSize:'0.8rem',color:'var(--silver)'}}>Active since {new Date(clinic.created_at).toLocaleDateString()}</div>}
             </div>
@@ -590,7 +593,10 @@ export function Settings() {
                 <span style={{color:'var(--mint)'}}>✓</span><span style={{color:'var(--silver)'}}>{f}</span>
               </div>
             ))}
-            <Button variant="secondary" fullWidth style={{marginTop:16}}>Upgrade to Growth (CHF 299/mo)</Button>
+            <div style={{display:'flex',gap:8,marginTop:16}}>
+              <Button variant="secondary" fullWidth>Monthly — CHF 249/mo</Button>
+              <Button variant="secondary" fullWidth style={{borderColor:'var(--gold)',color:'var(--gold)'}}>Yearly — CHF 2,490 <span style={{fontSize:'0.7rem',opacity:.8}}>save CHF 498</span></Button>
+            </div>
           </Card>
           <Card>
             <SectionHeader title="Notifications"/>

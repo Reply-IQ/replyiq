@@ -18,20 +18,23 @@ const NAV_KEYS = [
 function LangToggle() {
   const { lang, switchLang, languages } = useLang()
   return (
-    <div style={{ display: 'flex', gap: 4, background: 'var(--ink)', borderRadius: 8, padding: 3 }}>
+    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
       {languages.map(l => (
         <button
           key={l.code}
           onClick={() => switchLang(l.code)}
           title={l.label}
           style={{
-            background: lang === l.code ? 'var(--teal)' : 'transparent',
-            border: 'none', borderRadius: 6, cursor: 'pointer',
-            padding: '4px 8px', fontSize: '1rem', lineHeight: 1,
-            transition: 'all .15s', opacity: lang === l.code ? 1 : 0.5,
+            background: lang === l.code ? 'rgba(2,195,154,.15)' : 'rgba(255,255,255,.06)',
+            border: `2px solid ${lang === l.code ? 'var(--mint)' : 'rgba(255,255,255,.15)'}`,
+            borderRadius: 8, cursor: 'pointer',
+            padding: '5px 10px', fontSize: '1.1rem', lineHeight: 1,
+            transition: 'all .15s',
+            display: 'flex', alignItems: 'center', gap: 5,
           }}
         >
-          {l.flag}
+          <span style={{ fontSize: '1.1rem' }}>{l.flag}</span>
+          <span style={{ fontSize: '0.72rem', color: lang === l.code ? 'var(--mint)' : 'var(--silver)', fontWeight: lang === l.code ? 600 : 400 }}>{l.code.toUpperCase()}</span>
         </button>
       ))}
     </div>
