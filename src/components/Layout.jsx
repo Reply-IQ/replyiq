@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { RiskBadge } from './UI.jsx'
-import { signOut } from '../lib/supabase.js'
+import { doSignOut } from '../lib/supabase.js'
 import { useApp, useRiskScore, useUnansweredCount } from '../lib/store.jsx'
 import { useLang } from '../lib/lang.jsx'
 
@@ -46,7 +46,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
   const unanswered = useUnansweredCount(reviews)
 
   async function handleSignOut() {
-    await signOut()
+    await doSignOut()
     showToast(t.common.signedOut, 'info')
   }
 

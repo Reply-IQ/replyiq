@@ -101,3 +101,8 @@ export async function saveBrief(clinicId, briefData) {
     .select()
     .single()
 }
+
+// Alias for backward compatibility
+export const signOut = doSignOut
+export const signIn = doSignIn
+export const signUp = doSignUp
