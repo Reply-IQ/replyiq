@@ -8,20 +8,27 @@ export default async function handler(req, res) {
   const { placeId } = req.body
   if (!placeId) return res.status(400).json({ error: 'placeId required' })
 
-  if (process.env.OUTSCRAPER_API_KEY) return fetchOutscraper(placeId, process.env.OUTSCRAPER_API_KEY, res)
-  if (process.env.GOOGLE_PLACES_KEY)  return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
-  return res.status(500).json({ error: 'No API key configured' })
+  const outscraperKey = process.env.OUTSCRAPER_API_KEY
+  const googleKey = process.env.GOOGLE_PLACES_KEY
+
+  // Log which keys are available (visible in Vercel Runtime Logs)
+  console.log('[google-reviews] OUTSCRAPER_API_KEY present:', !!outscraperKey)
+  console.log('[google-reviews] GOOGLE_PLACES_KEY present:', !!googleKey)
+  console.log('[google-reviews] placeId:', placeId)
+
+  if (outscraperKey) return fetchOutscraper(placeId, outscraperKey, res)
+  if (googleKey)     return fetchGooglePlaces(placeId, googleKey, res)
+  return res.status(500).json({ error: 'No API key configured. Add OUTSCRAPER_API_KEY to Vercel environment variables.' })
 }
 
 async function fetchOutscraper(placeId, apiKey, res) {
   try {
-    // Use reviewsLimit=100 to get up to 100 reviews per request
-    // Keep async=false but increase Vercel function timeout via config
-    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(placeId)}&reviewsLimit=100&language=en&async=false&fields=name,full_address,phone,rating,reviews,reviews_data`
-    
+    console.log('[Outscraper] Starting request for:', placeId)
+    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(placeId)}&reviewsLimit=100&language=en&async=false`
+
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 25000) // 25 second timeout
-    
+    const timeout = setTimeout(() => controller.abort(), 28000)
+
     let r
     try {
       r = await fetch(url, {
@@ -32,21 +39,27 @@ async function fetchOutscraper(placeId, apiKey, res) {
       clearTimeout(timeout)
     }
 
+    console.log('[Outscraper] Response status:', r.status)
+
     if (!r.ok) {
       const errText = await r.text()
-      // Fall back to Google Places if Outscraper fails
+      console.log('[Outscraper] Error:', errText)
       if (process.env.GOOGLE_PLACES_KEY) return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
       return res.status(r.status).json({ error: 'Outscraper error: ' + errText })
     }
 
     const data = await r.json()
-    const place = data?.data?.[0]?.[0]
+    console.log('[Outscraper] Data keys:', Object.keys(data || {}))
+    console.log('[Outscraper] Data status:', data?.status)
 
+    const place = data?.data?.[0]?.[0]
     if (!place) {
-      // Fall back to Google Places
+      console.log('[Outscraper] No place data found, full response:', JSON.stringify(data).slice(0, 500))
       if (process.env.GOOGLE_PLACES_KEY) return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
-      return res.status(400).json({ error: 'No data returned from Outscraper. Trying Google Places fallback.' })
+      return res.status(400).json({ error: 'No data from Outscraper' })
     }
+
+    console.log('[Outscraper] Place found:', place.name, '| Reviews:', place.reviews_data?.length)
 
     const reviews = (place.reviews_data || []).map((rv, i) => ({
       author:           rv.author_title || 'Anonymous',
@@ -71,7 +84,7 @@ async function fetchOutscraper(placeId, apiKey, res) {
       source:       'outscraper',
     })
   } catch (e) {
-    // If timeout or any error, fall back to Google Places
+    console.log('[Outscraper] Exception:', e.message)
     if (process.env.GOOGLE_PLACES_KEY) return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
     return res.status(500).json({ error: e.message })
   }
@@ -79,13 +92,11 @@ async function fetchOutscraper(placeId, apiKey, res) {
 
 async function fetchGooglePlaces(placeId, apiKey, res) {
   try {
+    console.log('[GooglePlaces] Fetching:', placeId)
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=name,rating,user_ratings_total,reviews,formatted_address,formatted_phone_number&key=${apiKey}&language=en&reviews_sort=newest`
     const r = await fetch(url)
     const data = await r.json()
-    if (data.status !== 'OK') return res.status(400).json({
-      error: `Google: ${data.status}`,
-      message: data.error_message || 'Check your Place ID'
-    })
+    if (data.status !== 'OK') return res.status(400).json({ error: `Google: ${data.status}`, message: data.error_message })
     const place = data.result
     const reviews = (place.reviews || []).map((rv, i) => ({
       author:           rv.author_name,
@@ -101,6 +112,7 @@ async function fetchGooglePlaces(placeId, apiKey, res) {
       phone: place.formatted_phone_number || '',
       rating: place.rating, totalReviews: place.user_ratings_total,
       reviews, source: 'google_places',
+      warning: `Google Places API provides the 5 most recent reviews. ${reviews.length} reviews imported into your dashboard. Add OUTSCRAPER_API_KEY to Vercel for all ${place.user_ratings_total} reviews.`,
     })
   } catch (e) { return res.status(500).json({ error: e.message }) }
 }
