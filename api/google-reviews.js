@@ -11,57 +11,59 @@ export default async function handler(req, res) {
   const outscraperKey = process.env.OUTSCRAPER_API_KEY
   const googleKey = process.env.GOOGLE_PLACES_KEY
 
-  // Log which keys are available (visible in Vercel Runtime Logs)
-  console.log('[google-reviews] OUTSCRAPER_API_KEY present:', !!outscraperKey)
-  console.log('[google-reviews] GOOGLE_PLACES_KEY present:', !!googleKey)
-  console.log('[google-reviews] placeId:', placeId)
-
   if (outscraperKey) return fetchOutscraper(placeId, outscraperKey, res)
   if (googleKey)     return fetchGooglePlaces(placeId, googleKey, res)
-  return res.status(500).json({ error: 'No API key configured. Add OUTSCRAPER_API_KEY to Vercel environment variables.' })
+  return res.status(500).json({ error: 'No API key configured' })
 }
 
 async function fetchOutscraper(placeId, apiKey, res) {
   try {
-    console.log('[Outscraper] Starting request for:', placeId)
-    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(placeId)}&reviewsLimit=100&language=en&async=false`
+    // Use the correct Outscraper reviews endpoint with reviewsLimit=0 means ALL reviews
+    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(placeId)}&reviewsLimit=0&language=en&async=false`
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 28000)
-
     let r
     try {
-      r = await fetch(url, {
-        headers: { 'X-API-KEY': apiKey },
-        signal: controller.signal,
-      })
+      r = await fetch(url, { headers: { 'X-API-KEY': apiKey }, signal: controller.signal })
     } finally {
       clearTimeout(timeout)
     }
 
-    console.log('[Outscraper] Response status:', r.status)
-
     if (!r.ok) {
       const errText = await r.text()
-      console.log('[Outscraper] Error:', errText)
+      console.log('[Outscraper] HTTP error:', r.status, errText)
       if (process.env.GOOGLE_PLACES_KEY) return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
-      return res.status(r.status).json({ error: 'Outscraper error: ' + errText })
+      return res.status(r.status).json({ error: errText })
     }
 
     const data = await r.json()
-    console.log('[Outscraper] Data keys:', Object.keys(data || {}))
-    console.log('[Outscraper] Data status:', data?.status)
+    console.log('[Outscraper] Status:', data?.status)
+    console.log('[Outscraper] data.data type:', Array.isArray(data?.data), typeof data?.data?.[0])
 
-    const place = data?.data?.[0]?.[0]
-    if (!place) {
-      console.log('[Outscraper] No place data found, full response:', JSON.stringify(data).slice(0, 500))
-      if (process.env.GOOGLE_PLACES_KEY) return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
-      return res.status(400).json({ error: 'No data from Outscraper' })
+    // Outscraper can return data in two structures:
+    // Structure A: data.data[0][0] = place object (when wrapped in array)
+    // Structure B: data.data[0] = place object directly
+    let place = null
+    if (Array.isArray(data?.data?.[0])) {
+      place = data.data[0][0]  // Structure A
+      console.log('[Outscraper] Using structure A (nested array)')
+    } else if (data?.data?.[0] && typeof data.data[0] === 'object') {
+      place = data.data[0]     // Structure B
+      console.log('[Outscraper] Using structure B (direct object)')
     }
 
-    console.log('[Outscraper] Place found:', place.name, '| Reviews:', place.reviews_data?.length)
+    // Check if place has reviews_data
+    console.log('[Outscraper] place keys:', place ? Object.keys(place).slice(0, 10) : 'null')
+    console.log('[Outscraper] reviews_data count:', place?.reviews_data?.length)
 
-    const reviews = (place.reviews_data || []).map((rv, i) => ({
+    if (!place || !place.reviews_data) {
+      console.log('[Outscraper] No reviews_data found, falling back to Google Places')
+      if (process.env.GOOGLE_PLACES_KEY) return fetchGooglePlaces(placeId, process.env.GOOGLE_PLACES_KEY, res)
+      return res.status(400).json({ error: 'No reviews data returned from Outscraper' })
+    }
+
+    const reviews = place.reviews_data.map((rv, i) => ({
       author:           rv.author_title || 'Anonymous',
       rating:           rv.review_rating || 3,
       review_date:      rv.review_datetime_utc
@@ -73,6 +75,8 @@ async function fetchOutscraper(placeId, apiKey, res) {
       response_text:    rv.owner_answer || null,
       google_review_id: rv.review_id || `outscraper_${placeId}_${i}`,
     }))
+
+    console.log('[Outscraper] Successfully parsed', reviews.length, 'reviews')
 
     return res.status(200).json({
       name:         place.name || '',
@@ -92,7 +96,6 @@ async function fetchOutscraper(placeId, apiKey, res) {
 
 async function fetchGooglePlaces(placeId, apiKey, res) {
   try {
-    console.log('[GooglePlaces] Fetching:', placeId)
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=name,rating,user_ratings_total,reviews,formatted_address,formatted_phone_number&key=${apiKey}&language=en&reviews_sort=newest`
     const r = await fetch(url)
     const data = await r.json()
@@ -112,7 +115,7 @@ async function fetchGooglePlaces(placeId, apiKey, res) {
       phone: place.formatted_phone_number || '',
       rating: place.rating, totalReviews: place.user_ratings_total,
       reviews, source: 'google_places',
-      warning: `Google Places API provides the 5 most recent reviews. ${reviews.length} reviews imported into your dashboard. Add OUTSCRAPER_API_KEY to Vercel for all ${place.user_ratings_total} reviews.`,
+      warning: `Google Places API only returns 5 reviews. ${reviews.length} imported. Add Outscraper for all ${place.user_ratings_total} reviews.`,
     })
   } catch (e) { return res.status(500).json({ error: e.message }) }
 }
