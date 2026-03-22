@@ -30,8 +30,17 @@ export default function Dashboard() {
   const riskScore  = useRiskScore(reviews)
   const unanswered = useUnansweredCount(reviews)
   const navigate   = useNavigate()
-  const posCount   = reviews.filter(r => r.rating >= 4).length
-  const negCount   = reviews.filter(r => r.rating <= 2).length
+  // Reviews from current month only
+  const now = new Date()
+  const thisMonth = reviews.filter(r => {
+    if (!r.review_date) return false
+    const d = new Date(r.review_date)
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  })
+  const posCount = reviews.filter(r => r.rating >= 4).length
+  const negCount = reviews.filter(r => r.rating <= 2).length
+  const posThisMonth = thisMonth.filter(r => r.rating >= 4).length
+  const negThisMonth = thisMonth.filter(r => r.rating <= 2).length
   const hasRisk    = reviews.some(r => r.ai_risk_flag)
   const COMPLAINTS = [
     { label: td.complaints.labels.waitTime, pct: 62, color: 'var(--rose)' },
@@ -54,7 +63,7 @@ export default function Dashboard() {
       <Grid cols={4} gap={14} style={{marginBottom:20}}>
         <KpiCard label={td.kpi.rating}  value={`${clinic?.google_rating??4.3}★`} sub={td.kpi.last90}    trend={td.kpi.ratingTrend} trendDir="down" accent="gold"/>
         <KpiCard label={td.kpi.risk}    value={riskScore}                          sub={td.kpi.riskSub}   trend={riskScore>60?td.kpi.elevated:td.kpi.normal} trendDir={riskScore>60?"down":"flat"} accent="rose"/>
-        <KpiCard label={td.kpi.reviews} value={reviews.length}                     sub={`${negCount} ${td.kpi.negative} · ${posCount} ${td.kpi.positive}`} trend={`${unanswered} ${td.kpi.needResponse}`} trendDir="flat" accent="mint"/>
+        <KpiCard label={td.kpi.reviews} value={thisMonth.length}                   sub={`${negThisMonth} ${td.kpi.negative} · ${posThisMonth} ${td.kpi.positive}`} trend={`${unanswered} ${td.kpi.needResponse}`} trendDir="flat" accent="mint"/>
         <KpiCard label={td.kpi.revenue} value="−CHF 8K"                            sub={td.kpi.revenueSub} trend={td.kpi.revenueTrend} trendDir="down" accent="teal"/>
       </Grid>
       <Grid cols={2} gap={16} style={{marginBottom:20}}>

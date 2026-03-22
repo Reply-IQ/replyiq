@@ -84,6 +84,8 @@ async function fetchOutscraper(placeId, apiKey, res) {
       phone:        place.phone || '',
       rating:       place.rating || 0,
       totalReviews: place.reviews || reviews.length,
+      lat:          place.latitude || null,
+      lng:          place.longitude || null,
       reviews,
       source:       'outscraper',
     })
@@ -96,7 +98,7 @@ async function fetchOutscraper(placeId, apiKey, res) {
 
 async function fetchGooglePlaces(placeId, apiKey, res) {
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=name,rating,user_ratings_total,reviews,formatted_address,formatted_phone_number&key=${apiKey}&language=en&reviews_sort=newest`
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=name,rating,user_ratings_total,reviews,formatted_address,formatted_phone_number,geometry&key=${apiKey}&language=en&reviews_sort=newest`
     const r = await fetch(url)
     const data = await r.json()
     if (data.status !== 'OK') return res.status(400).json({ error: `Google: ${data.status}`, message: data.error_message })
@@ -114,6 +116,8 @@ async function fetchGooglePlaces(placeId, apiKey, res) {
       name: place.name, address: place.formatted_address,
       phone: place.formatted_phone_number || '',
       rating: place.rating, totalReviews: place.user_ratings_total,
+      lat: place.geometry?.location?.lat || null,
+      lng: place.geometry?.location?.lng || null,
       reviews, source: 'google_places',
       warning: `Google Places API only returns 5 reviews. ${reviews.length} imported. Add Outscraper for all ${place.user_ratings_total} reviews.`,
     })

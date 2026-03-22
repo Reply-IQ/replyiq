@@ -148,7 +148,7 @@ export function RevenuePage() {
 
   return (
     <Layout title={tv.title} subtitle={tv.subtitle}
-      topbarRight={<Button onClick={calculate} disabled={loading}>{loading?<><Spinner/>{tv.calculating}</>:tv.calcButton}</Button>}
+      topbarRight={<Button onClick={calculate}>{tv.calcButton}</Button>}
     >
       <Card style={{marginBottom:18}}>
         <SectionHeader title={tv.paramsTitle} subtitle={tv.paramsSub}/>
@@ -166,7 +166,7 @@ export function RevenuePage() {
         </div>
       </Card>
       {!result&&!loading&&<Card><EmptyState icon="◆" title={tv.emptyTitle} description={`${tv.emptyDesc} ${currentRating}★ → ${target}★`} action={<Button onClick={calculate}>{tv.calcButton}</Button>}/></Card>}
-      {loading&&<Card><div style={{padding:32,display:'flex',alignItems:'center',gap:10,color:'var(--mint)',justifyContent:'center'}}><Spinner/>{tv.loading}</div></Card>}
+      {false&&<Card><div/></Card>}
       {result&&!result.error&&<>
         <Grid cols={4} gap={14} style={{marginBottom:18}}>
           <KpiCard label={tv.kpi.monthlyGain} value={`+CHF ${(result.monthlyGain||0).toLocaleString()}`} accent="mint"/>
@@ -216,11 +216,41 @@ export function RevenuePage() {
 
 // ─── COMPETITORS PAGE ─────────────────────────────────────────────────────────
 export function Competitors() {
-  const { clinic, competitors, showToast } = useApp()
+  const { clinic, competitors, showToast, loadAll } = useApp()
   const { t } = useLang()
   const tc = t.competitors
-  const [analysis, setAnalysis] = useState(null)
-  const [loading, setLoading]   = useState(false)
+  const [analysis, setAnalysis]   = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [syncing, setSyncing]     = useState(false)
+
+  async function syncCompetitors() {
+    if (!clinic?.google_place_id) {
+      showToast('Connect your Google Business Profile in Settings first.', 'info')
+      return
+    }
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/competitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId: clinic.google_place_id, clinicName: clinic.name }),
+      })
+      const data = await res.json()
+      if (data.error) { showToast('Error: ' + data.error, 'error'); setSyncing(false); return }
+      if (data.competitors?.length > 0) {
+        const { supabase } = await import('../lib/supabase.js')
+        await supabase.from('competitors').delete().eq('clinic_id', clinic.id)
+        await supabase.from('competitors').insert(
+          data.competitors.map(c => ({ ...c, clinic_id: clinic.id }))
+        )
+        await loadAll()
+        showToast(`Found ${data.competitors.length} real nearby dental clinics!`, 'success')
+      } else {
+        showToast('No nearby dental clinics found within 2km.', 'info')
+      }
+    } catch(e) { showToast('Sync failed: ' + e.message, 'error') }
+    setSyncing(false)
+  }
   const yourRating = clinic?.google_rating||4.3
   const allClinics = [{ name:`${clinic?.name||'Your Clinic'} (${tc.you})`, rating:yourRating, reviews:clinic?.total_reviews||234, trend:'-0.2', isYou:true }, ...competitors].sort((a,b)=>b.rating-a.rating)
 
@@ -234,7 +264,10 @@ export function Competitors() {
 
   return (
     <Layout title={tc.title} subtitle={tc.subtitle}
-      topbarRight={<Button onClick={run} disabled={loading}>{loading?<><Spinner/>{tc.analysing}</>:tc.aiButton}</Button>}
+      topbarRight={<div style={{display:'flex',gap:8}}>
+        <Button variant="ghost" onClick={syncCompetitors} disabled={syncing}>{syncing?<><Spinner/>Syncing...</>:'🔄 Sync Real Competitors'}</Button>
+        <Button onClick={run} disabled={loading}>{loading?<><Spinner/>{tc.analysing}</>:tc.aiButton}</Button>
+      </div>}
     >
       <Card style={{marginBottom:18}}>
         <SectionHeader title={tc.tableTitle} subtitle={tc.tableSub}/>
@@ -323,7 +356,7 @@ export function Respond() {
 
   return (
     <Layout title={tr2.title} subtitle={tr2.subtitle}>
-      <Grid cols={2} gap={18} style={{alignItems:'start'}}>
+      <Grid cols={2} gap={18} style={{alignItems:'start', minWidth:0}}>
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <Card>
             <SectionHeader title={tr2.inputTitle}/>
@@ -452,7 +485,7 @@ export function Report() {
         <Card style={{marginBottom:16}}>
           <SectionHeader title={trp.actionPlan} subtitle={trp.actionSub}/>
           {(report.priorityActions||[]).map((a,i)=>(
-            <div key={i} style={{display:'flex',gap:14,padding:13,borderRadius:9,marginBottom:8,background:urgBg[a.urgency]||urgBg['this-week'],border:`1px solid ${(urgCol[a.urgency]||'var(--teal)')}22`,alignItems:'flex-start'}}>
+            <div key={i} style={{display:'flex',gap:14,padding:13,borderRadius:9,marginBottom:8,background:urgBg[a.urgency]||urgBg['this-week'],border:`1px solid ${(urgCol[a.urgency]||'var(--teal)')}22`,alignItems:'flex-start',minWidth:0,overflow:'hidden'}}>
               <div style={{minWidth:80,padding:'3px 8px',borderRadius:5,textAlign:'center',background:`${(urgCol[a.urgency]||'var(--teal)')}18`,border:`1px solid ${(urgCol[a.urgency]||'var(--teal)')}33`,color:urgCol[a.urgency]||'var(--teal)',fontSize:'0.63rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px'}}>{a.deadline}</div>
               <div><div style={{fontWeight:600,fontSize:'0.88rem',marginBottom:3}}>{a.action}</div><div style={{fontSize:'0.8rem',color:'var(--silver)'}}>{a.expectedImpact}</div></div>
             </div>
@@ -518,7 +551,26 @@ export function Settings() {
         await upsertReviews(clinic.id, data.reviews)
       }
       await loadAll()
-      showToast(`Connected! Imported ${data.reviews?.length||0} real reviews. Total on Google: ${data.totalReviews}.`,'success')
+      // Fetch real nearby competitors
+      try {
+        const compRes = await fetch('/api/competitors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placeId: placeId.trim(), clinicName: data.name }),
+        })
+        const compData = await compRes.json()
+        if (compData.competitors?.length > 0) {
+          // Save real competitors to DB
+          const { supabase } = await import('../lib/supabase.js')
+          await supabase.from('competitors').delete().eq('clinic_id', clinic.id)
+          await supabase.from('competitors').insert(
+            compData.competitors.map(c => ({ ...c, clinic_id: clinic.id }))
+          )
+        }
+      } catch(e) { console.log('Competitors fetch failed:', e.message) }
+
+      const source = data.source === 'outscraper' ? 'Outscraper (all reviews)' : 'Google Places (5 most recent)'
+      showToast(`Connected! Imported ${data.reviews?.length||0} reviews via ${source}. Found real nearby competitors.`,'success')
     } catch(e) { showToast('Connection failed: '+e.message,'error') }
     setConn(false)
   }

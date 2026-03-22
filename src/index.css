@@ -28,6 +28,9 @@
   --ease:      all 0.18s ease;
 }
 
+/* Prevent horizontal overflow globally */
+*, *::before, *::after { max-width: 100%; }
+
 html, body, #root {
   height: 100%;
   background: var(--ink);

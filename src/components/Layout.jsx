@@ -54,7 +54,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', maxWidth: '100vw' }}>
       {/* SIDEBAR */}
       <aside style={{ width: 220, minWidth: 220, background: 'var(--navy)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         {/* Logo */}
@@ -110,7 +110,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
       </aside>
 
       {/* MAIN */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {/* Topbar */}
         <header style={{ background: 'var(--navy)', borderBottom: '1px solid var(--border)', padding: '15px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
@@ -124,7 +124,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
         </header>
 
         {/* Content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '24px 28px', minWidth: 0 }}>
           {children}
         </main>
       </div>
