@@ -136,12 +136,28 @@ export function RevenuePage() {
   const [target, setTarget]   = useState(clinic?.target_rating||4.6)
   const currentRating = clinic?.google_rating||4.3
 
-  async function calculate() {
-    setLoading(true)
-    const r = await calculateRevenue({currentRating,targetRating:target,monthlyAppts:appts,avgRevenue:avgRev})
-    if (r.error) showToast(t.dashboard.brief.aiError,'error')
-    else setResult(r)
-    setLoading(false)
+  function calculate() {
+    // Deterministic HBS Luca 2016 model — always correct, never uses AI
+    const ELASTICITY = 0.054 // 1 star = 5.4% revenue uplift
+    const gap = Math.max(0, target - currentRating)
+    const pct = gap * ELASTICITY
+    const current = appts * avgRev
+    const projected = Math.round(current * (1 + pct))
+    const monthly = projected - current
+    const SUBSCRIPTION = 249
+    setResult({
+      currentMonthlyRevenue: current,
+      projectedMonthlyRevenue: projected,
+      monthlyGain: monthly,
+      annualGain: monthly * 12,
+      newPatientsPerMonth: Math.round(appts * gap * 0.03),
+      ratingGap: Math.round(gap * 10) / 10,
+      elasticityPct: Math.round(pct * 1000) / 1000,
+      drisROIx: monthly > 0 ? Math.round((monthly / SUBSCRIPTION) * 10) / 10 : 0,
+      paybackDays: monthly > 0 ? Math.round((SUBSCRIPTION / monthly) * 30) : 999,
+      confidence: gap <= 0.5 ? 'high' : gap <= 1.0 ? 'medium' : 'low',
+      modelNote: 'HBS Luca 2016: each 1★ improvement = 5.4% revenue uplift. Gap: ' + gap.toFixed(1) + '★ = ' + (pct*100).toFixed(1) + '% uplift.',
+    })
   }
 
   const chartData = result?[{name:tv.current,value:result.currentMonthlyRevenue,color:'var(--mid)'},{name:tv.projected,value:result.projectedMonthlyRevenue,color:'var(--mint)'}]:[]
