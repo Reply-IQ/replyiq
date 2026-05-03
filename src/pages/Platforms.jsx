@@ -1,30 +1,34 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Layout } from '../components/Layout.jsx'
-import { Card, Button, Spinner, SectionHeader } from '../components/UI.jsx'
+import { Card, Button, Spinner } from '../components/UI.jsx'
 import { useApp } from '../lib/store.jsx'
 import { supabase, upsertReviews } from '../lib/supabase.js'
 
 const PLATFORMS = [
-  { id: 'google',      icon: '🔍', color: '#4285F4', name: 'Google Business',  desc: 'Your most important platform. All guest reviews.',   fieldLabel: 'Google Place ID', fieldPH: 'ChIJN1t_tDeuEmsRUsoyG83frY4', hint: 'Find at: developers.google.com/maps/documentation/javascript/examples/places-placeid-finder' },
-  { id: 'tripadvisor', icon: '🦉', color: '#00AF87', name: 'TripAdvisor',      desc: 'Critical for hotels. Millions of travellers check TripAdvisor first.', fieldLabel: 'TripAdvisor URL', fieldPH: 'https://www.tripadvisor.com/Hotel_Review-...', hint: 'Copy the full URL of your TripAdvisor property page' },
-  { id: 'booking',     icon: '🏨', color: '#003580', name: 'Booking.com',      desc: 'Essential for hotels. Guests trust Booking reviews heavily.',           fieldLabel: 'Booking.com URL', fieldPH: 'https://www.booking.com/hotel/ch/...', hint: 'Copy the full URL of your Booking.com property page' },
-  { id: 'instagram',   icon: '📸', color: '#E1306C', name: 'Instagram',        desc: 'Monitor comments and DMs. Use with Chrome extension.',                 fieldLabel: 'Instagram Handle', fieldPH: '@yourhotel', hint: 'Use the ReplyIQ Chrome extension for Instagram comments' },
+  { id: 'google',      icon: '🔍', color: '#4285F4', name: 'Google Business',  desc: 'Your most important platform. All guest reviews.',                      fieldLabel: 'Google Place ID',   fieldPH: 'ChIJN1t_tDeuEmsRUsoyG83frY4', hint: 'Find at: developers.google.com/maps/documentation/javascript/examples/places-placeid-finder' },
+  { id: 'tripadvisor', icon: '🦉', color: '#00AF87', name: 'TripAdvisor',      desc: 'Critical for hotels. Millions of travellers check TripAdvisor first.', fieldLabel: 'TripAdvisor URL',   fieldPH: 'https://www.tripadvisor.com/Hotel_Review-...', hint: 'Copy the full URL of your TripAdvisor property page' },
+  { id: 'booking',     icon: '🏨', color: '#003580', name: 'Booking.com',      desc: 'Essential for hotels. Guests trust Booking reviews heavily.',           fieldLabel: 'Booking.com URL',   fieldPH: 'https://www.booking.com/hotel/ch/...', hint: 'Copy the full URL of your Booking.com property page' },
+  { id: 'instagram',   icon: '📸', color: '#E1306C', name: 'Instagram',        desc: 'Monitor comments and DMs. Use with Chrome extension.',                 fieldLabel: 'Instagram Handle',  fieldPH: '@yourhotel', hint: 'Use the ReplyIQ Chrome extension for Instagram comments' },
   { id: 'facebook',    icon: '📘', color: '#1877F2', name: 'Facebook Reviews', desc: 'Many guests still leave reviews on Facebook.',                         fieldLabel: 'Facebook Page URL', fieldPH: 'https://www.facebook.com/YourHotel', hint: 'Copy the URL of your Facebook business page' },
 ]
 
 export default function Platforms() {
   const { property, updatePropertyInState, showToast, loadAll } = useApp()
-  const [inputs, setInputs]     = useState({})
-  const [loading, setLoading]   = useState({})
-  const connections = property?.platform_connections || {}
+  const [inputs, setInputs]       = useState({})
+  const [loading, setLoading]     = useState({})
+  const [progress, setProgress]   = useState({}) // { platformId: 'message' }
+  const pollRefs                  = useRef({})
+  const connections               = property?.platform_connections || {}
 
   function setInput(id, v) { setInputs(p => ({ ...p, [id]: v })) }
   function setLoad(id, v)  { setLoading(p => ({ ...p, [id]: v })) }
+  function setMsg(id, v)   { setProgress(p => ({ ...p, [id]: v })) }
 
   async function connect(platform) {
     const identifier = inputs[platform.id]?.trim()
     if (!identifier) { showToast('Please enter the ' + platform.fieldLabel, 'error'); return }
     setLoad(platform.id, true)
+    setMsg(platform.id, 'Starting import...')
 
     try {
       const r = await fetch('/api/fetch-reviews', {
@@ -37,10 +41,88 @@ export default function Platforms() {
       if (data.error) {
         showToast(`${platform.name}: ${data.error}`, 'error')
         setLoad(platform.id, false)
+        setMsg(platform.id, '')
         return
       }
 
-      const newConns = { ...connections, [platform.id]: { identifier, connectedAt: new Date().toISOString(), reviewCount: data.count, businessInfo: data.businessInfo } }
+      // Async job started — begin polling
+      if (data.jobId) {
+        setMsg(platform.id, 'Fetching all reviews from Google... this takes 30–60 seconds ⏳')
+        pollForResults(platform, identifier, data.jobId)
+        return
+      }
+
+      // Sync response (fallback)
+      await saveResults(platform, identifier, data)
+
+    } catch (e) {
+      showToast('Connection failed: ' + e.message, 'error')
+      setLoad(platform.id, false)
+      setMsg(platform.id, '')
+    }
+  }
+
+  function pollForResults(platform, identifier, jobId) {
+    let attempts = 0
+    const maxAttempts = 40 // 40 × 5s = 3.5 min max
+
+    const interval = setInterval(async () => {
+      attempts++
+      try {
+        const r = await fetch('/api/check-reviews-job', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId }),
+        })
+        const data = await r.json()
+
+        if (data.status === 'done') {
+          clearInterval(interval)
+          delete pollRefs.current[platform.id]
+          setMsg(platform.id, `✓ Found ${data.count} reviews — saving...`)
+          await saveResults(platform, identifier, data)
+          return
+        }
+
+        if (data.error) {
+          clearInterval(interval)
+          delete pollRefs.current[platform.id]
+          showToast('Import failed: ' + data.error, 'error')
+          setLoad(platform.id, false)
+          setMsg(platform.id, '')
+          return
+        }
+
+        // Still pending — update message with elapsed time
+        const elapsed = attempts * 5
+        setMsg(platform.id, `Fetching all reviews from Google... ${elapsed}s elapsed ⏳`)
+
+        if (attempts >= maxAttempts) {
+          clearInterval(interval)
+          delete pollRefs.current[platform.id]
+          showToast('Import timed out — try again or contact support', 'error')
+          setLoad(platform.id, false)
+          setMsg(platform.id, '')
+        }
+      } catch (e) {
+        // Network glitch — keep polling
+      }
+    }, 5000)
+
+    pollRefs.current[platform.id] = interval
+  }
+
+  async function saveResults(platform, identifier, data) {
+    try {
+      const newConns = {
+        ...connections,
+        [platform.id]: {
+          identifier,
+          connectedAt: new Date().toISOString(),
+          reviewCount: data.count,
+          businessInfo: data.businessInfo,
+        }
+      }
       await supabase.from('clinics').update({ platform_connections: newConns }).eq('id', property.id)
       updatePropertyInState({ ...property, platform_connections: newConns })
 
@@ -51,12 +133,14 @@ export default function Platforms() {
 
       showToast(`✓ ${platform.name} connected! ${data.count} reviews imported.`, 'success')
     } catch (e) {
-      showToast('Connection failed: ' + e.message, 'error')
+      showToast('Failed to save reviews: ' + e.message, 'error')
     }
     setLoad(platform.id, false)
+    setMsg(platform.id, '')
   }
 
   async function disconnect(id) {
+    if (pollRefs.current[id]) { clearInterval(pollRefs.current[id]); delete pollRefs.current[id] }
     const newConns = { ...connections }
     delete newConns[id]
     await supabase.from('clinics').update({ platform_connections: newConns }).eq('id', property.id)
@@ -71,7 +155,6 @@ export default function Platforms() {
 
   return (
     <Layout title="Platforms" subtitle="Connect your review platforms — AI monitors all simultaneously">
-      {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
         {[
           { label: 'Platforms Connected', value: `${connected} / ${PLATFORMS.length}`, accent: 'var(--gold)' },
@@ -85,22 +168,19 @@ export default function Platforms() {
         ))}
       </div>
 
-      {/* Platform cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {PLATFORMS.map(platform => {
-          const conn = connections[platform.id]
+          const conn  = connections[platform.id]
           const isConn = !!conn
           const isLoad = loading[platform.id]
+          const msg   = progress[platform.id]
 
           return (
             <Card key={platform.id} style={{ borderLeft: isConn ? `4px solid ${platform.color}` : '1px solid var(--border)', transition: 'var(--ease)' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                {/* Icon */}
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: `${platform.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
                   {platform.icon}
                 </div>
-
-                {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: '14px' }}>{platform.name}</span>
@@ -111,6 +191,14 @@ export default function Platforms() {
                     )}
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--text3)', marginBottom: isConn ? 10 : 14, lineHeight: 1.5 }}>{platform.desc}</div>
+
+                  {/* Progress message during import */}
+                  {msg && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: `${platform.color}10`, borderRadius: 8, border: `1px solid ${platform.color}30` }}>
+                      <Spinner />
+                      <span style={{ fontSize: '13px', color: platform.color, fontWeight: 500 }}>{msg}</span>
+                    </div>
+                  )}
 
                   {!isConn && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -123,7 +211,7 @@ export default function Platforms() {
                         <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: 4 }}>{platform.hint}</div>
                       </div>
                       <Button onClick={() => connect(platform)} disabled={isLoad || !inputs[platform.id]} style={{ background: platform.color, flexShrink: 0 }}>
-                        {isLoad ? <><Spinner /> Connecting...</> : `Connect ${platform.name}`}
+                        {isLoad ? <><Spinner /> Importing...</> : `Connect ${platform.name}`}
                       </Button>
                     </div>
                   )}
