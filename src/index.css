@@ -1,0 +1,78 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── PREMIUM HOSPITALITY PALETTE ───────────────────────────── */
+  /* Backgrounds */
+  --bg:       #141920;   /* Deep charcoal — page background */
+  --surface:  #1C2430;   /* Slightly lifted dark — sidebar, topbar */
+  --card:     #1C2430;   /* Card surface */
+  --card2:    #243044;   /* Card border / hover state */
+  --border:   #243044;   /* Subtle navy line */
+  --border2:  #2d3a50;   /* Slightly stronger border */
+
+  /* Text */
+  --white:    #F0EDE8;   /* Warm white — primary text */
+  --text1:    #F0EDE8;   /* Primary text */
+  --text2:    #7A8A9E;   /* Muted slate — secondary text */
+  --text3:    #556070;   /* Dimmed — labels, timestamps */
+  --mid:      #7A8A9E;
+
+  /* Brand accents */
+  --gold:     #C9A96E;   /* Brushed gold — primary accent */
+  --gold2:    #b8945a;   /* Darker gold for gradients */
+  --amber:    #C9A96E;
+  --emerald:  #4A7C6F;   /* Muted sage — success */
+  --teal:     #4A7C6F;
+  --teal2:    #5a9080;
+  --rose:     #B85C38;   /* Terracotta — alert/danger */
+  --alert:    #B85C38;
+  --violet:   #7A8A9E;   /* Use slate for violet contexts */
+  --mint:     #4A7C6F;
+
+  /* Platform colors — keep vivid for recognition */
+  --google:      #4285F4;
+  --instagram:   #E1306C;
+  --tripadvisor: #00AF87;
+  --booking:     #4f8ef7;
+  --facebook:    #1877F2;
+  --linkedin:    #0A66C2;
+
+  /* Typography */
+  --font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-mono:  'JetBrains Mono', monospace;
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  --ease: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text1);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Animations */
+@keyframes spin    { to { transform: rotate(360deg) } }
+@keyframes pulse   { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+@keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes toastIn { from{opacity:0;transform:translateY(16px) scale(.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes glow    { 0%,100%{box-shadow:0 0 20px rgba(245,200,66,.1)} 50%{box-shadow:0 0 40px rgba(245,200,66,.2)} }
+
+.fadeUp  { animation: fadeUp  .3s ease forwards; }
+.slideIn { animation: slideIn .3s ease forwards; }

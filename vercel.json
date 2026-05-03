@@ -1,0 +1,13 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "functions": {
+    "api/claude.js":           { "maxDuration": 30 },
+    "api/fetch-reviews.js":    { "maxDuration": 30 },
+    "api/scan-website.js":     { "maxDuration": 30 },
+    "api/competitors.js":      { "maxDuration": 20 },
+    "api/email.js":            { "maxDuration": 10 },
+    "api/check-usage.js":      { "maxDuration": 10 },
+    "api/create-checkout.js":  { "maxDuration": 15 },
+    "api/stripe-webhook.js":   { "maxDuration": 15 }
+  }
+}
