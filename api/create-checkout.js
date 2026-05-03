@@ -44,10 +44,6 @@ export default async function handler(req, res) {
         'metadata[plan]':               plan,
         // Payment methods — Stripe auto-enables based on currency
         // CHF → enables: card, twint, sepa
-        'currency':                     'chf',
-        'payment_method_types[0]':      'card',
-        'payment_method_types[1]':      'twint',
-        'payment_method_types[2]':      'sepa_debit',
         // Trial info in Stripe too
         'subscription_data[metadata][clinic_id]': clinicId,
         // Allow promotion codes
