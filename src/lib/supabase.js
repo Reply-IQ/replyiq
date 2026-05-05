@@ -4,6 +4,7 @@ const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 export const supabase = createClient(URL, KEY, {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
 })
+
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 export async function signUp(email, password) {
   return supabase.auth.signUp({ email, password })
@@ -14,15 +15,31 @@ export async function signIn(email, password) {
 export async function signOut() {
   return supabase.auth.signOut()
 }
-// ── PROPERTY (replaces "clinic") ──────────────────────────────────────────────
+
+// ── PROPERTY ──────────────────────────────────────────────────────────────────
+// CRITICAL: Always filter by the authenticated user's ID so each user only
+// ever sees their own property — never another user's clinic.
 export async function getProperty() {
-  return supabase.from('clinics').select('*').maybeSingle()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null, error: { message: 'Not logged in' } }
+  return supabase
+    .from('clinics')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
 }
+
 export async function updateProperty(updates) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: { message: 'Not logged in' } }
-  return supabase.from('clinics').update(updates).eq('user_id', user.id).select().single()
+  return supabase
+    .from('clinics')
+    .update(updates)
+    .eq('user_id', user.id)
+    .select()
+    .single()
 }
+
 // ── REVIEWS ───────────────────────────────────────────────────────────────────
 export async function getReviews(propertyId) {
   return supabase
@@ -32,16 +49,24 @@ export async function getReviews(propertyId) {
     .order('review_date', { ascending: false })
     .range(0, 4999)
 }
+
 export async function upsertReviews(propertyId, reviews) {
-  await supabase.from('reviews').delete().eq('clinic_id', propertyId)
+  if (!reviews?.length) return { data: { count: 0 }, error: null }
   const rows = reviews.map(r => ({ ...r, clinic_id: propertyId }))
   let inserted = 0
-  for (let i = 0; i < rows.length; i += 50) {
-    const { data } = await supabase.from('reviews').insert(rows.slice(i, i + 50)).select()
+  for (let i = 0; i < rows.length; i += 100) {
+    const { data, error } = await supabase
+      .from('reviews')
+      .upsert(rows.slice(i, i + 100), {
+        onConflict: 'clinic_id,google_review_id',
+        ignoreDuplicates: false,
+      })
+      .select()
     if (data) inserted += data.length
   }
   return { data: { count: inserted }, error: null }
 }
+
 export async function saveAiClassification(reviewId, result) {
   return supabase.from('reviews').update({
     ai_sentiment:   result.sentiment,
@@ -54,12 +79,14 @@ export async function saveAiClassification(reviewId, result) {
     ai_analysed_at: new Date().toISOString(),
   }).eq('id', reviewId).select().single()
 }
+
 export async function saveResponse(reviewId, responseText) {
   return supabase.from('reviews').update({
     response_text: responseText,
     responded:     true,
   }).eq('id', reviewId).select().single()
 }
+
 // ── COMPETITORS ───────────────────────────────────────────────────────────────
 export async function getCompetitors(propertyId) {
   return supabase
@@ -68,10 +95,20 @@ export async function getCompetitors(propertyId) {
     .eq('clinic_id', propertyId)
     .order('rating', { ascending: false })
 }
+
 // ── REPORTS ───────────────────────────────────────────────────────────────────
 export async function saveReport(propertyId, data, riskScore) {
-  return supabase.from('weekly_reports').insert({ clinic_id: propertyId, report_data: data, risk_score: riskScore }).select().single()
+  return supabase
+    .from('weekly_reports')
+    .insert({ clinic_id: propertyId, report_data: data, risk_score: riskScore })
+    .select()
+    .single()
 }
+
 export async function saveBrief(propertyId, data) {
-  return supabase.from('intelligence_briefs').insert({ clinic_id: propertyId, brief_data: data }).select().single()
+  return supabase
+    .from('intelligence_briefs')
+    .insert({ clinic_id: propertyId, brief_data: data })
+    .select()
+    .single()
 }
