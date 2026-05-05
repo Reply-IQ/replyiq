@@ -11,12 +11,12 @@ const LOGOS = {
 }
 
 export default function Auth() {
-  const [mode, setMode]     = useState('login')
-  const [email, setEmail]   = useState('')
-  const [password, setPass] = useState('')
+  const [mode, setMode]       = useState('login')
+  const [email, setEmail]     = useState('')
+  const [password, setPass]   = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState('')
-  const [info, setInfo]     = useState('')
+  const [error, setError]     = useState('')
+  const [info, setInfo]       = useState('')
 
   async function submit(e) {
     e.preventDefault()
@@ -54,27 +54,27 @@ export default function Auth() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(201,169,110,0.07)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:20, padding:'6px 14px' }}>
             <div style={{ width:6, height:6, borderRadius:'50%', background:'#C9A96E' }} />
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Early Access — CHF 199/mo · Limited spots</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Early Access · CHF 199/mo · Limited spots</span>
           </div>
         </div>
 
         <div style={{ flex:1, display:'flex', gap:0 }}>
-          {/* Left — Hero */}
+          {/* Left hero */}
           <div style={{ flex:1, padding:'20px 60px 60px', display:'flex', flexDirection:'column', justifyContent:'center', minWidth:0 }}>
             <div style={{ fontFamily:'Georgia,serif', lineHeight:1.05, letterSpacing:'-2px', marginBottom:24 }}>
-              <div style={{ fontSize:'clamp(2.6rem,4.5vw,5rem)', fontWeight:700, color:'#fff' }}>Improve your rating.</div>
-              <div style={{ fontSize:'clamp(2.6rem,4.5vw,5rem)', fontWeight:700, color:'#fff' }}>Reply to every guest.</div>
-              <div style={{ fontSize:'clamp(2.6rem,4.5vw,5rem)', fontWeight:700, color:'#C9A96E' }}>Automatically.</div>
+              <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#fff' }}>More guests.</div>
+              <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#fff' }}>Higher ratings.</div>
+              <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#C9A96E' }}>Zero extra work.</div>
             </div>
 
-            <div style={{ fontSize:'17px', color:'rgba(255,255,255,0.38)', lineHeight:1.8, maxWidth:500, marginBottom:44, fontWeight:300 }}>
-              ReplyIQ monitors every review on every platform, drafts the perfect response in your brand voice, and helps your team post it in one click — without hiring anyone.
+            <div style={{ fontSize:'17px', color:'rgba(255,255,255,0.38)', lineHeight:1.8, maxWidth:480, marginBottom:44, fontWeight:300 }}>
+              Improve your rating and respond to every guest automatically — across Google, TripAdvisor, Booking.com and more. Your AI team member, available 24/7.
             </div>
 
             <div style={{ display:'flex', gap:40, marginBottom:44 }}>
               {[['100%','response rate'],['0.3★','avg rating lift'],['CHF 199','per month to start']].map(([v,l],i,arr) => (
                 <div key={l} style={{ paddingRight:i<arr.length-1?40:0, borderRight:i<arr.length-1?'1px solid rgba(255,255,255,0.07)':'none' }}>
-                  <div style={{ fontSize:'2.4rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:'Georgia,serif' }}>{v}</div>
+                  <div style={{ fontSize:'2.6rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:'Georgia,serif' }}>{v}</div>
                   <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.25)', marginTop:6 }}>{l}</div>
                 </div>
               ))}
@@ -82,10 +82,10 @@ export default function Auth() {
 
             <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:44 }}>
               {[
-                ['#34D399','Higher rating → higher Google ranking → more bookings, directly'],
-                ['#C9A96E','Every guest feels heard → 2× more likely to return and recommend'],
-                ['#60A5FA','One inbox for all platforms → your team saves hours every week'],
-                ['#A78BFA','No extra staff needed → AI handles the volume, you approve and post'],
+                ['#34D399','Respond to every review → rank higher on Google and TripAdvisor'],
+                ['#C9A96E','Professional responses → better average rating and more bookings'],
+                ['#60A5FA','Guests who feel heard → 2× more likely to return and recommend you'],
+                ['#A78BFA','One inbox for all platforms → your team saves hours every single week'],
               ].map(([dot,text]) => (
                 <div key={text} style={{ display:'flex', alignItems:'center', gap:14 }}>
                   <div style={{ width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0 }} />
@@ -109,14 +109,14 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* Right — Form */}
+          {/* Right form */}
           <div style={{ width:460, background:'#1C2430', borderLeft:'1px solid #243044', padding:'48px 48px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
             <div style={{ marginBottom:28 }}>
               <div style={{ fontSize:'1.55rem', fontWeight:700, color:'#fff', letterSpacing:'-0.5px', marginBottom:7, fontFamily:'Georgia,serif' }}>
                 {mode === 'login' ? 'Welcome back' : 'Start free today'}
               </div>
               <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.28)' }}>
-                {mode === 'login' ? 'Sign in to your ReplyIQ account' : '14-day free trial · No credit card required'}
+                {mode === 'login' ? 'Sign in to your ReplyIQ account' : '14 days free · No credit card required'}
               </div>
             </div>
 
@@ -160,22 +160,21 @@ export default function Auth() {
 
             <div style={{ height:1, background:'rgba(255,255,255,0.06)', margin:'28px 0' }} />
 
-            {/* Pricing preview */}
+            {/* Simple pricing */}
             <div style={{ padding:'16px 18px', background:'rgba(201,169,110,0.04)', border:'1px solid rgba(201,169,110,0.12)', borderRadius:14, marginBottom:16 }}>
-              <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:10 }}>After your free trial</div>
-              <div style={{ display:'flex', gap:10 }}>
-                <div style={{ flex:1, padding:'12px', background:'rgba(201,169,110,0.08)', border:'1px solid rgba(201,169,110,0.25)', borderRadius:10, textAlign:'center' }}>
-                  <div style={{ fontSize:'10px', color:'#C9A96E', fontWeight:700, letterSpacing:'1px', marginBottom:4 }}>EARLY ACCESS</div>
-                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.4rem', color:'#C9A96E' }}>CHF 199<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
-                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginTop:3 }}>Limited spots</div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                <div>
+                  <div style={{ fontSize:'12px', fontWeight:700, color:'#C9A96E', letterSpacing:'1px' }}>EARLY ACCESS PRICING</div>
+                  <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)', marginTop:3 }}>Limited spots · Lock in forever</div>
                 </div>
-                <div style={{ flex:1, padding:'12px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10, textAlign:'center', opacity:0.6 }}>
-                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', fontWeight:700, letterSpacing:'1px', marginBottom:4 }}>PROFESSIONAL</div>
-                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.4rem', color:'rgba(255,255,255,0.4)' }}>CHF 249<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.2)' }}>/mo</span></div>
-                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.2)', marginTop:3 }}>After early access</div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.5rem', color:'#C9A96E', lineHeight:1 }}>CHF 199<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
+                  <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', marginTop:3 }}>or CHF 1,990/yr · 2 months free</div>
                 </div>
               </div>
-              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', marginTop:10, textAlign:'center' }}>Early adopters keep CHF 199 forever · 1 booking covers your cost</div>
+              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', paddingTop:10, borderTop:'1px solid rgba(255,255,255,0.06)', textAlign:'center' }}>
+                14-day free trial · 1 booking covers your monthly cost
+              </div>
             </div>
 
             {/* Testimonial */}

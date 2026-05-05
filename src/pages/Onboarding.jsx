@@ -11,27 +11,35 @@ const PLATFORMS = [
   { id:'google',      icon:'🔍', color:'#4285F4', name:'Google Business', badge:'Most important', required:true,  comingSoon:false, desc:'Google reviews directly affect your search ranking and bookings. Connect this first.', fieldLabel:'Google Place ID', fieldPH:'ChIJN1t_tDeuEmsRUsoyG83frY4', hint:'Google Maps → search your property → Share → Copy link → extract the Place ID' },
   { id:'tripadvisor', icon:'🦉', color:'#00AF87', name:'TripAdvisor',     badge:'Optional',       required:false, comingSoon:false, desc:'Millions of travellers check TripAdvisor before booking a hotel.',                   fieldLabel:'TripAdvisor URL', fieldPH:'https://www.tripadvisor.com/Hotel_Review-...', hint:'Copy the full URL from your TripAdvisor property page' },
   { id:'booking',     icon:'🏨', color:'#003580', name:'Booking.com',     badge:'Optional',       required:false, comingSoon:false, desc:'Guests trust Booking.com reviews heavily when deciding where to stay.',             fieldLabel:'Booking.com URL', fieldPH:'https://www.booking.com/hotel/ch/...', hint:'Copy the full URL from your Booking.com property page' },
-  { id:'instagram',   icon:'📸', color:'#E1306C', name:'Instagram',       badge:'Coming soon',    required:false, comingSoon:true,  desc:'Monitor comments and mentions on Instagram.',                                       fieldLabel:'Instagram Handle', fieldPH:'@yourhotel', hint:'' },
-  { id:'facebook',    icon:'📘', color:'#1877F2', name:'Facebook',        badge:'Coming soon',    required:false, comingSoon:true,  desc:'Facebook reviews and page comments.',                                               fieldLabel:'Facebook Page URL', fieldPH:'https://www.facebook.com/YourHotel', hint:'' },
+  { id:'instagram',   icon:'📸', color:'#E1306C', name:'Instagram',       badge:'Coming soon',    required:false, comingSoon:true,  desc:'Monitor comments and mentions on Instagram.', fieldLabel:'Instagram Handle', fieldPH:'@yourhotel', hint:'' },
+  { id:'facebook',    icon:'📘', color:'#1877F2', name:'Facebook',        badge:'Coming soon',    required:false, comingSoon:true,  desc:'Facebook reviews and page comments.', fieldLabel:'Facebook Page URL', fieldPH:'https://www.facebook.com/YourHotel', hint:'' },
 ]
 
 export default function Onboarding() {
-  const { property, updatePropertyInState, loadAll } = useApp()
+  const { property, updatePropertyInState } = useApp()
   const navigate = useNavigate()
   const [step, setStep]         = useState(0)
   const [saving, setSaving]     = useState(false)
   const [scanning, setScanning] = useState(false)
   const [aiProfile, setProfile] = useState(null)
   const [error, setError]       = useState('')
-  const [form, setForm] = useState({ name:'', website_url:'', address:'', phone:'', owner_email: property?.owner_email||'', monthly_revenue:150000, target_rating:4.7, property_type:'hotel' })
+  const [form, setForm] = useState({
+    name:'', website_url:'', address:'', phone:'',
+    owner_email: property?.owner_email || '',
+    monthly_revenue:150000, target_rating:4.7, property_type:'hotel',
+  })
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
+
   const [pInputs,   setPInputs]   = useState({})
   const [pLoading,  setPLoading]  = useState({})
   const [pDone,     setPDone]     = useState({})
   const [pMessages, setPMessages] = useState({})
-  const pollRef = useRef({})
+  const pollRef    = useRef({})
+  const savedPropId = useRef(null)
+
   useEffect(() => () => { Object.values(pollRef.current).forEach(clearInterval) }, [])
-  const hasStartedAny = Object.keys(pLoading).length > 0 || Object.keys(pDone).length > 0
+
+  const hasStartedAny = Object.keys(pLoading).some(k => pLoading[k]) || Object.keys(pDone).length > 0
   const hasSavedOther = ['tripadvisor','booking'].some(id => pInputs[id]?.trim())
   const canProceed    = hasStartedAny || hasSavedOther
 
@@ -49,12 +57,18 @@ export default function Onboarding() {
   }
 
   async function ensurePropertySaved() {
-    if (property?.id && property?.name) return property.id
+    if (savedPropId.current) return savedPropId.current
+    if (property?.id && property?.name) { savedPropId.current = property.id; return property.id }
     const url = form.website_url ? (form.website_url.startsWith('http') ? form.website_url : `https://${form.website_url}`) : ''
     const defaultProfile = { industry:form.property_type, responseLanguage:'de', brandTone:'luxury', country:'CH', responsePersonality:`Professional, warm and personally attentive ${form.property_type} that genuinely cares about every guest.` }
     const { data, error:err } = await updateProperty({ name:form.name, website_url:url, address:form.address, phone:form.phone, owner_email:form.owner_email, avg_revenue:form.monthly_revenue, target_rating:form.target_rating, ai_profile:aiProfile||defaultProfile })
     if (err) { setError('Save failed: '+err.message); return null }
-    if (data) { updatePropertyInState(data); localStorage.setItem(`replyiq_onboarded_${data.id}`,'1'); return data.id }
+    if (data) {
+      updatePropertyInState(data)
+      localStorage.setItem(`replyiq_onboarded_${data.id}`, '1')
+      savedPropId.current = data.id
+      return data.id
+    }
     return null
   }
 
@@ -70,7 +84,10 @@ export default function Onboarding() {
       const r = await fetch('/api/fetch-reviews', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ platform:platform.id, identifier, clinicId:propId }) })
       const data = await r.json()
       if (data.error) { setError(data.error); setPLoading(p => ({ ...p, [platform.id]:false })); setPMessages(p => ({ ...p, [platform.id]:'' })); return }
-      if (data.jobId) { setPMessages(p => ({ ...p, [platform.id]:`Fetching all reviews from ${platform.name}...` })); pollImport(platform, data.jobId, propId, identifier) }
+      if (data.jobId) {
+        setPMessages(p => ({ ...p, [platform.id]:`Fetching reviews from ${platform.name} in background...` }))
+        pollImport(platform, data.jobId, propId, identifier)
+      }
     } catch(e) { setError('Import failed: '+e.message); setPLoading(p => ({ ...p, [platform.id]:false })); setPMessages(p => ({ ...p, [platform.id]:'' })) }
   }
 
@@ -89,25 +106,37 @@ export default function Onboarding() {
           return
         }
         const elapsed = attempts * 10
-        setPMessages(p => ({ ...p, [platform.id]:`Fetching reviews... ${elapsed}s elapsed. You can continue setting up while this runs.` }))
-        if (attempts >= 60) { clearInterval(interval); delete pollRef.current[platform.id]; setPLoading(p => ({ ...p, [platform.id]:false })); setPDone(p => ({ ...p, [platform.id]:{ count:0, jobId, delayed:true } })); setPMessages(p => ({ ...p, [platform.id]:'' })) }
+        setPMessages(p => ({ ...p, [platform.id]:`Fetching reviews... ${elapsed}s. You can go to your dashboard now — reviews will appear automatically.` }))
+        // After 60s, stop polling and let them proceed — import continues server-side
+        if (attempts >= 6) {
+          clearInterval(interval); delete pollRef.current[platform.id]
+          setPLoading(p => ({ ...p, [platform.id]:false }))
+          setPDone(p => ({ ...p, [platform.id]:{ count:0, jobId, delayed:true } }))
+          setPMessages(p => ({ ...p, [platform.id]:'' }))
+        }
       } catch {}
     }, 10000)
     pollRef.current[platform.id] = interval
   }
 
-  async function finish() {
-    setSaving(true); setError('')
-    const propId = await ensurePropertySaved()
-    if (propId) {
+  // Go to dashboard immediately — don't wait for anything
+  async function goToDashboard() {
+    setSaving(true)
+    // Save property in background (don't block navigation)
+    ensurePropertySaved().then(async propId => {
+      if (!propId) return
+      // Save any other platform URLs
       const otherConns = {}
-      ;['tripadvisor','booking'].forEach(id => { const url = pInputs[id]?.trim(); if (url) otherConns[id] = { identifier:url, connectedAt:new Date().toISOString(), reviewCount:0 } })
+      ;['tripadvisor','booking'].forEach(id => {
+        const url = pInputs[id]?.trim()
+        if (url) otherConns[id] = { identifier:url, connectedAt:new Date().toISOString(), reviewCount:0 }
+      })
       if (Object.keys(otherConns).length > 0) {
         const existing = property?.platform_connections || {}
         await supabase.from('clinics').update({ platform_connections:{ ...existing, ...otherConns } }).eq('id', propId)
       }
-    }
-    await loadAll(); setSaving(false)
+    })
+    // Navigate immediately — don't await anything
     navigate('/', { replace:true })
   }
 
@@ -125,7 +154,7 @@ export default function Onboarding() {
           {STEPS.map((s, i) => (
             <div key={s} style={{ display:'flex', alignItems:'center' }}>
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
-                <div style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, background: i<=step?'var(--gold)':'var(--card)', color:i<=step?'var(--bg)':'var(--text3)', border:`2px solid ${i<=step?'var(--gold)':'var(--border)'}`, transition:'all .2s' }}>{i < step ? '✓' : i+1}</div>
+                <div style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, background:i<=step?'var(--gold)':'var(--card)', color:i<=step?'var(--bg)':'var(--text3)', border:`2px solid ${i<=step?'var(--gold)':'var(--border)'}`, transition:'all .2s' }}>{i < step ? '✓' : i+1}</div>
                 <div style={{ fontSize:'10px', color:i===step?'var(--gold)':'var(--text3)', fontWeight:i===step?600:400, whiteSpace:'nowrap' }}>{s}</div>
               </div>
               {i < STEPS.length-1 && <div style={{ width:50, height:2, background:i<step?'var(--gold)':'var(--border)', margin:'0 8px', marginBottom:20, transition:'background .3s' }} />}
@@ -135,6 +164,7 @@ export default function Onboarding() {
 
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-xl)', padding: step===1 ? '28px 28px' : '28px 24px' }}>
 
+          {/* Step 0 */}
           {step === 0 && <>
             <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', marginBottom:5 }}>Tell us about your property</div>
             <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:20, lineHeight:1.5 }}>Works for hotels, restaurants, resorts and bars across DACH.</div>
@@ -163,30 +193,32 @@ export default function Onboarding() {
             </div>
           </>}
 
+          {/* Step 1 */}
           {step === 1 && <>
             <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', marginBottom:5 }}>Connect your review platforms</div>
             <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:16, lineHeight:1.5 }}>Connect at least one platform to populate your dashboard. Google is the most important — start there.</div>
             {aiProfile && (
               <div style={{ background:'rgba(74,124,111,.06)', border:'1px solid rgba(74,124,111,.2)', borderRadius:'var(--r-md)', padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:10 }}>
-                <span>✓</span>
+                <span style={{ color:'#4A7C6F' }}>✓</span>
                 <div>
-                  <div style={{ fontSize:'12px', fontWeight:600, color:'#4A7C6F', marginBottom:1 }}>AI Profile Created from {form.website_url}</div>
+                  <div style={{ fontSize:'12px', fontWeight:600, color:'#4A7C6F', marginBottom:1 }}>AI Profile Created from your website</div>
                   <div style={{ fontSize:'11px', color:'var(--text3)' }}>{aiProfile.brandTone} · {aiProfile.responseLanguage?.toUpperCase()} · {aiProfile.industry}</div>
                 </div>
               </div>
             )}
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {PLATFORMS.map((platform, idx) => {
-                const isLoading = pLoading[platform.id]; const isDone = pDone[platform.id]; const msg = pMessages[platform.id]; const inputVal = pInputs[platform.id]||''; const isFirst = idx===0
+                const isLoading = pLoading[platform.id]; const isDone = pDone[platform.id]
+                const msg = pMessages[platform.id]; const inputVal = pInputs[platform.id]||''; const isFirst = idx===0
                 return (
-                  <div key={platform.id} style={{ background:isFirst?'var(--card2)':'var(--surface)', border:`1px solid ${isDone?'#4A7C6F50':isFirst?platform.color+'30':'var(--border)'}`, borderRadius:'var(--r-lg)', padding:'14px 16px', opacity:platform.comingSoon?0.5:1 }}>
+                  <div key={platform.id} style={{ background:isFirst?'var(--card2)':'var(--surface)', border:`1px solid ${isDone?'rgba(74,124,111,.3)':isFirst?platform.color+'30':'var(--border)'}`, borderRadius:'var(--r-lg)', padding:'14px 16px', opacity:platform.comingSoon?0.5:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:platform.comingSoon?0:10 }}>
                       <div style={{ width:34, height:34, borderRadius:8, background:`${platform.color}15`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'17px', flexShrink:0 }}>{platform.icon}</div>
                       <div style={{ flex:1 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:2 }}>
                           <span style={{ fontSize:'13px', fontWeight:700 }}>{platform.name}</span>
                           <span style={{ fontSize:'10px', fontWeight:600, padding:'2px 6px', borderRadius:10, background:isDone?'rgba(74,124,111,.1)':`${platform.color}12`, color:isDone?'#4A7C6F':platform.color, border:`1px solid ${isDone?'rgba(74,124,111,.2)':platform.color+'30'}` }}>
-                            {isDone ? `✓ ${(isDone.count||0).toLocaleString()} reviews` : platform.badge}
+                            {isDone ? `✓ Import started` : platform.badge}
                           </span>
                         </div>
                         <div style={{ fontSize:'11px', color:'var(--text3)' }}>{platform.desc}</div>
@@ -195,26 +227,27 @@ export default function Onboarding() {
                     {!platform.comingSoon && !isDone && (
                       <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
                         <div style={{ flex:1 }}>
-                          <input value={inputVal} onChange={e => setPInputs(p=>({...p,[platform.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&!isLoading&&inputVal&&startImport(platform)} placeholder={platform.fieldPH} disabled={isLoading}
+                          <input value={inputVal} onChange={e=>setPInputs(p=>({...p,[platform.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&!isLoading&&inputVal&&startImport(platform)} placeholder={platform.fieldPH} disabled={isLoading}
                             style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'12px', outline:'none', boxSizing:'border-box', opacity:isLoading?0.6:1 }}
                             onFocus={e=>e.target.style.borderColor=platform.color} onBlur={e=>e.target.style.borderColor='var(--border)'} />
                           {platform.hint && <div style={{ fontSize:'10px', color:'var(--text3)', marginTop:3, lineHeight:1.4 }}>{platform.hint}</div>}
                         </div>
                         <button onClick={()=>startImport(platform)} disabled={isLoading||!inputVal.trim()}
                           style={{ padding:'9px 14px', background:platform.color, border:'none', borderRadius:8, color:'#fff', fontSize:'12px', fontWeight:600, cursor:isLoading||!inputVal.trim()?'not-allowed':'pointer', flexShrink:0, opacity:isLoading||!inputVal.trim()?0.5:1, display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap', transition:'opacity .15s' }}>
-                          {isLoading ? <><Spinner />Importing...</> : platform.id==='google'?'Import Reviews':'Save'}
+                          {isLoading ? <><Spinner />Starting...</> : platform.id==='google'?'Import Reviews':'Save'}
                         </button>
                       </div>
                     )}
                     {msg && <div style={{ marginTop:8, padding:'8px 12px', background:`${platform.color}08`, border:`1px solid ${platform.color}20`, borderRadius:7, display:'flex', alignItems:'center', gap:8 }}><Spinner /><span style={{ fontSize:'12px', color:platform.color, lineHeight:1.4 }}>{msg}</span></div>}
-                    {isDone && <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(74,124,111,.06)', borderRadius:7, border:'1px solid rgba(74,124,111,.2)' }}><span style={{ color:'#4A7C6F' }}>✓</span><span style={{ fontSize:'12px', color:'#4A7C6F', fontWeight:500 }}>{isDone.delayed?'Import is running — reviews will appear in your dashboard shortly.':`${(isDone.count||0).toLocaleString()} reviews imported and ready.`}</span></div>}
+                    {isDone && <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(74,124,111,.06)', borderRadius:7, border:'1px solid rgba(74,124,111,.2)' }}><span style={{ color:'#4A7C6F' }}>✓</span><span style={{ fontSize:'12px', color:'#4A7C6F', fontWeight:500 }}>Import running in background — reviews will appear in your dashboard automatically.</span></div>}
                   </div>
                 )
               })}
             </div>
-            {!canProceed && <div style={{ marginTop:14, padding:'10px 14px', background:'rgba(201,169,110,.06)', border:'1px solid rgba(201,169,110,.15)', borderRadius:8, fontSize:'12px', color:'var(--text2)', lineHeight:1.5 }}>ℹ Connect at least one platform above to proceed to your dashboard. Start with Google for maximum impact.</div>}
+            {!canProceed && <div style={{ marginTop:14, padding:'10px 14px', background:'rgba(201,169,110,.06)', border:'1px solid rgba(201,169,110,.15)', borderRadius:8, fontSize:'12px', color:'var(--text2)', lineHeight:1.5 }}>ℹ Connect at least one platform above to proceed. Start with Google Business for maximum impact.</div>}
           </>}
 
+          {/* Step 2 */}
           {step === 2 && (
             <div style={{ textAlign:'center', padding:'12px 0' }}>
               <div style={{ fontSize:'3rem', marginBottom:14 }}>🎉</div>
@@ -229,12 +262,17 @@ export default function Onboarding() {
           {error && <div style={{ marginTop:12, padding:'10px 14px', background:'rgba(184,92,56,.08)', border:'1px solid rgba(184,92,56,.2)', borderRadius:8, fontSize:'13px', color:'#B85C38' }}>{error}</div>}
 
           <button
-            onClick={step===0?goToStep1:step===1?finish:()=>navigate('/',{replace:true})}
-            disabled={saving||scanning||(step===0&&!form.name.trim())||(step===1&&!canProceed&&!saving)}
-            style={{ width:'100%', marginTop:22, padding:'14px', background:canProceed||step!==1?'linear-gradient(135deg,var(--gold),var(--amber))':'var(--surface)', border:'none', borderRadius:11, color:canProceed||step!==1?'var(--bg)':'var(--text3)', fontSize:'15px', fontWeight:700, cursor:(saving||scanning||(step===0&&!form.name.trim())||(step===1&&!canProceed))?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'var(--ease)', opacity:(step===1&&!canProceed)?0.5:1 }}>
-            {scanning?<><Spinner />Scanning your website...</>:saving?<><Spinner />Saving...</>:step===0?'Continue →':step===1?'Go to Dashboard →':'Open Dashboard →'}
+            onClick={step===0 ? goToStep1 : step===1 ? goToDashboard : () => navigate('/', { replace:true })}
+            disabled={scanning || (step===0 && !form.name.trim()) || (step===1 && !canProceed) || saving}
+            style={{ width:'100%', marginTop:22, padding:'14px', background: canProceed||step!==1 ? 'linear-gradient(135deg,var(--gold),var(--amber))' : 'var(--surface)', border:'none', borderRadius:11, color:canProceed||step!==1?'var(--bg)':'var(--text3)', fontSize:'15px', fontWeight:700, cursor:(scanning||(step===0&&!form.name.trim())||(step===1&&!canProceed)||saving)?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'var(--ease)', opacity:(step===1&&!canProceed)?0.5:1 }}>
+            {scanning ? <><Spinner />Scanning your website...</> : saving ? <><Spinner />Saving...</> : step===0 ? 'Continue →' : step===1 ? 'Go to Dashboard →' : 'Open Dashboard →'}
           </button>
-          {step===1&&canProceed&&<div style={{ textAlign:'center', marginTop:10, fontSize:'12px', color:'var(--text3)' }}>Import still running? No problem — reviews appear automatically. Go to your dashboard now.</div>}
+
+          {step===1 && canProceed && (
+            <div style={{ textAlign:'center', marginTop:10, fontSize:'12px', color:'var(--text3)' }}>
+              Import running in background — go to your dashboard now, reviews will appear automatically.
+            </div>
+          )}
         </div>
         <div style={{ textAlign:'center', marginTop:14, fontSize:'12px', color:'var(--text3)' }}>All details can be updated in Settings at any time</div>
       </div>
