@@ -120,29 +120,32 @@ export default function Onboarding() {
   }
 
   async function goToDashboard() {
-    setSaving(true)
     setError('')
-    try {
-      // Must await — the router checks the property is saved before allowing navigation to /
-      const propId = await ensurePropertySaved()
-      if (!propId) { setSaving(false); return }
+    const propId = savedPropId.current || property?.id
 
-      // Save any extra platform URLs in background — don't block navigation
-      const otherConns = {}
-      ;['tripadvisor','booking'].forEach(id => {
-        const url = pInputs[id]?.trim()
-        if (url) otherConns[id] = { identifier:url, connectedAt:new Date().toISOString(), reviewCount:0 }
-      })
-      if (Object.keys(otherConns).length > 0) {
-        const existing = property?.platform_connections || {}
-        supabase.from('clinics').update({ platform_connections:{ ...existing, ...otherConns } }).eq('id', propId)
-        // intentionally not awaited — saves in background
-      }
+    if (!propId) {
+      // Edge case: no import ran and no property yet — save first
+      setSaving(true)
+      const id = await ensurePropertySaved()
+      if (!id) { setSaving(false); setError('Save failed — please try again.'); return }
+      localStorage.setItem(`replyiq_onboarded_${id}`, '1')
+      navigate('/', { replace: true })
+      return
+    }
 
-      navigate('/', { replace:true })
-    } catch(e) {
-      setError('Something went wrong — please try again.')
-      setSaving(false)
+    // Normal case: property already exists (import ran) — navigate instantly
+    localStorage.setItem(`replyiq_onboarded_${propId}`, '1')
+    navigate('/', { replace: true })
+
+    // Save any extra platform URLs silently in background
+    const otherConns = {}
+    ;['tripadvisor', 'booking'].forEach(id => {
+      const url = pInputs[id]?.trim()
+      if (url) otherConns[id] = { identifier: url, connectedAt: new Date().toISOString(), reviewCount: 0 }
+    })
+    if (Object.keys(otherConns).length > 0) {
+      const existing = property?.platform_connections || {}
+      supabase.from('clinics').update({ platform_connections: { ...existing, ...otherConns } }).eq('id', propId)
     }
   }
 
@@ -269,9 +272,9 @@ export default function Onboarding() {
 
           <button
             onClick={step===0 ? goToStep1 : step===1 ? goToDashboard : () => navigate('/', { replace:true })}
-            disabled={scanning || (step===0 && !form.name.trim()) || (step===1 && !canProceed) || saving}
-            style={{ width:'100%', marginTop:22, padding:'14px', background: canProceed||step!==1 ? 'linear-gradient(135deg,var(--gold),var(--amber))' : 'var(--surface)', border:'none', borderRadius:11, color:canProceed||step!==1?'var(--bg)':'var(--text3)', fontSize:'15px', fontWeight:700, cursor:(scanning||(step===0&&!form.name.trim())||(step===1&&!canProceed)||saving)?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'var(--ease)', opacity:(step===1&&!canProceed)?0.5:1 }}>
-            {scanning ? <><Spinner />Scanning your website...</> : saving ? <><Spinner />Saving...</> : step===0 ? 'Continue →' : step===1 ? 'Go to Dashboard →' : 'Open Dashboard →'}
+            disabled={scanning || (step===0 && !form.name.trim()) || (step===1 && !canProceed)}
+            style={{ width:'100%', marginTop:22, padding:'14px', background: canProceed||step!==1 ? 'linear-gradient(135deg,var(--gold),var(--amber))' : 'var(--surface)', border:'none', borderRadius:11, color:canProceed||step!==1?'var(--bg)':'var(--text3)', fontSize:'15px', fontWeight:700, cursor:(scanning||(step===0&&!form.name.trim())||(step===1&&!canProceed))?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'var(--ease)', opacity:(step===1&&!canProceed)?0.5:1 }}>
+            {scanning ? <><Spinner />Scanning your website...</> : step===0 ? 'Continue →' : step===1 ? 'Go to Dashboard →' : 'Open Dashboard →'}
           </button>
 
           {step===1 && canProceed && (
