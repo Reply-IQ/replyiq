@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   try {
     const r = await fetch(
-      `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(identifier)}&reviewsLimit=0&language=en&async=true&reviewsSort=newest`,
+      `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(identifier)}&reviewsLimit=1500&language=en&async=true&reviewsSort=newest`,
       { headers: { 'X-API-KEY': outscraperKey } }
     )
     const data = await r.json()
