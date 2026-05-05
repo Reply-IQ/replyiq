@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Layout } from '../components/Layout.jsx'
@@ -24,10 +24,61 @@ const ChartTip = ({ active, payload, label }) => !active||!payload?.length ? nul
 )
 
 export default function Dashboard() {
-  const { property, reviews, showToast } = useApp()
+  const { property, reviews, showToast, loadAll } = useApp()
   const navigate   = useNavigate()
-  const [brief, setBrief]     = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [brief, setBrief]               = useState(null)
+  const [loading, setLoading]           = useState(false)
+  const [importProgress, setImportProgress] = useState(null) // { elapsed, platform }
+  const importPollRef = useRef(null)
+
+  // ── Auto-resume any in-progress review import ──────────────────────────────
+  useEffect(() => {
+    if (!property?.pending_review_job) {
+      setImportProgress(null)
+      if (importPollRef.current) { clearInterval(importPollRef.current); importPollRef.current = null }
+      return
+    }
+
+    let pending
+    try { pending = JSON.parse(property.pending_review_job) } catch { return }
+    if (!pending?.jobId) return
+
+    let elapsed = 0
+    setImportProgress({ elapsed, platform: pending.platformId || 'google' })
+
+    const poll = async () => {
+      try {
+        const r = await fetch('/api/check-reviews-job', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobId:      pending.jobId,
+            clinicId:   pending.clinicId || property.id,
+            platform:   pending.platformId || 'google',
+            identifier: pending.identifier,
+          })
+        })
+        const data = await r.json()
+
+        if (data.status === 'done') {
+          clearInterval(importPollRef.current)
+          importPollRef.current = null
+          setImportProgress(null)
+          await loadAll()
+          if (data.count > 0) showToast(`✓ ${data.count.toLocaleString()} reviews imported!`, 'success')
+        } else {
+          elapsed += 5
+          setImportProgress({ elapsed, platform: pending.platformId || 'google' })
+        }
+      } catch {}
+    }
+
+    // Poll immediately, then every 5 seconds
+    poll()
+    importPollRef.current = setInterval(poll, 5000)
+
+    return () => { if (importPollRef.current) { clearInterval(importPollRef.current); importPollRef.current = null } }
+  }, [property?.id, property?.pending_review_job])
   const riskScore   = useRiskScore(reviews)
   const unans       = useUnanswered(reviews)
   const connections = property?.platform_connections || {}
@@ -93,6 +144,23 @@ export default function Dashboard() {
         {loading ? <><Spinner /> Analysing...</> : '⚡ AI Brief'}
       </Button>
     }>
+
+      {/* ── Import progress banner ── */}
+      {importProgress && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(66,133,244,.06)', border:'1px solid rgba(66,133,244,.2)', borderRadius:'var(--r-md)', padding:'14px 20px', marginBottom:20 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <Spinner />
+            <div>
+              <div style={{ fontWeight:700, fontSize:'13px', color:'#4285F4', marginBottom:2 }}>
+                Importing your reviews — {importProgress.elapsed}s elapsed
+              </div>
+              <div style={{ fontSize:'12px', color:'var(--text3)' }}>
+                Fetching all reviews from Google. Your dashboard will update automatically when complete.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Achievement banner ── */}
       {responseRate === 100 && reviews.length > 0 && (

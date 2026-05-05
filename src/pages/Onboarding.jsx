@@ -105,17 +105,17 @@ export default function Onboarding() {
           setPMessages(p => ({ ...p, [platform.id]:'' }))
           return
         }
-        const elapsed = attempts * 10
-        setPMessages(p => ({ ...p, [platform.id]:`Fetching reviews... ${elapsed}s. You can go to your dashboard now — reviews will appear automatically.` }))
-        // After 60s, stop polling and let them proceed — import continues server-side
-        if (attempts >= 6) {
+        const elapsed = attempts * 5
+        setPMessages(p => ({ ...p, [platform.id]:`Fetching reviews... ${elapsed}s elapsed.` }))
+        // After 60s stop polling here — Dashboard will continue automatically
+        if (attempts >= 12) {
           clearInterval(interval); delete pollRef.current[platform.id]
           setPLoading(p => ({ ...p, [platform.id]:false }))
           setPDone(p => ({ ...p, [platform.id]:{ count:0, jobId, delayed:true } }))
           setPMessages(p => ({ ...p, [platform.id]:'' }))
         }
       } catch {}
-    }, 10000)
+    }, 5000)
     pollRef.current[platform.id] = interval
   }
 
@@ -245,7 +245,7 @@ export default function Onboarding() {
                       </div>
                     )}
                     {msg && <div style={{ marginTop:8, padding:'8px 12px', background:`${platform.color}08`, border:`1px solid ${platform.color}20`, borderRadius:7, display:'flex', alignItems:'center', gap:8 }}><Spinner /><span style={{ fontSize:'12px', color:platform.color, lineHeight:1.4 }}>{msg}</span></div>}
-                    {isDone && <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(74,124,111,.06)', borderRadius:7, border:'1px solid rgba(74,124,111,.2)' }}><span style={{ color:'#4A7C6F' }}>✓</span><span style={{ fontSize:'12px', color:'#4A7C6F', fontWeight:500 }}>Import running in background — reviews will appear in your dashboard automatically.</span></div>}
+                    {isDone && <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(74,124,111,.06)', borderRadius:7, border:'1px solid rgba(74,124,111,.2)' }}><span style={{ color:'#4A7C6F' }}>✓</span><span style={{ fontSize:'12px', color:'#4A7C6F', fontWeight:500 }}>{isDone.delayed ? 'Import is still running — your dashboard will show a progress bar and update automatically when complete.' : `${(isDone.count||0).toLocaleString()} reviews imported successfully.`}</span></div>}
                   </div>
                 )
               })}
@@ -276,7 +276,7 @@ export default function Onboarding() {
 
           {step===1 && canProceed && (
             <div style={{ textAlign:'center', marginTop:10, fontSize:'12px', color:'var(--text3)' }}>
-              Import running in background — go to your dashboard now, reviews will appear automatically.
+              You can go to your dashboard now — a progress bar will show the import status and your reviews will appear automatically when complete.
             </div>
           )}
         </div>
