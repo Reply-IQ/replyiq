@@ -124,20 +124,18 @@ export default function Onboarding() {
     const propId = savedPropId.current || property?.id
 
     if (!propId) {
-      // Edge case: no import ran and no property yet — save first
       setSaving(true)
       const id = await ensurePropertySaved()
       if (!id) { setSaving(false); setError('Save failed — please try again.'); return }
       localStorage.setItem(`replyiq_onboarded_${id}`, '1')
-      navigate('/', { replace: true })
+      window.location.replace('/')
       return
     }
 
-    // Normal case: property already exists (import ran) — navigate instantly
+    // Property exists — set flag and force navigation
     localStorage.setItem(`replyiq_onboarded_${propId}`, '1')
-    navigate('/', { replace: true })
 
-    // Save any extra platform URLs silently in background
+    // Save extra platform URLs silently
     const otherConns = {}
     ;['tripadvisor', 'booking'].forEach(id => {
       const url = pInputs[id]?.trim()
@@ -147,6 +145,9 @@ export default function Onboarding() {
       const existing = property?.platform_connections || {}
       supabase.from('clinics').update({ platform_connections: { ...existing, ...otherConns } }).eq('id', propId)
     }
+
+    // Full page reload — bypasses any routing guard issues 100%
+    window.location.replace('/')
   }
 
   return (
