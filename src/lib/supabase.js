@@ -17,8 +17,7 @@ export async function signOut() {
 }
 
 // ── PROPERTY ──────────────────────────────────────────────────────────────────
-// CRITICAL: Always filter by the authenticated user's ID so each user only
-// ever sees their own property — never another user's clinic.
+// Always filter by authenticated user's ID — never return another user's data
 export async function getProperty() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: { message: 'Not logged in' } }
@@ -29,13 +28,16 @@ export async function getProperty() {
     .maybeSingle()
 }
 
+// Upsert so it works for both new users (INSERT) and existing users (UPDATE)
 export async function updateProperty(updates) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: { message: 'Not logged in' } }
   return supabase
     .from('clinics')
-    .update(updates)
-    .eq('user_id', user.id)
+    .upsert(
+      { ...updates, user_id: user.id },
+      { onConflict: 'user_id' }
+    )
     .select()
     .single()
 }

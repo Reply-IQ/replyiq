@@ -1,52 +1,87 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { supabase, getProperty, getReviews, getCompetitors } from './supabase.js'
 
 const Ctx = createContext(null)
 
 export function AppProvider({ children }) {
-  const [user, setUser]         = useState(undefined)
+  const [user, setUser]         = useState(undefined) // undefined = loading, null = not logged in
   const [property, setProperty] = useState(null)
   const [reviews, setReviews]   = useState([])
   const [competitors, setComp]  = useState([])
   const [loading, setLoading]   = useState(false)
   const [toast, setToast]       = useState(null)
+  const loadingRef              = useRef(false)
 
+  // ── Auth listener ──────────────────────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null))
+    // Get current session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) setUser(session.user)
-      if (event === 'SIGNED_OUT') { setUser(null); setProperty(null); setReviews([]); setComp([]) }
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+      }
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProperty(null)
+        setReviews([])
+        setComp([])
+        loadingRef.current = false
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => { if (user?.id) loadAll() }, [user?.id])
+  // ── Load all data when user changes ───────────────────────────────────────
+  useEffect(() => {
+    if (user?.id) {
+      loadAll()
+    }
+  }, [user?.id])
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
+    if (loadingRef.current) return
+    loadingRef.current = true
     setLoading(true)
     try {
-      const { data: p } = await getProperty()
+      const { data: p, error } = await getProperty()
+      if (error) {
+        console.error('[loadAll] getProperty error:', error)
+      }
       if (p) {
         setProperty(p)
-        const [{ data: r }, { data: c }] = await Promise.all([getReviews(p.id), getCompetitors(p.id)])
+        const [{ data: r }, { data: c }] = await Promise.all([
+          getReviews(p.id),
+          getCompetitors(p.id),
+        ])
         if (r) setReviews(r)
         if (c) setComp(c)
+      } else {
+        // No property found for this user — clear everything
+        setProperty(null)
+        setReviews([])
+        setComp([])
       }
-    } catch (e) { console.error('[loadAll]', e) }
+    } catch (e) {
+      console.error('[loadAll]', e)
+    }
     setLoading(false)
-  }
+    loadingRef.current = false
+  }, [])
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
   }, [])
 
-  const updateReviewInState     = useCallback((u) => setReviews(p => p.map(r => r.id === u.id ? u : r)), [])
-  const updatePropertyInState   = useCallback((u) => setProperty(u), [])
+  const updateReviewInState   = useCallback((u) => setReviews(p => p.map(r => r.id === u.id ? u : r)), [])
+  const updatePropertyInState = useCallback((u) => setProperty(u), [])
 
-  // ── TRIAL HELPERS ──────────────────────────────────────────────────────────
-  const trialStatus = property?.subscription_status || 'trial'
-  const trialActive = trialStatus === 'active'
+  // ── Trial helpers ──────────────────────────────────────────────────────────
+  const trialStatus  = property?.subscription_status || 'trial'
+  const trialActive  = trialStatus === 'active'
   const trialExpired = trialStatus === 'expired' ||
     (trialStatus === 'trial' && property?.trial_ends_at && new Date() > new Date(property.trial_ends_at))
 
@@ -59,11 +94,9 @@ export function AppProvider({ children }) {
     ? Math.max(0, Math.ceil((new Date(property.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)))
     : 14
 
-  // Call this before every AI generation
   async function consumeAIGeneration() {
     if (!property?.id) return { allowed: false, reason: 'No property found' }
     if (trialActive) {
-      // Active subscriber — just increment for analytics
       const newUsed = aiUsed + 1
       await supabase.from('clinics').update({ ai_generations_used: newUsed }).eq('id', property.id)
       setProperty(p => ({ ...p, ai_generations_used: newUsed }))
@@ -71,7 +104,6 @@ export function AppProvider({ children }) {
     }
     if (trialExpired) return { allowed: false, reason: 'Your trial has ended. Upgrade to continue.' }
     if (aiRemaining <= 0) return { allowed: false, reason: `You have used all ${aiLimit} AI generations. Upgrade to continue.` }
-    // Use one generation
     const newUsed = aiUsed + 1
     await supabase.from('clinics').update({ ai_generations_used: newUsed }).eq('id', property.id)
     setProperty(p => ({ ...p, ai_generations_used: newUsed }))
@@ -83,7 +115,6 @@ export function AppProvider({ children }) {
       user, property, reviews, competitors, loading,
       loadAll, showToast, updateReviewInState, updatePropertyInState,
       toast, setToast,
-      // Trial/subscription
       trialStatus, trialActive, trialExpired, canUseAI,
       aiUsed, aiLimit, aiRemaining, daysLeft,
       consumeAIGeneration,
