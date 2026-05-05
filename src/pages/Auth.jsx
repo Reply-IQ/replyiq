@@ -2,26 +2,12 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Spinner } from '../components/UI.jsx'
 
-// Real SVG logos for each platform
 const LOGOS = {
-  Google: (
-    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-  ),
-  TripAdvisor: (
-    <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="6.5" cy="14.5" r="3.5" fill="#00AF87"/><circle cx="17.5" cy="14.5" r="3.5" fill="#00AF87"/><path fill="#00AF87" d="M12 3C7 3 3 6 2 9h2.5a4 4 0 0 1 7.5 0h0a4 4 0 0 1 7.5 0H22C21 6 17 3 12 3z"/><circle cx="6.5" cy="14.5" r="1.5" fill="white"/><circle cx="17.5" cy="14.5" r="1.5" fill="white"/></svg>
-  ),
-  'Booking.com': (
-    <svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#003580"/><text x="4" y="17" fontSize="11" fontWeight="900" fill="white" fontFamily="Arial">B.</text></svg>
-  ),
-  Instagram: (
-    <svg width="18" height="18" viewBox="0 0 24 24"><defs><radialGradient id="ig" x1="30%" y1="107%" x2="0%" y2="96%"><stop offset="0%" stopColor="#ffd676"/><stop offset="25%" stopColor="#f46f30"/><stop offset="50%" stopColor="#dc2743"/><stop offset="75%" stopColor="#cc2366"/><stop offset="100%" stopColor="#bc1888"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig)"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="white" strokeWidth="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="white"/></svg>
-  ),
-  Facebook: (
-    <svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#1877F2"/><path fill="white" d="M16 8h-2a1 1 0 0 0-1 1v2h3l-.5 3H13v7h-3v-7H8v-3h2V9a4 4 0 0 1 4-4h2v3z"/></svg>
-  ),
-  LinkedIn: (
-    <svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#0A66C2"/><path fill="white" d="M7 9h-2v9h2V9zm-1-3a1.1 1.1 0 1 1 0 2.2A1.1 1.1 0 0 1 6 6zm4 3H8v9h2v-4.5c0-2 2.5-2.2 2.5 0V18h2v-5c0-4-4.5-3.8-4.5-1V9z"/></svg>
-  ),
+  Google: <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>,
+  TripAdvisor: <svg width="18" height="18" viewBox="0 0 24 24"><circle cx="6.5" cy="14.5" r="3.5" fill="#00AF87"/><circle cx="17.5" cy="14.5" r="3.5" fill="#00AF87"/><path fill="#00AF87" d="M12 3C7 3 3 6 2 9h2.5a4 4 0 0 1 7.5 0h0a4 4 0 0 1 7.5 0H22C21 6 17 3 12 3z"/><circle cx="6.5" cy="14.5" r="1.5" fill="white"/><circle cx="17.5" cy="14.5" r="1.5" fill="white"/></svg>,
+  'Booking.com': <svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#003580"/><text x="4" y="17" fontSize="11" fontWeight="900" fill="white" fontFamily="Arial">B.</text></svg>,
+  Instagram: <svg width="18" height="18" viewBox="0 0 24 24"><defs><radialGradient id="ig" x1="30%" y1="107%" x2="0%" y2="96%"><stop offset="0%" stopColor="#ffd676"/><stop offset="25%" stopColor="#f46f30"/><stop offset="50%" stopColor="#dc2743"/><stop offset="75%" stopColor="#cc2366"/><stop offset="100%" stopColor="#bc1888"/></radialGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig)"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="white" strokeWidth="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="white"/></svg>,
+  Facebook: <svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#1877F2"/><path fill="white" d="M16 8h-2a1 1 0 0 0-1 1v2h3l-.5 3H13v7h-3v-7H8v-3h2V9a4 4 0 0 1 4-4h2v3z"/></svg>,
 }
 
 export default function Auth() {
@@ -53,65 +39,53 @@ export default function Auth() {
 
   return (
     <div style={{ minHeight:'100vh', background:'#141920', fontFamily:'Inter,-apple-system,sans-serif', overflowX:'hidden', position:'relative' }}>
-
-      {/* Background orbs */}
       <div style={{ position:'fixed', inset:0, zIndex:0, pointerEvents:'none' }}>
         <div style={{ position:'absolute', top:'-20%', left:'-10%', width:'70vw', height:'70vw', borderRadius:'50%', background:'radial-gradient(circle, rgba(201,169,110,0.07) 0%, transparent 60%)' }} />
         <div style={{ position:'absolute', bottom:'-20%', right:'-10%', width:'60vw', height:'60vw', borderRadius:'50%', background:'radial-gradient(circle, rgba(74,124,111,0.04) 0%, transparent 60%)' }} />
         <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,.007) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.007) 1px,transparent 1px)', backgroundSize:'80px 80px' }} />
       </div>
 
-      {/* ── FULL PAGE LAYOUT ── */}
       <div style={{ position:'relative', zIndex:1, minHeight:'100vh', display:'flex', flexDirection:'column' }}>
-
-        {/* TOP NAV */}
+        {/* Nav */}
         <div style={{ padding:'28px 60px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
-            <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:'Georgia,serif', lineHeight:1 }}>
-              Reply<span style={{ color:'#C9A96E' }}>IQ</span>
-            </div>
+            <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:'Georgia,serif', lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
             <div style={{ fontSize:'9px', letterSpacing:'3px', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginTop:5 }}>Reputation Intelligence</div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(201,169,110,0.07)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:20, padding:'6px 14px' }}>
             <div style={{ width:6, height:6, borderRadius:'50%', background:'#C9A96E' }} />
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>For Hotels &amp; Restaurants · DACH</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Early Access — CHF 199/mo · Limited spots</span>
           </div>
         </div>
 
-        {/* MAIN — two columns that actually fill the space */}
         <div style={{ flex:1, display:'flex', gap:0 }}>
-
-          {/* LEFT — Hero content */}
+          {/* Left — Hero */}
           <div style={{ flex:1, padding:'20px 60px 60px', display:'flex', flexDirection:'column', justifyContent:'center', minWidth:0 }}>
-
-            {/* Headline */}
             <div style={{ fontFamily:'Georgia,serif', lineHeight:1.05, letterSpacing:'-2px', marginBottom:24 }}>
-              <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#fff' }}>More guests.</div>
-              <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#fff' }}>Higher ratings.</div>
-              <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#C9A96E' }}>Zero extra work.</div>
+              <div style={{ fontSize:'clamp(2.6rem,4.5vw,5rem)', fontWeight:700, color:'#fff' }}>Improve your rating.</div>
+              <div style={{ fontSize:'clamp(2.6rem,4.5vw,5rem)', fontWeight:700, color:'#fff' }}>Reply to every guest.</div>
+              <div style={{ fontSize:'clamp(2.6rem,4.5vw,5rem)', fontWeight:700, color:'#C9A96E' }}>Automatically.</div>
             </div>
 
-            <div style={{ fontSize:'17px', color:'rgba(255,255,255,0.38)', lineHeight:1.8, maxWidth:480, marginBottom:44, fontWeight:300 }}>
-              Your AI team member that reads every review on every platform, drafts the perfect reply, and lets your team post it in one click.
+            <div style={{ fontSize:'17px', color:'rgba(255,255,255,0.38)', lineHeight:1.8, maxWidth:500, marginBottom:44, fontWeight:300 }}>
+              ReplyIQ monitors every review on every platform, drafts the perfect response in your brand voice, and helps your team post it in one click — without hiring anyone.
             </div>
 
-            {/* Stats */}
             <div style={{ display:'flex', gap:40, marginBottom:44 }}>
-              {[['100%','response rate'],['0.3★','rating lift'],['14×','ROI']].map(([v,l],i,arr) => (
-                <div key={l} style={{ paddingRight: i<arr.length-1?40:0, borderRight: i<arr.length-1?'1px solid rgba(255,255,255,0.07)':'none' }}>
-                  <div style={{ fontSize:'2.6rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:'Georgia,serif' }}>{v}</div>
+              {[['100%','response rate'],['0.3★','avg rating lift'],['CHF 199','per month to start']].map(([v,l],i,arr) => (
+                <div key={l} style={{ paddingRight:i<arr.length-1?40:0, borderRight:i<arr.length-1?'1px solid rgba(255,255,255,0.07)':'none' }}>
+                  <div style={{ fontSize:'2.4rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:'Georgia,serif' }}>{v}</div>
                   <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.25)', marginTop:6 }}>{l}</div>
                 </div>
               ))}
             </div>
 
-            {/* Benefits */}
             <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:44 }}>
               {[
-                ['#34D399','Reply to every review → rank higher on Google and TripAdvisor'],
-                ['#C9A96E','Professional responses → better average rating and more bookings'],
-                ['#60A5FA','Guests who feel heard → 2× more likely to return and recommend you'],
-                ['#A78BFA','One inbox for all platforms → your team saves hours every single week'],
+                ['#34D399','Higher rating → higher Google ranking → more bookings, directly'],
+                ['#C9A96E','Every guest feels heard → 2× more likely to return and recommend'],
+                ['#60A5FA','One inbox for all platforms → your team saves hours every week'],
+                ['#A78BFA','No extra staff needed → AI handles the volume, you approve and post'],
               ].map(([dot,text]) => (
                 <div key={text} style={{ display:'flex', alignItems:'center', gap:14 }}>
                   <div style={{ width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0 }} />
@@ -120,7 +94,6 @@ export default function Auth() {
               ))}
             </div>
 
-            {/* Platform logos — REAL icons */}
             <div>
               <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', letterSpacing:'2px', marginBottom:14 }}>Works with</div>
               <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
@@ -136,19 +109,17 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* RIGHT — Form */}
+          {/* Right — Form */}
           <div style={{ width:460, background:'#1C2430', borderLeft:'1px solid #243044', padding:'48px 48px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-
             <div style={{ marginBottom:28 }}>
               <div style={{ fontSize:'1.55rem', fontWeight:700, color:'#fff', letterSpacing:'-0.5px', marginBottom:7, fontFamily:'Georgia,serif' }}>
                 {mode === 'login' ? 'Welcome back' : 'Start free today'}
               </div>
               <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.28)' }}>
-                {mode === 'login' ? 'Sign in to your ReplyIQ account' : '14 days free · No credit card required'}
+                {mode === 'login' ? 'Sign in to your ReplyIQ account' : '14-day free trial · No credit card required'}
               </div>
             </div>
 
-            {/* Toggle */}
             <div style={{ display:'flex', background:'rgba(240,237,232,0.04)', borderRadius:11, padding:4, marginBottom:26, border:'1px solid #243044' }}>
               {[['login','Sign In'],['signup','Create Account']].map(([m,label]) => (
                 <button key={m} onClick={()=>{setMode(m);setError('');setInfo('')}}
@@ -158,11 +129,10 @@ export default function Auth() {
               ))}
             </div>
 
-            {/* Fields */}
             <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:16 }}>
               {[
-                {label:'Email address',type:'email',   val:email,    set:e=>setEmail(e.target.value), ph:'gm@yourhotel.ch'},
-                {label:'Password',     type:'password',val:password, set:e=>setPass(e.target.value),  ph:mode==='signup'?'At least 6 characters':'••••••••'},
+                {label:'Email address',type:'email',val:email,set:e=>setEmail(e.target.value),ph:'gm@yourhotel.ch'},
+                {label:'Password',type:'password',val:password,set:e=>setPass(e.target.value),ph:mode==='signup'?'At least 6 characters':'••••••••'},
               ].map(f=>(
                 <div key={f.label}>
                   <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.28)', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:600, marginBottom:8 }}>{f.label}</div>
@@ -178,29 +148,44 @@ export default function Auth() {
 
               <button type="submit" disabled={loading}
                 style={{ width:'100%', padding:'15px', background:'linear-gradient(135deg,#F5C842,#D4860E)', border:'none', borderRadius:11, color:'#141920', fontSize:'15px', fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:'Inter,sans-serif', marginTop:4, display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:'0 4px 32px rgba(201,169,110,0.22)', opacity:loading?0.7:1 }}>
-                {loading?<><Spinner size={14}/>{mode==='login'?'Signing in...':'Creating account...'}</>:mode==='login'?'Sign In →':'Create Free Account →'}
+                {loading?<><Spinner size={14}/>{mode==='login'?'Signing in...':'Creating account...'}</>:mode==='login'?'Sign In →':'Start Free — 14 Days →'}
               </button>
             </form>
 
-            {/* Trust */}
             <div style={{ display:'flex', gap:7, marginTop:18, flexWrap:'wrap' }}>
-              {['GDPR Compliant','Swiss Data','SSL Encrypted'].map(b=>(
+              {['GDPR Compliant','Swiss Data','Cancel anytime'].map(b=>(
                 <div key={b} style={{ padding:'4px 11px', background:'rgba(255,255,255,0.03)', border:'1px solid #243044', borderRadius:20, fontSize:'10px', color:'rgba(255,255,255,0.2)' }}>{b}</div>
               ))}
             </div>
 
             <div style={{ height:1, background:'rgba(255,255,255,0.06)', margin:'28px 0' }} />
 
-            {/* Testimonial */}
-            <div style={{ padding:'20px 22px', background:'rgba(201,169,110,0.03)', border:'1px solid rgba(201,169,110,0.09)', borderRadius:14 }}>
-              <div style={{ display:'flex', gap:2, marginBottom:10 }}>
-                {[1,2,3,4,5].map(i=><span key={i} style={{ color:'#C9A96E', fontSize:'13px' }}>★</span>)}
+            {/* Pricing preview */}
+            <div style={{ padding:'16px 18px', background:'rgba(201,169,110,0.04)', border:'1px solid rgba(201,169,110,0.12)', borderRadius:14, marginBottom:16 }}>
+              <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:10 }}>After your free trial</div>
+              <div style={{ display:'flex', gap:10 }}>
+                <div style={{ flex:1, padding:'12px', background:'rgba(201,169,110,0.08)', border:'1px solid rgba(201,169,110,0.25)', borderRadius:10, textAlign:'center' }}>
+                  <div style={{ fontSize:'10px', color:'#C9A96E', fontWeight:700, letterSpacing:'1px', marginBottom:4 }}>EARLY ACCESS</div>
+                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.4rem', color:'#C9A96E' }}>CHF 199<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
+                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginTop:3 }}>Limited spots</div>
+                </div>
+                <div style={{ flex:1, padding:'12px', background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:10, textAlign:'center', opacity:0.6 }}>
+                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', fontWeight:700, letterSpacing:'1px', marginBottom:4 }}>PROFESSIONAL</div>
+                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.4rem', color:'rgba(255,255,255,0.4)' }}>CHF 249<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.2)' }}>/mo</span></div>
+                  <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.2)', marginTop:3 }}>After early access</div>
+                </div>
               </div>
-              <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.42)', lineHeight:1.8, fontStyle:'italic', marginBottom:14 }}>
+              <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', marginTop:10, textAlign:'center' }}>Early adopters keep CHF 199 forever · 1 booking covers your cost</div>
+            </div>
+
+            {/* Testimonial */}
+            <div style={{ padding:'18px 20px', background:'rgba(201,169,110,0.03)', border:'1px solid rgba(201,169,110,0.09)', borderRadius:14 }}>
+              <div style={{ display:'flex', gap:2, marginBottom:8 }}>{[1,2,3,4,5].map(i=><span key={i} style={{ color:'#C9A96E', fontSize:'13px' }}>★</span>)}</div>
+              <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.42)', lineHeight:1.8, fontStyle:'italic', marginBottom:12 }}>
                 "Went from 20% to 100% response rate — without hiring anyone. Google ranking improved and bookings went up within 6 weeks."
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#F5C842,#D4860E)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, color:'#141920', flexShrink:0 }}>MK</div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,#F5C842,#D4860E)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, color:'#141920', flexShrink:0 }}>MK</div>
                 <div>
                   <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.5)' }}>Marcus K.</div>
                   <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.22)', marginTop:2 }}>General Manager · 4-star Hotel, Zürich</div>
@@ -208,17 +193,14 @@ export default function Auth() {
               </div>
             </div>
 
-            <div style={{ textAlign:'center', marginTop:24, fontSize:'10px', color:'rgba(255,255,255,0.13)' }}>replyiq.ch · Zürich, Switzerland</div>
+            <div style={{ textAlign:'center', marginTop:20, fontSize:'10px', color:'rgba(255,255,255,0.13)' }}>replyiq.ch · Zürich, Switzerland</div>
           </div>
         </div>
 
-        {/* BOTTOM BAR */}
         <div style={{ padding:'20px 60px', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={{ display:'flex', gap:6 }}>
             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.15)' }}>Trusted in</span>
-            {['Zürich','Geneva','Basel','Bern','Lausanne'].map(c=>(
-              <span key={c} style={{ fontSize:'11px', color:'rgba(255,255,255,0.2)', marginLeft:12 }}>{c}</span>
-            ))}
+            {['Zürich','Geneva','Basel','Bern','Lausanne'].map(c=><span key={c} style={{ fontSize:'11px', color:'rgba(255,255,255,0.2)', marginLeft:12 }}>{c}</span>)}
           </div>
           <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.15)' }}>© 2026 ReplyIQ · replyiq.ch</div>
         </div>
