@@ -8,7 +8,7 @@ import { saveAiClassification, saveResponse, saveReport } from '../lib/supabase.
 
 // ── REVIEWS PAGE ──────────────────────────────────────────────────────────────
 export function ReviewsPage() {
-  const { reviews, property, showToast, updateReviewInState } = useApp()
+  const { reviews, property, showToast, updateReviewInState, consumeAIGeneration } = useApp()
   const [filter, setFilter] = useState('all')
   const [loadingMap, setLM] = useState({})
   const [tone, setTone]     = useState('professional')
@@ -24,6 +24,8 @@ export function ReviewsPage() {
   function setLoading(id, v) { setLM(p => ({ ...p, [id]: v })) }
 
   async function classify(review) {
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
     setLoading(review.id, 'classify')
     const { classifyReview } = await import('../lib/api.js')
     const result = await classifyReview?.(review) || {}
@@ -34,6 +36,8 @@ export function ReviewsPage() {
   }
 
   async function respond(review) {
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
     setLoading(review.id, 'respond')
     const result = await draftResponse(review, property, tone)
     if (result.error) { showToast('AI error', 'error'); setLoading(review.id, null); return }
@@ -112,17 +116,19 @@ export function ReviewsPage() {
 
 // ── RESPOND PAGE ──────────────────────────────────────────────────────────────
 export function RespondPage() {
-  const { reviews, property, showToast } = useApp()
-  const [text, setText]   = useState('')
+  const { reviews, property, showToast, consumeAIGeneration } = useApp()
+  const [text, setText]     = useState('')
   const [rating, setRating] = useState(3)
   const [platform, setPlatform] = useState('google')
-  const [tone, setTone]   = useState('professional')
+  const [tone, setTone]     = useState('professional')
   const [response, setResponse] = useState('')
   const [approach, setApproach] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]   = useState(false)
 
   async function generate() {
     if (!text.trim()) return
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
     setLoading(true); setResponse(''); setApproach('')
     const r = await draftResponse({ text, rating, platform, author: 'Guest' }, property, tone)
     if (r.error) showToast('AI error — check API key', 'error')
@@ -215,7 +221,7 @@ export function RespondPage() {
 function rC(s) { return s>=70?'#B85C38':s>=45?'#C9A96E':'#4A7C6F' }
 
 export function RiskPage() {
-  const { reviews, showToast } = useApp()
+  const { reviews, showToast, consumeAIGeneration } = useApp()
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
   const score = useRiskScore(reviews)
@@ -230,6 +236,8 @@ export function RiskPage() {
   const radarData = COMPONENTS.map(c => ({ subject: c.label.split(' ')[0], score: c.score }))
 
   async function run() {
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
     setLoading(true)
     const r = await generateRiskAnalysis(reviews)
     if (r.error) showToast('AI error', 'error')
@@ -383,7 +391,7 @@ export function RevenuePage() {
 
 // ── COMPETITORS PAGE ──────────────────────────────────────────────────────────
 export function CompetitorsPage() {
-  const { property, competitors, showToast, loadAll } = useApp()
+  const { property, competitors, showToast, loadAll, consumeAIGeneration } = useApp()
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
   const [syncing, setSyncing]   = useState(false)
@@ -408,6 +416,8 @@ export function CompetitorsPage() {
   }
 
   async function runAnalysis() {
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
     setLoading(true)
     const r = await analyseCompetitors(property, competitors)
     if (r.error) showToast('AI error', 'error')
@@ -468,7 +478,7 @@ export function CompetitorsPage() {
 
 // ── REPORT PAGE ───────────────────────────────────────────────────────────────
 export function ReportPage() {
-  const { property, reviews, showToast } = useApp()
+  const { property, reviews, showToast, consumeAIGeneration } = useApp()
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
   const riskScore = useRiskScore(reviews)
@@ -476,6 +486,8 @@ export function ReportPage() {
   const urgB = { urgent:'rgba(184,92,56,.08)','this-week':'rgba(201,169,110,.07)','this-month':'rgba(74,124,111,.07)' }
 
   async function generate() {
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
     setLoading(true)
     const r = await generateReport(property, reviews, riskScore)
     if (r.error) showToast('AI error', 'error')
