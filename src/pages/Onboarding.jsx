@@ -8,7 +8,7 @@ import { scanWebsite } from '../lib/api.js'
 const STEPS = ['Your Property', 'Connect Platforms', 'Ready']
 
 const PLATFORMS = [
-  { id:'google',      icon:'🔍', color:'#4285F4', name:'Google Business', badge:'Most important', required:true,  comingSoon:false, desc:'Google reviews directly affect your search ranking and bookings. Connect this first.', fieldLabel:'Google Place ID', fieldPH:'ChIJN1t_tDeuEmsRUsoyG83frY4', hint:'Google Maps → search your property → Share → Copy link → extract the Place ID' },
+  { id:'google',      icon:'🔍', color:'#4285F4', name:'Google Business', badge:'Most important', required:true,  comingSoon:false, desc:'Google reviews directly affect your search ranking and bookings. Connect this first.', fieldLabel:'Google Place ID', fieldPH:'ChIJN1t_tDeuEmsRUsoyG83frY4', hint:'Find yours free at: developers.google.com/maps/documentation/javascript/examples/places-placeid-finder — search your property name and copy the Place ID shown.' },
   { id:'tripadvisor', icon:'🦉', color:'#00AF87', name:'TripAdvisor',     badge:'Optional',       required:false, comingSoon:false, desc:'Millions of travellers check TripAdvisor before booking a hotel.',                   fieldLabel:'TripAdvisor URL', fieldPH:'https://www.tripadvisor.com/Hotel_Review-...', hint:'Copy the full URL from your TripAdvisor property page' },
   { id:'booking',     icon:'🏨', color:'#003580', name:'Booking.com',     badge:'Optional',       required:false, comingSoon:false, desc:'Guests trust Booking.com reviews heavily when deciding where to stay.',             fieldLabel:'Booking.com URL', fieldPH:'https://www.booking.com/hotel/ch/...', hint:'Copy the full URL from your Booking.com property page' },
   { id:'instagram',   icon:'📸', color:'#E1306C', name:'Instagram',       badge:'Coming soon',    required:false, comingSoon:true,  desc:'Monitor comments and mentions on Instagram.', fieldLabel:'Instagram Handle', fieldPH:'@yourhotel', hint:'' },
@@ -119,13 +119,15 @@ export default function Onboarding() {
     pollRef.current[platform.id] = interval
   }
 
-  // Go to dashboard immediately — don't wait for anything
   async function goToDashboard() {
     setSaving(true)
-    // Save property in background (don't block navigation)
-    ensurePropertySaved().then(async propId => {
-      if (!propId) return
-      // Save any other platform URLs
+    setError('')
+    try {
+      // Must await — the router checks the property is saved before allowing navigation to /
+      const propId = await ensurePropertySaved()
+      if (!propId) { setSaving(false); return }
+
+      // Save any extra platform URLs in background — don't block navigation
       const otherConns = {}
       ;['tripadvisor','booking'].forEach(id => {
         const url = pInputs[id]?.trim()
@@ -133,11 +135,15 @@ export default function Onboarding() {
       })
       if (Object.keys(otherConns).length > 0) {
         const existing = property?.platform_connections || {}
-        await supabase.from('clinics').update({ platform_connections:{ ...existing, ...otherConns } }).eq('id', propId)
+        supabase.from('clinics').update({ platform_connections:{ ...existing, ...otherConns } }).eq('id', propId)
+        // intentionally not awaited — saves in background
       }
-    })
-    // Navigate immediately — don't await anything
-    navigate('/', { replace:true })
+
+      navigate('/', { replace:true })
+    } catch(e) {
+      setError('Something went wrong — please try again.')
+      setSaving(false)
+    }
   }
 
   return (
