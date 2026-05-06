@@ -131,7 +131,7 @@ export const useApp = () => {
 }
 
 export function useRiskScore(reviews) {
-  if (!reviews?.length) return 42
+  if (!reviews?.length) return 0
   let s = 20
   s += Math.min(reviews.filter(r => r.rating <= 2).length * 5, 30)
   s += Math.min(reviews.filter(r => !r.responded && r.rating <= 2).length * 7, 28)
