@@ -14,60 +14,67 @@ export default async function handler(req, res) {
   const supabaseUrl   = process.env.VITE_SUPABASE_URL
   const serviceKey    = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY
 
-  if (!outscraperKey) {
-    return res.status(500).json({ error: 'OUTSCRAPER_API_KEY not configured in Vercel' })
-  }
+  if (!outscraperKey) return res.status(500).json({ error: 'OUTSCRAPER_API_KEY not configured' })
 
   try {
-    // Format the query correctly for Outscraper
-    // Place IDs must be passed as a Google Maps URL for reliable results
-    const query = identifier.startsWith('ChIJ') || identifier.startsWith('Ei')
+    // Format query: Place IDs need Google Maps URL format for reliable Outscraper results
+    const query = (identifier.startsWith('ChIJ') || identifier.startsWith('Ei'))
       ? `https://www.google.com/maps/place/?q=place_id:${identifier}`
       : identifier
 
-    console.log('[fetch-reviews] identifier:', identifier)
-    console.log('[fetch-reviews] formatted query:', query)
-    console.log('[fetch-reviews] clinicId:', clinicId)
+    console.log('[fetch-reviews] Starting import — identifier:', identifier, '| clinicId:', clinicId)
+    console.log('[fetch-reviews] Formatted query:', query)
 
     const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=1000&language=en&async=true&reviewsSort=newest`
-    console.log('[fetch-reviews] Outscraper URL:', url)
-
-    const r = await fetch(url, { headers: { 'X-API-KEY': outscraperKey } })
+    const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey } })
 
     console.log('[fetch-reviews] Outscraper HTTP status:', r.status)
     const rawText = await r.text()
-    console.log('[fetch-reviews] Outscraper response:', rawText.slice(0, 800))
+    console.log('[fetch-reviews] Outscraper response:', rawText.slice(0, 500))
 
     let data
     try { data = JSON.parse(rawText) } catch { data = { raw: rawText } }
 
     const jobId = data?.id
-    console.log('[fetch-reviews] jobId:', jobId)
-
     if (!jobId) {
-      console.error('[fetch-reviews] No jobId — full response:', JSON.stringify(data))
+      console.error('[fetch-reviews] No jobId:', JSON.stringify(data))
       return res.status(500).json({
-        error: 'Outscraper did not start the job.',
-        reason: data?.message || data?.error || data?.detail || 'Check credits at app.outscraper.com/billing',
+        error:  'Outscraper did not start the job.',
+        reason: data?.message || data?.error || 'Check credits at app.outscraper.com/billing',
         httpStatus: r.status,
-        outscraperResponse: data,
       })
     }
 
-    // Save jobId to Supabase so dashboard can resume polling if browser closes
+    console.log('[fetch-reviews] Job started:', jobId)
+
+    // Save to Supabase: jobId for resume + platform_connections placeholder so dashboard knows Google is connected
     if (supabaseUrl && serviceKey) {
+      // Get existing connections first
+      const clinicRes = await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}&select=platform_connections`, {
+        headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` }
+      })
+      const [clinic]   = await clinicRes.json()
+      const existing   = clinic?.platform_connections || {}
+
       const patch = await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-          'Content-Type': 'application/json',
-        },
+        method:  'PATCH',
+        headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pending_review_job: JSON.stringify({ jobId, platformId: platform, identifier, clinicId })
+          pending_review_job: JSON.stringify({ jobId, platformId: platform, identifier, clinicId }),
+          // Set placeholder so dashboard shows connected state during import
+          platform_connections: {
+            ...existing,
+            [platform]: {
+              ...existing[platform],
+              identifier,
+              connectedAt:  existing[platform]?.connectedAt || new Date().toISOString(),
+              reviewCount:  existing[platform]?.reviewCount || 0,
+              importing:    true,
+            }
+          }
         })
       })
-      console.log('[fetch-reviews] Saved pending job to Supabase, status:', patch.status)
+      console.log('[fetch-reviews] Saved to Supabase, status:', patch.status)
     }
 
     return res.status(200).json({ jobId, status: 'pending' })

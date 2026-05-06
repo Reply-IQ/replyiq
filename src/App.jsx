@@ -12,7 +12,7 @@ import { ReviewsPage, RespondPage, RiskPage, RevenuePage, CompetitorsPage, Repor
 function AppRoutes() {
   const { user, property, loading, toast, setToast } = useApp()
 
-  // Still resolving auth session — show spinner
+  // Auth still loading
   if (user === undefined) {
     return (
       <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
@@ -22,7 +22,7 @@ function AppRoutes() {
     )
   }
 
-  // Not logged in — show auth
+  // Not logged in
   if (!user) {
     return (
       <>
@@ -32,7 +32,7 @@ function AppRoutes() {
     )
   }
 
-  // Logged in but still loading property — show spinner briefly
+  // Logged in but property still loading
   if (loading && !property) {
     return (
       <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
@@ -42,18 +42,11 @@ function AppRoutes() {
     )
   }
 
-  // Determine if user has completed onboarding
-  // Show dashboard if:
-  // 1. Property exists AND localStorage onboarding key is set, OR
-  // 2. Property exists AND has a real name (not the default trigger name)
-  const hasRealName = property?.name &&
-    property.name.trim() !== '' &&
-    property.name !== 'My Dental Clinic'
-
-  const hasOnboardingFlag = property?.id &&
-    !!localStorage.getItem(`replyiq_onboarded_${property.id}`)
-
-  const isOnboarded = !!(property && (hasRealName || hasOnboardingFlag))
+  // Determine if onboarding is complete
+  // Consider onboarded if: property has a real name OR localStorage flag is set
+  const hasRealName      = property?.name && property.name.trim() !== '' && property.name !== 'My Dental Clinic'
+  const hasOnboardingKey = property?.id && !!localStorage.getItem(`replyiq_onboarded_${property.id}`)
+  const isOnboarded      = !!(property && (hasRealName || hasOnboardingKey))
 
   if (!isOnboarded) {
     return (

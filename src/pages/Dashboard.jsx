@@ -111,12 +111,36 @@ export default function Dashboard() {
   }, [reviews])
 
   const connectedPlatforms = Object.keys(connections)
-  const hasReviews = reviews.length > 0
+  const hasPendingImport   = !!property?.pending_review_job || connectedPlatforms.some(p => connections[p]?.importing)
 
-  // Empty state
+  // Import in progress — show loading state regardless of reviews count
+  if (hasPendingImport && reviews.length === 0) {
+    return (
+      <Layout title="Dashboard" subtitle="Your reputation command centre">
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'65vh', textAlign:'center', gap:18 }}>
+          <div style={{ width:72, height:72, borderRadius:20, background:'rgba(66,133,244,.08)', border:'1px solid rgba(66,133,244,.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <div style={{ width:32, height:32, border:'3px solid rgba(66,133,244,.3)', borderTopColor:'#4285F4', borderRadius:'50%', animation:'spin .8s linear infinite' }} />
+          </div>
+          <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.7rem' }}>Importing your reviews...</div>
+          <div style={{ fontSize:'14px', color:'var(--text3)', maxWidth:460, lineHeight:1.8 }}>
+            {importProgress
+              ? `Fetching reviews from Google — ${importProgress.elapsed}s elapsed. This takes 1–3 minutes for large properties.`
+              : 'Your reviews are being fetched in the background. This page will update automatically when complete.'}
+          </div>
+          <div style={{ width:300, height:5, background:'var(--surface)', borderRadius:3, overflow:'hidden' }}>
+            <div style={{ height:'100%', width:'60%', background:'linear-gradient(90deg,#4285F4,#60a5fa,#4285F4)', backgroundSize:'200% 100%', borderRadius:3, animation:'shimmer 1.5s infinite' }} />
+          </div>
+          <div style={{ fontSize:'12px', color:'var(--text3)' }}>You can navigate around the app — reviews will appear automatically when done.</div>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/platforms')}>View Import Status →</Button>
+        </div>
+      </Layout>
+    )
+  }
+
+  // No platforms and no import — show connect screen
   if (connectedPlatforms.length === 0) {
     return (
-      <Layout title="Dashboard">
+      <Layout title="Dashboard" subtitle="Your reputation command centre">
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'65vh', textAlign:'center', gap:18 }}>
           <div style={{ width:72, height:72, borderRadius:20, background:'rgba(201,169,110,.08)', border:'1px solid rgba(201,169,110,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>🔗</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.7rem' }}>Connect your first platform</div>
