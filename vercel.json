@@ -4,12 +4,10 @@
     "api/claude.js":              { "maxDuration": 30 },
     "api/fetch-reviews.js":       { "maxDuration": 30 },
     "api/check-reviews-job.js":   { "maxDuration": 30 },
-    "api/sync-all-reviews.js":    { "maxDuration": 60 },
     "api/scan-website.js":        { "maxDuration": 30 },
     "api/competitors.js":         { "maxDuration": 20 },
     "api/email.js":               { "maxDuration": 10 },
     "api/create-checkout.js":     { "maxDuration": 15 },
     "api/stripe-webhook.js":      { "maxDuration": 15 }
-  },
-  "crons": [{ "path": "/api/sync-all-reviews", "schedule": "0 3 * * *" }]
+  }
 }
