@@ -17,27 +17,57 @@ export async function signOut() {
 }
 
 // ── PROPERTY ──────────────────────────────────────────────────────────────────
-// Always filter by authenticated user's ID — never return another user's data
+// Always returns the correct clinic for the current user.
+// Uses oldest-first ordering so we always get the same (primary) clinic.
 export async function getProperty() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: { message: 'Not logged in' } }
-  return supabase
+
+  const { data, error } = await supabase
     .from('clinics')
     .select('*')
     .eq('user_id', user.id)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  return { data: data?.[0] ?? null, error }
 }
 
-// Upsert so it works for both new users (INSERT) and existing users (UPDATE)
+// Updates the current user's clinic.
+// Handles duplicates by always targeting the oldest clinic by ID.
 export async function updateProperty(updates) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { data: null, error: { message: 'Not logged in' } }
+
+  // Find all clinics for this user (ordered oldest first)
+  const { data: clinics } = await supabase
+    .from('clinics')
+    .select('id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+
+  if (!clinics?.length) {
+    // No clinic exists — create one
+    return supabase
+      .from('clinics')
+      .insert({ ...updates, user_id: user.id })
+      .select()
+      .single()
+  }
+
+  const primaryId = clinics[0].id
+
+  // Clean up any duplicate clinics silently
+  if (clinics.length > 1) {
+    const extraIds = clinics.slice(1).map(c => c.id)
+    await supabase.from('clinics').delete().in('id', extraIds)
+  }
+
+  // Update the primary clinic by its specific ID
   return supabase
     .from('clinics')
-    .upsert(
-      { ...updates, user_id: user.id },
-      { onConflict: 'user_id' }
-    )
+    .update(updates)
+    .eq('id', primaryId)
     .select()
     .single()
 }
@@ -57,7 +87,7 @@ export async function upsertReviews(propertyId, reviews) {
   const rows = reviews.map(r => ({ ...r, clinic_id: propertyId }))
   let inserted = 0
   for (let i = 0; i < rows.length; i += 100) {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('reviews')
       .upsert(rows.slice(i, i + 100), {
         onConflict: 'clinic_id,google_review_id',
