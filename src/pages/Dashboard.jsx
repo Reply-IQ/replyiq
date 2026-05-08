@@ -137,8 +137,8 @@ export default function Dashboard() {
     )
   }
 
-  // No platforms and no import — show connect screen
-  if (connectedPlatforms.length === 0) {
+  // No platforms and no import and no reviews — show connect screen
+  if (connectedPlatforms.length === 0 && reviews.length === 0) {
     return (
       <Layout title="Dashboard" subtitle="Your reputation command centre">
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'65vh', textAlign:'center', gap:18 }}>
