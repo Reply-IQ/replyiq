@@ -133,6 +133,23 @@ export default function Onboarding() {
 
       if (data.jobId) {
         setPMessages(p => ({ ...p, [platform.id]: `Fetching reviews from ${platform.name}...` }))
+
+        // Save pending job + platform connection using authenticated supabase client
+        const existingConns = property?.platform_connections || {}
+        await supabase.from('clinics').update({
+          pending_review_job: JSON.stringify({ jobId: data.jobId, platformId: platform.id, identifier, clinicId: propId }),
+          platform_connections: {
+            ...existingConns,
+            [platform.id]: {
+              ...(existingConns[platform.id] || {}),
+              identifier,
+              connectedAt: existingConns[platform.id]?.connectedAt || new Date().toISOString(),
+              reviewCount: existingConns[platform.id]?.reviewCount || 0,
+              importing: true,
+            }
+          }
+        }).eq('id', propId)
+
         pollImport(platform, data.jobId, propId, identifier)
       }
     } catch(e) {

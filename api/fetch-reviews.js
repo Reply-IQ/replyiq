@@ -46,41 +46,7 @@ export default async function handler(req, res) {
     }
 
     console.log('[fetch-reviews] Job started:', jobId)
-
-    // Save to Supabase: jobId for resume + platform_connections placeholder
-    if (supabaseUrl && serviceKey) {
-      try {
-        // Get existing connections first
-        const clinicRes = await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}&select=platform_connections`, {
-          headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` }
-        })
-        const clinicData = await clinicRes.json()
-        const existing = (Array.isArray(clinicData) ? clinicData[0] : clinicData)?.platform_connections || {}
-
-        const patch = await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}`, {
-          method:  'PATCH',
-          headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pending_review_job: JSON.stringify({ jobId, platformId: platform, identifier, clinicId }),
-            platform_connections: {
-              ...existing,
-              [platform]: {
-                ...(existing[platform] || {}),
-                identifier,
-                connectedAt:  existing[platform]?.connectedAt || new Date().toISOString(),
-                reviewCount:  existing[platform]?.reviewCount || 0,
-                importing:    true,
-              }
-            }
-          })
-        })
-        console.log('[fetch-reviews] Saved to Supabase, status:', patch.status)
-      } catch (supaErr) {
-        console.error('[fetch-reviews] Supabase save error:', supaErr.message)
-        // Don't fail the whole request — job is still started
-      }
-    }
-
+    // Frontend saves pending_review_job and platform_connections using authenticated session
     return res.status(200).json({ jobId, status: 'pending' })
 
   } catch (e) {
