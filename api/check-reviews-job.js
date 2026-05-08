@@ -120,8 +120,8 @@ export default async function handler(req, res) {
       const connRes  = await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}&select=platform_connections`, {
         headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` }
       })
-      const [clinic] = await connRes.json()
-      const existing = clinic?.platform_connections || {}
+      const connData = await connRes.json()
+      const existing = (Array.isArray(connData) ? connData[0] : connData)?.platform_connections || {}
       const pid      = platform || 'google'
 
       await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}`, {

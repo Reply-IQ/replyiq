@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     console.log('[fetch-reviews] Starting import — identifier:', identifier, '| clinicId:', clinicId)
     console.log('[fetch-reviews] Formatted query:', query)
 
-    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=1000&language=en&async=true&reviewsSort=newest`
+    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=5000&language=en&async=true&reviewsSort=newest`
     const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey } })
 
     console.log('[fetch-reviews] Outscraper HTTP status:', r.status)
