@@ -291,3 +291,62 @@ Return JSON with EXACTLY these fields:
     600
   )
 }
+
+// ── CLASSIFY REVIEW ────────────────────────────────────────────────────────────
+export async function classifyReview(review) {
+  return ai(
+    `You are a hospitality review analyst. Classify the review concisely and accurately.`,
+    `Classify this ${review.rating}-star review:
+"${review.text?.slice(0,500) || '(No text)'}"
+
+Return JSON: {
+  "ai_sentiment": "positive|neutral|negative",
+  "ai_severity": "low|medium|high|critical",
+  "ai_categories": ["cleanliness", "service", "location", "value", "food", "room", "amenities"],
+  "ai_summary": "one sentence summary of the main point",
+  "ai_action": "what to do — e.g. respond urgently, thank and invite back, address complaint offline",
+  "ai_risk_flag": true or false
+}`,
+    400
+  )
+}
+
+// ── RISK ANALYSIS (full) ───────────────────────────────────────────────────────
+export async function generateRiskAnalysis(reviews, property) {
+  const total      = reviews?.length || 0
+  const unanswered = reviews?.filter(r => !r.responded).length || 0
+  const negative   = reviews?.filter(r => r.rating <= 2).length || 0
+  const avgRating  = total ? (reviews.reduce((s,r)=>s+r.rating,0)/total).toFixed(1) : 0
+  const responseRate = total ? Math.round((total-unanswered)/total*100) : 0
+  const name = property?.name || 'this property'
+
+  return ai(
+    `You are a hospitality reputation risk analyst specialising in DACH markets. Be specific and data-driven.`,
+    `Analyse reputation risk for ${name}.
+
+Data:
+- Total reviews: ${total}
+- Average rating: ${avgRating}★
+- Response rate: ${responseRate}%
+- Negative reviews (1-2★): ${negative}
+- Unanswered: ${unanswered}
+
+Return JSON with EXACTLY these fields:
+{
+  "riskLevel": "LOW|MODERATE|HIGH|CRITICAL",
+  "summary": "2-3 sentence analysis of the overall risk situation",
+  "topThreats": ["specific threat 1", "specific threat 2", "specific threat 3"],
+  "immediateActions": ["do this today", "do this this week", "do this this month"],
+  "positives": ["what is working", "strength to maintain"],
+  "revenueImpact": "CHF estimate of revenue at risk monthly",
+  "components": {
+    "ratingVolatility":   { "score": <0-100>, "detail": "explanation" },
+    "responseGap":        { "score": <0-100>, "detail": "explanation" },
+    "complianceRisk":     { "score": <0-100>, "detail": "explanation" },
+    "sentimentTrend":     { "score": <0-100>, "detail": "explanation" },
+    "competitorPressure": { "score": <0-100>, "detail": "explanation" }
+  }
+}`,
+    900
+  )
+}

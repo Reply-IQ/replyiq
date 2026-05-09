@@ -157,7 +157,7 @@ export default function Dashboard() {
 
   async function getIntelligenceBrief() {
     setLoading(true)
-    const r = await generateBrief(reviews, property)
+    const r = await generateBrief(property, reviews)
     if (r.error) showToast('AI error', 'error')
     else { setBrief(r); if (property?.id) saveBrief(property.id, r).catch(()=>{}) }
     setLoading(false)

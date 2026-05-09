@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Grid, Button, Input, Spinner, SectionHeader } from '../components/UI.jsx'
-import { useApp } from '../lib/store.jsx'
+import { useApp, useIsMobile } from '../lib/store.jsx'
 import { updateProperty } from '../lib/supabase.js'
 import { scanWebsite } from '../lib/api.js'
 
 export default function Settings() {
   const { property, updatePropertyInState, showToast } = useApp()
+  const isMobile = useIsMobile()
   const [form,     setForm]     = useState(property || {})
   const [saving,   setSaving]   = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -48,7 +49,7 @@ export default function Settings() {
 
   return (
     <Layout title="Settings" subtitle="Property profile and configuration">
-      <Grid cols={2} gap={20} style={{ alignItems:'start' }}>
+      <Grid cols={isMobile?1:2} gap={20} style={{ alignItems:'start' }}>
 
         {/* LEFT */}
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>

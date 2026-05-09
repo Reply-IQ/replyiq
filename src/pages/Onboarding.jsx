@@ -46,7 +46,11 @@ export default function Onboarding() {
 
   useEffect(() => () => { Object.values(pollRef.current).forEach(clearInterval) }, [])
 
+  // canProceed = import started OR import done OR other platform saved
+  const importStarted = Object.values(pMessages).some(m => m && m.length > 0) ||
+    Object.values(pLoading).some(v => v)
   const canProceed = Object.keys(pDone).length > 0 ||
+    importStarted ||
     ['tripadvisor','booking'].some(id => pInputs[id]?.trim())
 
   // ── Step 0 → Step 1 ────────────────────────────────────────────────────────

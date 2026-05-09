@@ -100,14 +100,15 @@ export async function upsertReviews(propertyId, reviews) {
 }
 
 export async function saveAiClassification(reviewId, result) {
+  // field names match what classifyReview() returns in api.js
   return supabase.from('reviews').update({
-    ai_sentiment:   result.sentiment,
-    ai_categories:  result.categories,
-    ai_severity:    result.severity,
-    ai_summary:     result.summary,
-    ai_risk_flag:   result.riskFlag,
-    ai_risk_reason: result.riskReason,
-    ai_action:      result.suggestedAction,
+    ai_sentiment:   result.ai_sentiment   || result.sentiment,
+    ai_categories:  result.ai_categories  || result.categories  || [],
+    ai_severity:    result.ai_severity    || result.severity,
+    ai_summary:     result.ai_summary     || result.summary,
+    ai_risk_flag:   result.ai_risk_flag   ?? result.riskFlag    ?? false,
+    ai_risk_reason: result.ai_risk_reason || result.riskReason  || null,
+    ai_action:      result.ai_action      || result.suggestedAction || null,
     ai_analysed_at: new Date().toISOString(),
   }).eq('id', reviewId).select().single()
 }
@@ -130,11 +131,14 @@ export async function getCompetitors(propertyId) {
 
 // ── REPORTS ───────────────────────────────────────────────────────────────────
 export async function saveReport(propertyId, data, riskScore) {
-  return supabase
-    .from('weekly_reports')
-    .insert({ clinic_id: propertyId, report_data: data, risk_score: riskScore })
-    .select()
-    .single()
+  // Silent — weekly_reports table may not exist yet
+  try {
+    return await supabase
+      .from('weekly_reports')
+      .insert({ clinic_id: propertyId, report_data: data, risk_score: riskScore })
+      .select()
+      .single()
+  } catch { return { data: null, error: null } }
 }
 
 export async function saveBrief(propertyId, data) {
