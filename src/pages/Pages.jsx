@@ -320,7 +320,11 @@ export function RevenuePage() {
   const [rev, setRev]       = useState(property?.avg_revenue || 150000)
   const [target, setTarget] = useState(property?.target_rating || 4.7)
   const [result, setResult] = useState(null)
-  const currentRating = property?.google_rating || 4.3
+  // Use real average from imported reviews, fall back to Google business info
+  const reviews = useApp().reviews
+  const currentRating = reviews?.length
+    ? +(reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(2)
+    : property?.platform_connections?.google?.businessInfo?.rating || 4.3
 
   function calculate() {
     setResult(calcRevenue({ currentRating, targetRating: target, monthlyRevenue: rev }))

@@ -154,36 +154,27 @@ Return JSON: {
   )
 }
 
-// ── REVENUE IMPACT ────────────────────────────────────────────────────────────
-export async function calcRevenue(property, reviews) {
-  const avgRating = reviews?.length
-    ? (reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(2)
-    : 0
-  const monthlyRevenue = property?.avg_revenue || 150000
-  const targetRating   = property?.target_rating || 4.7
-
-  return ai(
-    `You are a hospitality revenue analyst. Use real hospitality industry research for DACH markets.`,
-    `Calculate revenue impact for ${property?.name || 'this property'}.
-
-Current average rating: ${avgRating}★
-Target rating: ${targetRating}★
-Monthly revenue baseline: CHF ${monthlyRevenue.toLocaleString()}
-Total reviews: ${reviews?.length || 0}
-Response rate: ${reviews?.length ? Math.round(reviews.filter(r=>r.responded).length/reviews.length*100) : 0}%
-
-Return JSON: {
-  "currentRating": ${avgRating},
-  "targetRating": ${targetRating},
-  "ratingGap": ${(targetRating - avgRating).toFixed(2)},
-  "estimatedRevenueUplift": <number in CHF per month if target rating achieved>,
-  "annualUplift": <annualised CHF>,
-  "responseRateImpact": "<sentence on how improving response rate affects ranking and bookings>",
-  "methodology": "<1 sentence explaining the calculation basis>",
-  "confidence": "LOW|MEDIUM|HIGH"
-}`,
-    600
-  )
+// ── REVENUE IMPACT (synchronous — based on Luca 2016 Harvard research) ────────
+// ~9% revenue uplift per 1-star rating increase in hospitality
+export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {
+  const current  = parseFloat(currentRating) || 4.0
+  const target   = parseFloat(targetRating)  || 4.7
+  const base     = parseFloat(monthlyRevenue) || 150000
+  const gap      = Math.max(0, target - current)
+  const upliftPct= gap * 9  // 9% per star (Luca 2016)
+  const projected= Math.round(base * (1 + upliftPct / 100))
+  const uplift   = projected - base
+  return {
+    currentRating:         current,
+    targetRating:          target,
+    ratingGap:             +gap.toFixed(2),
+    currentMonthlyRevenue: Math.round(base),
+    projectedMonthlyRevenue: projected,
+    monthlyUplift:         uplift,
+    annualUplift:          uplift * 12,
+    upliftPercent:         +upliftPct.toFixed(1),
+    methodology:           `Based on Harvard Business School research (Luca, 2016): each 1-star increase in rating yields ~9% revenue uplift for hospitality businesses.`,
+  }
 }
 
 // ── COMPETITOR ANALYSIS ───────────────────────────────────────────────────────
@@ -291,12 +282,15 @@ Current data:
 Recent reviews:
 ${recent}
 
-Return JSON: {
-  "headline": "one punchy sentence summarising reputation health right now",
-  "insight": "2-3 sentences of genuine insight — what the data actually means for this property",
-  "urgentAction": "the single most important thing to do today",
-  "opportunity": "one specific opportunity to improve rating or revenue this week"
+Return JSON with EXACTLY these fields:
+{
+  "executiveSummary": "2-3 sentence sharp summary of reputation health right now",
+  "topIssue": "4-6 word title of the main problem",
+  "topIssueDetail": "1-2 sentences explaining the issue and its business impact",
+  "topStrength": "4-6 word title of the main strength",
+  "topStrengthDetail": "1-2 sentences on what is working well and why",
+  "urgentAction": "the single most important action to take this week — be specific"
 }`,
-    500
+    600
   )
 }

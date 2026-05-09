@@ -158,7 +158,7 @@ export default function Dashboard() {
     setLoading(true)
     const r = await generateBrief(reviews, property)
     if (r.error) showToast('AI error', 'error')
-    else { setBrief(r); if (property?.id) await saveBrief(property.id, r) }
+    else { setBrief(r); if (property?.id) saveBrief(property.id, r).catch(()=>{}) }
     setLoading(false)
   }
 
@@ -231,7 +231,7 @@ export default function Dashboard() {
               </AreaChart>
             </ResponsiveContainer>
           )}
-          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>All platforms combined</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>Based on your {reviews.length.toLocaleString()} imported reviews</div>
         </div>
 
         {/* Reviews */}
@@ -323,11 +323,11 @@ export default function Dashboard() {
             )}
             {loading && <div style={{ padding:'20px 0', display:'flex', alignItems:'center', gap:10, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Analysing {reviews.length.toLocaleString()} reviews...</div>}
             {brief && !brief.error && <>
-              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||'Top Issue'}    body={brief.topIssueDetail} />
-              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={brief.topStrengthDetail} />
+              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||'Top Issue'}    body={brief.topIssueDetail||brief.insight} />
+              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={brief.topStrengthDetail||brief.opportunity} />
               <InsightItem iconBg="rgba(201,169,110,.1)" iconColor="var(--gold)" icon="→" title="This Week" body={brief.urgentAction} last />
               <Divider />
-              <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)' }}>{brief.executiveSummary}</div>
+              <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)' }}>{brief.executiveSummary||brief.insight}</div>
             </>}
           </Card>
 
