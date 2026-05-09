@@ -266,3 +266,37 @@ Return JSON: {
     1200
   )
 }
+
+// ── INTELLIGENCE BRIEF (Dashboard) ───────────────────────────────────────────
+export async function generateBrief(property, reviews) {
+  const name      = property?.name || 'your property'
+  const total     = reviews.length
+  const avgRating = total ? (reviews.reduce((s,r) => s+r.rating,0)/total).toFixed(1) : 0
+  const unanswered= reviews.filter(r => !r.responded).length
+  const negative  = reviews.filter(r => r.rating <= 2).length
+  const recent    = reviews.slice(0,5).map(r =>
+    `${r.rating}★: "${r.text?.slice(0,120)}"`
+  ).join('\n')
+
+  return ai(
+    `You are the intelligence briefing AI for ${name}. Write like a sharp, experienced hospitality consultant — direct, insightful, specific. Never generic.`,
+    `Generate today's intelligence brief for ${name}.
+
+Current data:
+- Reviews in system: ${total}
+- Average rating: ${avgRating}★
+- Unanswered: ${unanswered}
+- Negative (1-2★): ${negative}
+
+Recent reviews:
+${recent}
+
+Return JSON: {
+  "headline": "one punchy sentence summarising reputation health right now",
+  "insight": "2-3 sentences of genuine insight — what the data actually means for this property",
+  "urgentAction": "the single most important thing to do today",
+  "opportunity": "one specific opportunity to improve rating or revenue this week"
+}`,
+    500
+  )
+}
