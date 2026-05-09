@@ -120,39 +120,7 @@ Remember: start with "${greeting}" and end with the sign-off. Reference somethin
   return ai(systemPrompt, userPrompt, 600)
 }
 
-// ── RISK ANALYSIS ─────────────────────────────────────────────────────────────
-export async function generateRiskAnalysis(reviews, property) {
-  const name = property?.name || 'this property'
-  const negative = reviews.filter(r => r.rating <= 2)
-  const unanswered = reviews.filter(r => !r.responded)
-  const avgRating = reviews.length ? (reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(1) : 0
 
-  const sample = negative.slice(0,5).map(r => `${r.rating}★: "${r.text?.slice(0,150)}"`).join('\n')
-
-  return ai(
-    `You are a hospitality reputation analyst specialising in DACH markets. Be specific and actionable.`,
-    `Analyse the reputation risk for ${name}.
-
-Stats:
-- Total reviews: ${reviews.length}
-- Average rating: ${avgRating}★
-- Unanswered reviews: ${unanswered.length} (${Math.round(unanswered.length/Math.max(reviews.length,1)*100)}%)
-- Negative reviews (1-2★): ${negative.length}
-
-Sample of recent negative reviews:
-${sample}
-
-Return JSON: {
-  "riskLevel": "LOW|MODERATE|HIGH|CRITICAL",
-  "summary": "2 sentence executive summary of the risk situation",
-  "topThreats": ["specific threat 1", "specific threat 2", "specific threat 3"],
-  "immediateActions": ["action to take this week", "action 2", "action 3"],
-  "positives": ["what is working well", "strength to maintain"],
-  "revenueImpact": "estimated revenue impact of current rating vs target"
-}`,
-    1000
-  )
-}
 
 // ── REVENUE IMPACT (synchronous — based on Luca 2016 Harvard research) ────────
 // ~9% revenue uplift per 1-star rating increase in hospitality
