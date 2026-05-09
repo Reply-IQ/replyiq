@@ -233,26 +233,23 @@ This week's data:
 Recent reviews sample:
 ${recent}
 
-Return JSON: {
-  "executiveSummary": "3 sentence summary of this week's reputation health — be direct",
-  "riskScore": <0-100 number>,
-  "riskLevel": "LOW|MODERATE|HIGH|CRITICAL",
-  "winOfTheWeek": "the most positive thing that happened this week",
-  "topThreat": "the single biggest reputation risk right now",
-  "stats": {
-    "totalReviews": ${total},
-    "avgRating": ${avgRating},
-    "unansweredCount": ${unanswered},
-    "responseRate": "${total ? Math.round((total-unanswered)/total*100) : 0}%",
-    "negativeCount": ${negative.length},
-    "positiveCount": ${positive.length}
-  },
-  "priorityActions": [
-    {"priority": "URGENT", "action": "specific action to take today", "impact": "why this matters"},
-    {"priority": "THIS_WEEK", "action": "action for this week", "impact": "expected result"},
-    {"priority": "NEXT_WEEK", "action": "action for next week", "impact": "expected result"}
+Return JSON with EXACTLY these fields:
+{
+  "weekSummary": "3 direct sentences summarising reputation health — be specific and honest",
+  "riskScore": <integer 0-100>,
+  "negativeCount": ${negative.length},
+  "positiveCount": ${positive.length},
+  "unansweredCount": ${unanswered},
+  "revenueRisk": "e.g. CHF 12,000/month at risk — estimate based on rating gap",
+  "topThreats": ["specific threat 1 from the reviews", "specific threat 2", "specific threat 3"],
+  "topStrengths": ["specific strength from reviews 1", "strength 2"],
+  "actions": [
+    {"urgency": "urgent", "action": "specific action to do today", "impact": "why this matters right now"},
+    {"urgency": "this-week", "action": "action for this week", "impact": "expected outcome"},
+    {"urgency": "this-month", "action": "strategic action for this month", "impact": "long-term benefit"}
   ],
-  "nextWeekFocus": "one clear focus area for next week"
+  "win": "the single most positive thing from this week's reviews — quote or paraphrase specifically",
+  "nextFocus": "one clear actionable focus area for next week"
 }`,
     1200
   )

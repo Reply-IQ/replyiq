@@ -36,7 +36,9 @@ export function Card({ children, style, glow }) {
 
 // ── GRID ──────────────────────────────────────────────────────────────────────
 export function Grid({ cols=2, gap=16, children, style }) {
-  return <div style={{ display:'grid', gridTemplateColumns:`repeat(${cols},1fr)`, gap, ...style }}>{children}</div>
+  // cols can be a number (e.g. 2) or a CSS string (e.g. 'repeat(2,1fr)')
+  const template = typeof cols === 'string' ? cols : `repeat(${cols},1fr)`
+  return <div style={{ display:'grid', gridTemplateColumns:template, gap, ...style }}>{children}</div>
 }
 
 // ── KPI CARD ──────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Grid, Button, Spinner, EmptyState, SectionHeader, InsightItem, Divider } from '../components/UI.jsx'
-import { useApp, useRiskScore, useUnanswered } from '../lib/store.jsx'
+import { useApp, useRiskScore, useUnanswered, useIsMobile } from '../lib/store.jsx'
 import { generateBrief } from '../lib/api.js'
 import { saveBrief } from '../lib/supabase.js'
 
@@ -26,6 +26,7 @@ const ChartTip = ({ active, payload, label }) => !active||!payload?.length ? nul
 export default function Dashboard() {
   const { property, reviews, showToast, loadAll } = useApp()
   const navigate   = useNavigate()
+  const isMobile   = useIsMobile()
   const [brief, setBrief]               = useState(null)
   const [loading, setLoading]           = useState(false)
   const [importProgress, setImportProgress] = useState(null) // { elapsed, platform }
@@ -213,7 +214,7 @@ export default function Dashboard() {
       )}
 
       {/* ── KPI Row ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)', gap:14, marginBottom:20 }}>
         {/* Average Rating — with mini chart */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>Your average rating</div>
@@ -266,7 +267,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Platform Health + Needs Reply ── */}
-      <Grid cols={2} gap={16} style={{ marginBottom:20 }}>
+      <Grid cols={isMobile?1:2} gap={16} style={{ marginBottom:20 }}>
 
         {/* Platform health cards */}
         <Card>

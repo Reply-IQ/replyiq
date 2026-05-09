@@ -315,13 +315,12 @@ const T2 = ({ active, payload, label }) => !active||!payload?.length?null:(
 )
 
 export function RevenuePage() {
-  const { property } = useApp()
+  const { property, reviews } = useApp()
   const [appts, setAppts]   = useState(property?.monthly_appts || 300)
   const [rev, setRev]       = useState(property?.avg_revenue || 150000)
   const [target, setTarget] = useState(property?.target_rating || 4.7)
   const [result, setResult] = useState(null)
   // Use real average from imported reviews, fall back to Google business info
-  const reviews = useApp().reviews
   const currentRating = reviews?.length
     ? +(reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(2)
     : property?.platform_connections?.google?.businessInfo?.rating || 4.3
@@ -484,8 +483,10 @@ export function CompetitorsPage() {
 // ── REPORT PAGE ───────────────────────────────────────────────────────────────
 export function ReportPage() {
   const { property, reviews, showToast, consumeAIGeneration } = useApp()
+  const isMobile = useIsMobile()
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [emailing, setEmailing] = useState(false)
   const riskScore = useRiskScore(reviews)
   const urgC = { urgent:'#B85C38','this-week':'#C9A96E','this-month':'#5a9080' }
   const urgB = { urgent:'rgba(184,92,56,.08)','this-week':'rgba(201,169,110,.07)','this-month':'rgba(74,124,111,.07)' }
@@ -500,9 +501,95 @@ export function ReportPage() {
     setLoading(false)
   }
 
+  async function emailReport() {
+    if (!report) { showToast('Generate a report first', 'error'); return }
+    const to = property?.owner_email
+    if (!to) { showToast('Add a report email in Settings first', 'error'); return }
+    setEmailing(true)
+    try {
+      const html = buildReportEmail(report, property)
+      const r = await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to,
+          subject: `ReplyIQ Weekly Report — ${property?.name || 'Your Property'} — ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
+          html,
+        })
+      })
+      const d = await r.json()
+      if (d.success || d.skipped) showToast(`✓ Report sent to ${to}`, 'success')
+      else showToast('Email failed — check Resend config', 'error')
+    } catch(e) { showToast('Email error: ' + e.message, 'error') }
+    setEmailing(false)
+  }
+
+  function buildReportEmail(r, property) {
+    const name = property?.name || 'Your Property'
+    const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
+    const riskColor = (r.riskScore||0) >= 70 ? '#B85C38' : (r.riskScore||0) >= 45 ? '#C9A96E' : '#4A7C6F'
+    return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0F1419;font-family:system-ui,-apple-system,sans-serif;color:#E8E4DC">
+<div style="max-width:600px;margin:0 auto;padding:32px 20px">
+  <div style="text-align:center;margin-bottom:28px">
+    <div style="font-size:24px;color:#C9A96E;font-weight:700;margin-bottom:4px">ReplyIQ</div>
+    <div style="font-size:13px;color:#6B7280">Weekly Intelligence Report · ${date}</div>
+    <div style="font-size:18px;font-weight:600;color:#E8E4DC;margin-top:8px">${name}</div>
+  </div>
+  <div style="background:#1C2430;border:1px solid #2A3545;border-left:4px solid #C9A96E;border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#C9A96E;margin-bottom:8px;font-weight:600">Executive Summary</div>
+    <div style="font-size:14px;line-height:1.7;color:#C8C3BC">${r.weekSummary||''}</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:${riskColor}">${r.riskScore||0}</div>
+      <div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Risk Score</div>
+    </div>
+    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#C9A96E">${r.unansweredCount||0}</div>
+      <div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Unanswered</div>
+    </div>
+  </div>
+  ${r.topThreats?.length ? `
+  <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#B85C38;margin-bottom:12px;font-weight:600">Top Threats</div>
+    ${r.topThreats.map(t=>`<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #2A3545;font-size:13px"><span style="color:#B85C38">▲</span><span style="color:#C8C3BC">${t}</span></div>`).join('')}
+  </div>` : ''}
+  ${r.actions?.length ? `
+  <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#C9A96E;margin-bottom:12px;font-weight:600">Priority Actions</div>
+    ${r.actions.map(a=>`<div style="padding:10px;border-radius:7px;margin-bottom:8px;background:rgba(201,169,110,0.05);border:1px solid rgba(201,169,110,0.1)"><div style="font-size:12px;font-weight:700;color:#C9A96E;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${(a.urgency||'').replace('-',' ')}</div><div style="font-size:13px;color:#E8E4DC;font-weight:600;margin-bottom:2px">${a.action}</div><div style="font-size:12px;color:#6B7280">${a.impact}</div></div>`).join('')}
+  </div>` : ''}
+  ${r.win ? `
+  <div style="background:rgba(74,124,111,0.07);border:1px solid rgba(74,124,111,0.2);border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#4A7C6F;margin-bottom:8px;font-weight:600">🏆 Win of the Week</div>
+    <div style="font-size:13px;color:#C8C3BC;line-height:1.6">${r.win}</div>
+  </div>` : ''}
+  <div style="text-align:center;padding:20px 0;border-top:1px solid #2A3545;font-size:11px;color:#4B5563">
+    Powered by ReplyIQ · Reputation Intelligence for Hospitality<br>
+    <a href="https://app.replyiq.ch" style="color:#C9A96E;text-decoration:none">app.replyiq.ch</a>
+  </div>
+</div>
+</body>
+</html>`
+  }
+
   return (
     <Layout title="Weekly Report" subtitle={`Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
-      topbarRight={<Button onClick={generate} disabled={loading}>{loading?<><Spinner/>Generating...</>:'▤ Generate Report'}</Button>}
+      topbarRight={
+        <div style={{ display:'flex', gap:8 }}>
+          {report && (
+            <Button onClick={emailReport} disabled={emailing} variant="secondary" size="sm">
+              {emailing ? <><Spinner />Sending...</> : '✉ Email Report'}
+            </Button>
+          )}
+          <Button onClick={generate} disabled={loading} size="sm">
+            {loading?<><Spinner/>Generating...</>:'▤ Generate Report'}
+          </Button>
+        </div>
+      }
     >
       {!report && !loading && <Card><EmptyState icon="▤" title="Weekly Intelligence Report" description="ReplyIQ analyses all your reviews across every platform and generates a structured executive brief." action={<Button size="lg" onClick={generate}>Generate This Week's Report</Button>} /></Card>}
       {loading && <Card><div style={{ padding:48, display:'flex', alignItems:'center', gap:12, color:'var(--gold)', justifyContent:'center' }}><Spinner size={20} />Generating your intelligence report...</div></Card>}
@@ -511,7 +598,7 @@ export function ReportPage() {
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--gold)', marginBottom:8, fontWeight:600 }}>Executive Summary</div>
           <div style={{ fontSize:'14px', color:'var(--text2)', lineHeight:1.7 }}>{report.weekSummary}</div>
         </Card>
-        <Grid cols={2} gap={16} style={{ marginBottom:16 }}>
+        <Grid cols={isMobile?1:2} gap={16} style={{ marginBottom:16 }}>
           <Card>
             <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--teal)', marginBottom:12, fontWeight:600 }}>Statistics</div>
             {[['Negative reviews',report.negativeCount,'#B85C38'],['Positive reviews',report.positiveCount,'#4A7C6F'],['Unanswered',report.unansweredCount,'#C9A96E'],['Risk score',`${report.riskScore}/100`,riskScore>60?'#B85C38':'#4A7C6F'],['Revenue risk',report.revenueRisk,'#C9A96E']].map(([l,v,c],i,arr)=>(
@@ -537,7 +624,7 @@ export function ReportPage() {
             </div>
           ))}
         </Card>
-        <Grid cols={2} gap={16}>
+        <Grid cols={isMobile?1:2} gap={16}>
           <Card><div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--gold)', marginBottom:8, fontWeight:600 }}>🏆 Win of the Week</div><div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65 }}>{report.win}</div></Card>
           <Card><div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'#5a9080', marginBottom:8, fontWeight:600 }}>→ Next Week's Focus</div><div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65 }}>{report.nextFocus}</div></Card>
         </Grid>
