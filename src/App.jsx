@@ -42,11 +42,11 @@ function AppRoutes() {
     )
   }
 
-  // Determine if onboarding is complete
-  // Consider onboarded if: property has a real name OR localStorage flag is set
-  const hasRealName      = property?.name && property.name.trim() !== '' && property.name !== 'My Dental Clinic'
+  // Onboarding is complete ONLY when localStorage flag is explicitly set by goToDashboard()
+  // Do NOT use property name — it gets updated during onboarding which would
+  // trigger routing before the user clicks "Go to Dashboard"
   const hasOnboardingKey = property?.id && !!localStorage.getItem(`replyiq_onboarded_${property.id}`)
-  const isOnboarded      = !!(property && (hasRealName || hasOnboardingKey))
+  const isOnboarded      = !!(property && hasOnboardingKey)
 
   if (!isOnboarded) {
     return (

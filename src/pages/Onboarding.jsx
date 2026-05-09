@@ -14,11 +14,11 @@ const PLATFORMS = [
   { id:'tripadvisor', icon:'🦉', color:'#00AF87', name:'TripAdvisor', badge:'Optional', required:false, comingSoon:false,
     desc:'Millions of travellers check TripAdvisor before booking a hotel.',
     fieldLabel:'TripAdvisor URL', fieldPH:'https://www.tripadvisor.com/Hotel_Review-...', hint:'Copy the full URL from your TripAdvisor property page' },
-  { id:'booking',     icon:'🏨', color:'#003580', name:'Booking.com', badge:'Optional', required:false, comingSoon:false,
+  { id:'booking', icon:'🏨', color:'#003580', name:'Booking.com', badge:'Optional', required:false, comingSoon:false,
     desc:'Guests trust Booking.com reviews heavily when deciding where to stay.',
     fieldLabel:'Booking.com URL', fieldPH:'https://www.booking.com/hotel/ch/...', hint:'Copy the full URL from your Booking.com property page' },
-  { id:'instagram',   icon:'📸', color:'#E1306C', name:'Instagram', badge:'Coming soon', required:false, comingSoon:true, desc:'Monitor comments and mentions on Instagram.', fieldLabel:'', fieldPH:'', hint:'' },
-  { id:'facebook',    icon:'📘', color:'#1877F2', name:'Facebook',  badge:'Coming soon', required:false, comingSoon:true, desc:'Facebook reviews and page comments.', fieldLabel:'', fieldPH:'', hint:'' },
+  { id:'instagram', icon:'📸', color:'#E1306C', name:'Instagram', badge:'Coming soon', required:false, comingSoon:true, desc:'Monitor comments and mentions on Instagram.', fieldLabel:'', fieldPH:'', hint:'' },
+  { id:'facebook',  icon:'📘', color:'#1877F2', name:'Facebook',  badge:'Coming soon', required:false, comingSoon:true, desc:'Facebook reviews and page comments.', fieldLabel:'', fieldPH:'', hint:'' },
 ]
 
 export default function Onboarding() {
@@ -41,18 +41,15 @@ export default function Onboarding() {
   const [pLoading, setPLoading] = useState({})
   const [pDone,    setPDone]    = useState({})
   const [pMessages,setPMessages]= useState({})
-  const [pJobIds,  setPJobIds]  = useState({}) // track jobId per platform
-  const jobIdRef   = useRef({})        // ref copy — always in sync for goToDashboard
-  const pollRef    = useRef({})
-  const savedPropId= useRef(null)
+  const pollRef     = useRef({})
+  const savedPropId = useRef(null)
 
   useEffect(() => () => { Object.values(pollRef.current).forEach(clearInterval) }, [])
 
-  // canProceed only when at least one import is DONE or has a jobId confirmed
-  const hasJobStarted = Object.keys(pJobIds).length > 0
-  const hasSavedOther = ['tripadvisor','booking'].some(id => pInputs[id]?.trim())
-  const canProceed    = hasJobStarted || hasSavedOther
+  const canProceed = Object.keys(pDone).length > 0 ||
+    ['tripadvisor','booking'].some(id => pInputs[id]?.trim())
 
+  // ── Step 0 → Step 1 ────────────────────────────────────────────────────────
   async function goToStep1() {
     setError('')
     if (!form.name.trim()) { setError('Please enter your property name'); return }
@@ -66,13 +63,14 @@ export default function Onboarding() {
     setStep(1)
   }
 
+  // ── Save property (always overwrites trigger default) ──────────────────────
   async function ensurePropertySaved() {
     if (savedPropId.current) return savedPropId.current
     const url = form.website_url
       ? (form.website_url.startsWith('http') ? form.website_url : `https://${form.website_url}`)
       : ''
     const defaultProfile = {
-      industry: form.property_type, responseLanguage:'de', brandTone:'luxury', country:'CH',
+      industry:form.property_type, responseLanguage:'de', brandTone:'luxury', country:'CH',
       responsePersonality:`Professional, warm and personally attentive ${form.property_type} that genuinely cares about every guest.`,
     }
     const { data, error:err } = await updateProperty({
@@ -84,12 +82,14 @@ export default function Onboarding() {
     if (data) {
       updatePropertyInState(data)
       savedPropId.current = data.id
-      localStorage.setItem(`replyiq_onboarded_${data.id}`, '1')
+      // NOTE: localStorage flag is ONLY set in goToDashboard()
+      // Setting it here would trigger the routing guard prematurely
       return data.id
     }
     return null
   }
 
+  // ── Start platform import ───────────────────────────────────────────────────
   async function startImport(platform) {
     const identifier = pInputs[platform.id]?.trim()
     if (!identifier) { setError(`Please enter your ${platform.fieldLabel}`); return }
@@ -115,9 +115,34 @@ export default function Onboarding() {
       }
 
       if (data.jobId) {
-        // Track the jobId — ref is synchronous, state triggers re-render
-        jobIdRef.current[platform.id] = data.jobId
-        setPJobIds(p=>({...p,[platform.id]:data.jobId}))
+        // ── CRITICAL: Save to Supabase RIGHT NOW using authenticated client ──
+        // Do NOT wait until goToDashboard — by then it might be too late
+        const existingConns = property?.platform_connections || {}
+        const { error: saveErr } = await supabase.from('clinics').update({
+          pending_review_job: JSON.stringify({
+            jobId:      data.jobId,
+            platformId: platform.id,
+            identifier,
+            clinicId:   propId,
+          }),
+          platform_connections: {
+            ...existingConns,
+            [platform.id]: {
+              ...(existingConns[platform.id] || {}),
+              identifier,
+              connectedAt: existingConns[platform.id]?.connectedAt || new Date().toISOString(),
+              reviewCount: existingConns[platform.id]?.reviewCount || 0,
+              importing:   true,
+            }
+          }
+        }).eq('id', propId)
+
+        if (saveErr) {
+          console.error('[onboarding] Supabase save error:', saveErr.message)
+        } else {
+          console.log('[onboarding] Saved pending_review_job and platform_connections ✓')
+        }
+
         setPMessages(p=>({...p,[platform.id]:`Fetching reviews from ${platform.name}...`}))
         pollImport(platform, data.jobId, propId, identifier)
       }
@@ -128,6 +153,7 @@ export default function Onboarding() {
     }
   }
 
+  // ── Poll import status ──────────────────────────────────────────────────────
   function pollImport(platform, jobId, clinicId, identifier) {
     let attempts = 0
     const interval = setInterval(async () => {
@@ -138,6 +164,7 @@ export default function Onboarding() {
           body: JSON.stringify({ jobId, clinicId, platform:platform.id, identifier }),
         })
         const data = await r.json()
+
         if (data.status === 'done') {
           clearInterval(interval); delete pollRef.current[platform.id]
           setPLoading(p=>({...p,[platform.id]:false}))
@@ -145,8 +172,11 @@ export default function Onboarding() {
           setPMessages(p=>({...p,[platform.id]:''}))
           return
         }
+
         const elapsed = attempts * 5
         setPMessages(p=>({...p,[platform.id]:`Fetching reviews... ${elapsed}s elapsed`}))
+
+        // After 60s stop polling here — dashboard will resume automatically
         if (attempts >= 12) {
           clearInterval(interval); delete pollRef.current[platform.id]
           setPLoading(p=>({...p,[platform.id]:false}))
@@ -158,73 +188,39 @@ export default function Onboarding() {
     pollRef.current[platform.id] = interval
   }
 
-  async function goToDashboard() {
+  // ── Step 1 → Step 3 (You're all set!) ────────────────────────────────────
+  async function goToStep3() {
     setSaving(true)
     setError('')
 
-    // Ensure property is saved
+    // Ensure property saved
     const propId = savedPropId.current || property?.id
     if (!propId) {
       const id = await ensurePropertySaved()
       if (!id) { setSaving(false); return }
     }
 
-    const finalPropId = savedPropId.current || property?.id
-
-    // Build platform_connections from all started imports
-    const existingConns = property?.platform_connections || {}
-    const newConns = { ...existingConns }
-
-    const jobIds = { ...pJobIds, ...jobIdRef.current }
-    Object.entries(jobIds).forEach(([platformId, jobId]) => {
-      const done = pDone[platformId]
-      newConns[platformId] = {
-        ...(existingConns[platformId] || {}),
-        identifier: pInputs[platformId] || existingConns[platformId]?.identifier,
-        connectedAt: existingConns[platformId]?.connectedAt || new Date().toISOString(),
-        reviewCount: done?.count || 0,
-        importing: !done || done.delayed || false,
-      }
-    })
-
-    // Also save TripAdvisor / Booking URLs
+    // Save any TripAdvisor/Booking URLs in background
+    const finalId = savedPropId.current || property?.id
+    const otherConns = {}
     ;['tripadvisor','booking'].forEach(id => {
       const url = pInputs[id]?.trim()
-      if (url && !pJobIds[id]) {
-        newConns[id] = {
-          ...(existingConns[id] || {}),
-          identifier: url,
-          connectedAt: existingConns[id]?.connectedAt || new Date().toISOString(),
-          reviewCount: existingConns[id]?.reviewCount || 0,
-        }
-      }
+      if (url) otherConns[id] = { identifier:url, connectedAt:new Date().toISOString(), reviewCount:0 }
     })
-
-    // Find the active jobId (for Google specifically)
-    const googleJobId = jobIdRef.current['google'] || pJobIds['google']
-    const googleDone  = pDone['google']
-
-    // Save everything to Supabase using authenticated client
-    const updateData = { platform_connections: newConns }
-    if (googleJobId && !googleDone) {
-      updateData.pending_review_job = JSON.stringify({
-        jobId: googleJobId,
-        platformId: 'google',
-        identifier: pInputs['google'],
-        clinicId: finalPropId,
-      })
+    if (Object.keys(otherConns).length > 0) {
+      const existing = property?.platform_connections || {}
+      supabase.from('clinics').update({ platform_connections:{...existing,...otherConns} }).eq('id', finalId)
     }
 
-    const { error: saveErr } = await supabase
-      .from('clinics')
-      .update(updateData)
-      .eq('id', finalPropId)
+    setSaving(false)
+    setStep(2)
+  }
 
-    if (saveErr) {
-      console.error('Save error:', saveErr)
-      // Still navigate — don't block the user
-    }
-
+  // ── Step 3 → Dashboard ────────────────────────────────────────────────────
+  function goToDashboard() {
+    // Set onboarding complete flag RIGHT before navigation
+    const navId = savedPropId.current || property?.id
+    if (navId) localStorage.setItem(`replyiq_onboarded_${navId}`, '1')
     window.location.replace('/')
   }
 
@@ -238,7 +234,7 @@ export default function Onboarding() {
           <div style={{ fontSize:'11px', color:'var(--text3)', letterSpacing:'2.5px', textTransform:'uppercase' }}>Setup your property</div>
         </div>
 
-        {/* Step indicators */}
+        {/* Steps */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24 }}>
           {STEPS.map((s,i) => (
             <div key={s} style={{ display:'flex', alignItems:'center' }}>
@@ -253,7 +249,7 @@ export default function Onboarding() {
 
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-xl)', padding:step===1?'28px 28px':'28px 24px' }}>
 
-          {/* Step 0 */}
+          {/* ── Step 0 ── */}
           {step===0 && <>
             <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', marginBottom:5 }}>Tell us about your property</div>
             <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:20, lineHeight:1.5 }}>Works for hotels, restaurants, resorts and bars across DACH.</div>
@@ -272,25 +268,25 @@ export default function Onboarding() {
               <Input label="Website URL" value={form.website_url} onChange={e=>set('website_url',e.target.value)} placeholder="www.yourhotel.ch" hint="We'll scan this to build your AI brand voice automatically" />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                 <Input label="Address" value={form.address} onChange={e=>set('address',e.target.value)} placeholder="Talstrasse 1, 8001 Zürich" />
-                <Input label="Phone" value={form.phone} onChange={e=>set('phone',e.target.value)} placeholder="+41 44 220 50 20" />
+                <Input label="Phone"   value={form.phone}   onChange={e=>set('phone',e.target.value)}   placeholder="+41 44 220 50 20" />
               </div>
               <Input label="Report Email" value={form.owner_email} onChange={e=>set('owner_email',e.target.value)} placeholder="gm@yourhotel.ch" type="email" hint="Weekly intelligence reports sent here" />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
                 <Input label="Monthly Revenue (CHF)" value={form.monthly_revenue} onChange={e=>set('monthly_revenue',+e.target.value)} type="number" prefix="CHF" hint="For ROI calculations" />
-                <Input label="Target Rating" value={form.target_rating} onChange={e=>set('target_rating',+e.target.value)} type="number" step="0.1" min="4" max="5" suffix="★" hint="Your Google rating goal" />
+                <Input label="Target Rating"         value={form.target_rating}   onChange={e=>set('target_rating',+e.target.value)}   type="number" step="0.1" min="4" max="5" suffix="★" hint="Your Google rating goal" />
               </div>
             </div>
           </>}
 
-          {/* Step 1 */}
+          {/* ── Step 1 ── */}
           {step===1 && <>
             <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', marginBottom:5 }}>Connect your review platforms</div>
-            <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:16, lineHeight:1.5 }}>Connect Google Business to start importing reviews. Your dashboard will populate automatically.</div>
+            <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:16, lineHeight:1.5 }}>Connect Google Business to import your reviews. Your dashboard populates automatically.</div>
             {aiProfile && (
               <div style={{ background:'rgba(74,124,111,.06)', border:'1px solid rgba(74,124,111,.2)', borderRadius:'var(--r-md)', padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', gap:10 }}>
                 <span style={{ color:'#4A7C6F' }}>✓</span>
                 <div>
-                  <div style={{ fontSize:'12px', fontWeight:600, color:'#4A7C6F', marginBottom:1 }}>AI Profile Created from your website</div>
+                  <div style={{ fontSize:'12px', fontWeight:600, color:'#4A7C6F', marginBottom:1 }}>AI Profile created from your website</div>
                   <div style={{ fontSize:'11px', color:'var(--text3)' }}>{aiProfile.brandTone} · {aiProfile.responseLanguage?.toUpperCase()} · {aiProfile.industry}</div>
                 </div>
               </div>
@@ -299,50 +295,54 @@ export default function Onboarding() {
               {PLATFORMS.map((platform,idx) => {
                 const isLoading = pLoading[platform.id]
                 const isDone    = pDone[platform.id]
-                const hasJob    = !!pJobIds[platform.id]
                 const msg       = pMessages[platform.id]
                 const inputVal  = pInputs[platform.id]||''
                 const isFirst   = idx===0
                 return (
-                  <div key={platform.id} style={{ background:isFirst?'var(--card2)':'var(--surface)', border:`1px solid ${isDone?'rgba(74,124,111,.3)':hasJob?platform.color+'40':isFirst?platform.color+'30':'var(--border)'}`, borderRadius:'var(--r-lg)', padding:'14px 16px', opacity:platform.comingSoon?0.5:1 }}>
+                  <div key={platform.id} style={{ background:isFirst?'var(--card2)':'var(--surface)', border:`1px solid ${isDone?'rgba(74,124,111,.3)':isFirst?platform.color+'30':'var(--border)'}`, borderRadius:'var(--r-lg)', padding:'14px 16px', opacity:platform.comingSoon?0.5:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:platform.comingSoon?0:10 }}>
                       <div style={{ width:34, height:34, borderRadius:8, background:`${platform.color}15`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'17px', flexShrink:0 }}>{platform.icon}</div>
                       <div style={{ flex:1 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:2 }}>
                           <span style={{ fontSize:'13px', fontWeight:700 }}>{platform.name}</span>
-                          <span style={{ fontSize:'10px', fontWeight:600, padding:'2px 6px', borderRadius:10, background:isDone?'rgba(74,124,111,.1)':hasJob?`${platform.color}12`:`${platform.color}10`, color:isDone?'#4A7C6F':platform.color, border:`1px solid ${isDone?'rgba(74,124,111,.2)':platform.color+'30'}` }}>
-                            {isDone ? '✓ Import started' : hasJob ? '⏳ Importing...' : platform.badge}
+                          <span style={{ fontSize:'10px', fontWeight:600, padding:'2px 6px', borderRadius:10, background:isDone?'rgba(74,124,111,.1)':`${platform.color}12`, color:isDone?'#4A7C6F':platform.color, border:`1px solid ${isDone?'rgba(74,124,111,.2)':platform.color+'30'}` }}>
+                            {isDone ? '✓ Import started' : isLoading ? '⏳ Starting...' : platform.badge}
                           </span>
                         </div>
                         <div style={{ fontSize:'11px', color:'var(--text3)' }}>{platform.desc}</div>
                       </div>
                     </div>
-                    {!platform.comingSoon && !isDone && !hasJob && (
+                    {!platform.comingSoon && !isDone && !isLoading && (
                       <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
                         <div style={{ flex:1 }}>
-                          <input value={inputVal} onChange={e=>setPInputs(p=>({...p,[platform.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&!isLoading&&inputVal&&startImport(platform)} placeholder={platform.fieldPH} disabled={isLoading}
-                            style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'12px', outline:'none', boxSizing:'border-box', opacity:isLoading?0.6:1 }}
+                          <input value={inputVal} onChange={e=>setPInputs(p=>({...p,[platform.id]:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&!isLoading&&inputVal&&startImport(platform)} placeholder={platform.fieldPH}
+                            style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'12px', outline:'none', boxSizing:'border-box' }}
                             onFocus={e=>e.target.style.borderColor=platform.color} onBlur={e=>e.target.style.borderColor='var(--border)'} />
                           {platform.hint && <div style={{ fontSize:'10px', color:'var(--text3)', marginTop:3, lineHeight:1.4 }}>{platform.hint}</div>}
                         </div>
-                        <button onClick={()=>startImport(platform)} disabled={isLoading||!inputVal.trim()}
-                          style={{ padding:'9px 14px', background:platform.color, border:'none', borderRadius:8, color:'#fff', fontSize:'12px', fontWeight:600, cursor:isLoading||!inputVal.trim()?'not-allowed':'pointer', flexShrink:0, opacity:isLoading||!inputVal.trim()?0.5:1, display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap' }}>
-                          {isLoading ? <><Spinner />Starting...</> : platform.id==='google'?'Import Reviews':'Save'}
+                        <button onClick={()=>startImport(platform)} disabled={!inputVal.trim()}
+                          style={{ padding:'9px 14px', background:platform.color, border:'none', borderRadius:8, color:'#fff', fontSize:'12px', fontWeight:600, cursor:!inputVal.trim()?'not-allowed':'pointer', flexShrink:0, opacity:!inputVal.trim()?0.5:1, display:'flex', alignItems:'center', gap:5, whiteSpace:'nowrap' }}>
+                          {platform.id==='google'?'Import Reviews':'Save'}
                         </button>
                       </div>
                     )}
-                    {msg && (
+                    {isLoading && (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0' }}>
+                        <Spinner /><span style={{ fontSize:'12px', color:platform.color }}>Saving to Supabase and starting import...</span>
+                      </div>
+                    )}
+                    {msg && !isLoading && (
                       <div style={{ marginTop:8, padding:'8px 12px', background:`${platform.color}08`, border:`1px solid ${platform.color}20`, borderRadius:7, display:'flex', alignItems:'center', gap:8 }}>
                         <Spinner /><span style={{ fontSize:'12px', color:platform.color, lineHeight:1.4 }}>{msg}</span>
                       </div>
                     )}
-                    {(isDone || hasJob) && (
-                      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(74,124,111,.06)', borderRadius:7, border:'1px solid rgba(74,124,111,.2)', marginTop: (!isDone&&!hasJob)||msg?0:0 }}>
+                    {isDone && (
+                      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 12px', background:'rgba(74,124,111,.06)', borderRadius:7, border:'1px solid rgba(74,124,111,.2)' }}>
                         <span style={{ color:'#4A7C6F' }}>✓</span>
                         <span style={{ fontSize:'12px', color:'#4A7C6F', fontWeight:500 }}>
-                          {isDone && !isDone.delayed
-                            ? `${(isDone.count||0).toLocaleString()} reviews imported successfully.`
-                            : 'Import running in background — your dashboard will update automatically.'}
+                          {isDone.delayed
+                            ? 'Import running — your dashboard will show progress and update automatically.'
+                            : `${(isDone.count||0).toLocaleString()} reviews imported successfully.`}
                         </span>
                       </div>
                     )}
@@ -357,14 +357,51 @@ export default function Onboarding() {
             )}
           </>}
 
-          {/* Step 2 */}
+          {/* ── Step 2: You're all set ── */}
           {step===2 && (
             <div style={{ textAlign:'center', padding:'12px 0' }}>
-              <div style={{ fontSize:'3rem', marginBottom:14 }}>🎉</div>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.4rem', marginBottom:10 }}>You're all set!</div>
-              <div style={{ fontSize:'13px', color:'var(--text3)', lineHeight:1.8, marginBottom:20 }}>Your dashboard is ready. Reviews are importing and will appear automatically.</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6, fontSize:'13px', color:'var(--text2)', textAlign:'left', background:'var(--surface)', borderRadius:'var(--r-md)', padding:16 }}>
-                {['✓ AI responds in your brand voice','✓ Reviews sync daily automatically','✓ Inbox shows all unanswered reviews','✓ Risk score tracks reputation health','✓ Competitor benchmarking — 2km radius','✓ Weekly intelligence reports'].map(f=><div key={f}>{f}</div>)}
+              <div style={{ fontSize:'3.5rem', marginBottom:14 }}>🎉</div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', marginBottom:8 }}>You're all set!</div>
+              <div style={{ fontSize:'13px', color:'var(--text3)', lineHeight:1.8, marginBottom:20 }}>
+                Your reviews are being imported in the background. Your dashboard will update automatically — no need to wait here.
+              </div>
+
+              {/* Import status */}
+              {Object.keys(pDone).length > 0 && (
+                <div style={{ marginBottom:20 }}>
+                  {Object.entries(pDone).map(([pid, done]) => (
+                    <div key={pid} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'rgba(74,124,111,.06)', border:'1px solid rgba(74,124,111,.2)', borderRadius:10, marginBottom:8 }}>
+                      <span style={{ color:'#4A7C6F', fontSize:'16px' }}>✓</span>
+                      <div style={{ textAlign:'left' }}>
+                        <div style={{ fontSize:'13px', fontWeight:600, color:'#4A7C6F' }}>
+                          {done.delayed ? 'Import running in background' : `${(done.count||0).toLocaleString()} reviews imported`}
+                        </div>
+                        <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:2 }}>
+                          {done.delayed
+                            ? 'Your dashboard will show a progress bar — reviews appear automatically when ready.'
+                            : 'Reviews are ready in your dashboard.'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Features list */}
+              <div style={{ display:'flex', flexDirection:'column', gap:8, fontSize:'13px', color:'var(--text2)', textAlign:'left', background:'var(--surface)', borderRadius:'var(--r-md)', padding:'14px 16px' }}>
+                {[
+                  ['✓','Reviews sync daily automatically'],
+                  ['✓','Inbox shows all unanswered reviews'],
+                  ['✓','AI responds in your brand voice'],
+                  ['✓','Risk score tracks reputation health'],
+                  ['✓','Competitor benchmarking — 2km radius'],
+                  ['✓','Weekly intelligence reports by email'],
+                ].map(([icon, text]) => (
+                  <div key={text} style={{ display:'flex', gap:10, alignItems:'center' }}>
+                    <span style={{ color:'var(--gold)', flexShrink:0 }}>{icon}</span>
+                    <span>{text}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -372,15 +409,15 @@ export default function Onboarding() {
           {error && <div style={{ marginTop:12, padding:'10px 14px', background:'rgba(184,92,56,.08)', border:'1px solid rgba(184,92,56,.2)', borderRadius:8, fontSize:'13px', color:'#B85C38' }}>{error}</div>}
 
           <button
-            onClick={step===0 ? goToStep1 : step===1 ? goToDashboard : ()=>window.location.replace('/')}
+            onClick={step===0 ? goToStep1 : step===1 ? goToStep3 : goToDashboard}
             disabled={scanning || saving || (step===0 && !form.name.trim()) || (step===1 && !canProceed)}
             style={{ width:'100%', marginTop:22, padding:'14px', background:canProceed||step!==1?'linear-gradient(135deg,var(--gold),var(--amber))':'var(--surface)', border:'none', borderRadius:11, color:canProceed||step!==1?'var(--bg)':'var(--text3)', fontSize:'15px', fontWeight:700, cursor:(scanning||saving||(step===0&&!form.name.trim())||(step===1&&!canProceed))?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'var(--ease)', opacity:(step===1&&!canProceed)?0.5:1 }}>
-            {scanning ? <><Spinner />Scanning your website...</> : saving ? <><Spinner />Saving...</> : step===0 ? 'Continue →' : step===1 ? 'Go to Dashboard →' : 'Open Dashboard →'}
+            {scanning ? <><Spinner />Scanning your website...</> : saving ? <><Spinner />Saving...</> : step===0 ? 'Continue →' : step===1 ? 'Continue →' : 'Open Dashboard →'}
           </button>
 
           {step===1 && canProceed && !saving && (
             <div style={{ textAlign:'center', marginTop:10, fontSize:'12px', color:'var(--text3)' }}>
-              Your dashboard will show a progress bar while reviews import. Takes 1–3 minutes.
+              Continue to see your setup summary before opening the dashboard.
             </div>
           )}
         </div>
