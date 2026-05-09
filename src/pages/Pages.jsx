@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Grid, KpiCard, Button, Spinner, EmptyState, SectionHeader, Stars, PlatformBadge, Tabs, RatingSelector, Textarea, Input, Divider, Alert } from '../components/UI.jsx'
-import { useApp, useRiskScore } from '../lib/store.jsx'
+import { useApp, useRiskScore, useIsMobile } from '../lib/store.jsx'
 import { draftResponse, generateRiskAnalysis, calcRevenue, analyseCompetitors, generateReport } from '../lib/api.js'
 import { saveAiClassification, saveResponse, saveReport } from '../lib/supabase.js'
 
