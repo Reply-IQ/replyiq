@@ -56,6 +56,16 @@ export default function Settings() {
             <SectionHeader title="Property Profile" />
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <Input label="Property Name"         value={form.name||''}           onChange={e=>set('name',e.target.value)} />
+              {property?.platform_connections?.google?.identifier && (
+                <div>
+                  <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:7 }}>Google Place ID</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)' }}>
+                    <span style={{ fontSize:'13px', color:'var(--text2)', fontFamily:'var(--font-mono)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{property.platform_connections.google.identifier}</span>
+                    <span style={{ fontSize:'11px', color:'var(--text3)', flexShrink:0 }}>🔒 Locked</span>
+                  </div>
+                  <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:4 }}>Contact support to change your Google property</div>
+                </div>
+              )}
               <Input label="Website URL"           value={form.website_url||''}    onChange={e=>set('website_url',e.target.value)} placeholder="www.yourhotel.ch" />
               <Input label="Address"               value={form.address||''}        onChange={e=>set('address',e.target.value)} />
               <Input label="Phone"                 value={form.phone||''}          onChange={e=>set('phone',e.target.value)} />

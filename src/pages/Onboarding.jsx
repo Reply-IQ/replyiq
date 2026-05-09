@@ -42,6 +42,7 @@ export default function Onboarding() {
   const [pDone,    setPDone]    = useState({})
   const [pMessages,setPMessages]= useState({})
   const [pJobIds,  setPJobIds]  = useState({}) // track jobId per platform
+  const jobIdRef   = useRef({})        // ref copy — always in sync for goToDashboard
   const pollRef    = useRef({})
   const savedPropId= useRef(null)
 
@@ -114,7 +115,8 @@ export default function Onboarding() {
       }
 
       if (data.jobId) {
-        // Track the jobId so goToDashboard can save it to Supabase
+        // Track the jobId — ref is synchronous, state triggers re-render
+        jobIdRef.current[platform.id] = data.jobId
         setPJobIds(p=>({...p,[platform.id]:data.jobId}))
         setPMessages(p=>({...p,[platform.id]:`Fetching reviews from ${platform.name}...`}))
         pollImport(platform, data.jobId, propId, identifier)
@@ -173,7 +175,8 @@ export default function Onboarding() {
     const existingConns = property?.platform_connections || {}
     const newConns = { ...existingConns }
 
-    Object.entries(pJobIds).forEach(([platformId, jobId]) => {
+    const jobIds = { ...pJobIds, ...jobIdRef.current }
+    Object.entries(jobIds).forEach(([platformId, jobId]) => {
       const done = pDone[platformId]
       newConns[platformId] = {
         ...(existingConns[platformId] || {}),
@@ -198,7 +201,7 @@ export default function Onboarding() {
     })
 
     // Find the active jobId (for Google specifically)
-    const googleJobId = pJobIds['google']
+    const googleJobId = jobIdRef.current['google'] || pJobIds['google']
     const googleDone  = pDone['google']
 
     // Save everything to Supabase using authenticated client

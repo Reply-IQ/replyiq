@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Inbox from './pages/Inbox.jsx'
 import Platforms from './pages/Platforms.jsx'
 import Settings from './pages/Settings.jsx'
-import { ReviewsPage, RespondPage, RiskPage, RevenuePage, CompetitorsPage, ReportPage } from './pages/Pages.jsx'
+import { ReviewsPage, RiskPage, RevenuePage, CompetitorsPage, ReportPage } from './pages/Pages.jsx'
 
 function AppRoutes() {
   const { user, property, loading, toast, setToast } = useApp()
@@ -63,7 +63,6 @@ function AppRoutes() {
         <Route path="/"            element={<Dashboard />} />
         <Route path="/inbox"       element={<Inbox />} />
         <Route path="/reviews"     element={<ReviewsPage />} />
-        <Route path="/respond"     element={<RespondPage />} />
         <Route path="/risk"        element={<RiskPage />} />
         <Route path="/revenue"     element={<RevenuePage />} />
         <Route path="/competitors" element={<CompetitorsPage />} />

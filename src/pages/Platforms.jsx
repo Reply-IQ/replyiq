@@ -233,7 +233,7 @@ export default function Platforms() {
                     </div>
                   )}
 
-                  {/* Not connected — show input */}
+                  {/* Not connected — show input (locked for Google once ever connected) */}
                   {!isConn && !isLoad && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 200 }}>
@@ -262,15 +262,33 @@ export default function Platforms() {
                     </div>
                   )}
 
-                  {/* Connected — show sync/disconnect */}
+                  {/* Connected — Google is locked, others can disconnect */}
                   {isConn && !isLoad && (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button variant="secondary" size="sm" onClick={() => syncReviews(platform)}>
-                        🔄 Sync Reviews
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => disconnect(platform.id)}>
-                        Disconnect
-                      </Button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {/* Show locked Place ID for Google */}
+                      {platform.id === 'google' && conn?.identifier && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', flexShrink: 0 }}>Place ID</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text2)', fontFamily: 'var(--font-mono)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conn.identifier}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text3)', flexShrink: 0 }}>🔒 Locked</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Button variant="secondary" size="sm" onClick={() => syncReviews(platform)}>
+                          🔄 Sync Reviews
+                        </Button>
+                        {/* Only allow disconnect for non-Google platforms */}
+                        {platform.id !== 'google' && (
+                          <Button variant="ghost" size="sm" onClick={() => disconnect(platform.id)}>
+                            Disconnect
+                          </Button>
+                        )}
+                        {platform.id === 'google' && (
+                          <span style={{ fontSize: '11px', color: 'var(--text3)', alignSelf: 'center' }}>
+                            Contact support to change your property
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 

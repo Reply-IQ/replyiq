@@ -8,7 +8,6 @@ const NAV = [
   { path: '/',            label: 'Dashboard',    icon: '▦' },
   { path: '/inbox',       label: 'Inbox',        icon: '◎', badge: true },
   { path: '/reviews',     label: 'Reviews',      icon: '✦' },
-  { path: '/respond',     label: 'AI Respond',   icon: '✍' },
   { path: '/risk',        label: 'Risk Index',   icon: '◈' },
   { path: '/revenue',     label: 'ROI Impact',   icon: '◆' },
   { path: '/competitors', label: 'Competitors',  icon: '⊞' },
