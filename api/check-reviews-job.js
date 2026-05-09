@@ -59,11 +59,34 @@ export default async function handler(req, res) {
     // Clear pending job regardless of result
     const clearJob = async () => {
       if (!supabaseUrl || !serviceKey) return
-      await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}`, {
-        method: 'PATCH',
-        headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pending_review_job: null, last_synced_at: new Date().toISOString() })
-      })
+      // Get existing connections to preserve them while clearing importing flag
+      try {
+        const connRes = await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}&select=platform_connections`, {
+          headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` }
+        })
+        const connData = await connRes.json()
+        const existing = (Array.isArray(connData) ? connData[0] : connData)?.platform_connections || {}
+        const pid = platform || 'google'
+        await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}`, {
+          method: 'PATCH',
+          headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pending_review_job: null,
+            last_synced_at: new Date().toISOString(),
+            platform_connections: {
+              ...existing,
+              [pid]: { ...existing[pid], importing: false }  // ← clears spinner
+            }
+          })
+        })
+      } catch {
+        // fallback: just clear the job
+        await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinicId}`, {
+          method: 'PATCH',
+          headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pending_review_job: null, last_synced_at: new Date().toISOString() })
+        })
+      }
     }
 
     if (!reviewsData?.length) {
@@ -110,10 +133,36 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify(batch)
         })
+        const batchNum = Math.floor(i/100) + 1
+        console.log('[crj] batch', batchNum, 'HTTP status:', result.status)
         const inserted = await result.json()
-        const count    = Array.isArray(inserted) ? inserted.length : batch.length
-        saved += count
-        console.log('[crj] batch', Math.floor(i/100) + 1, '— saved', count)
+        if (!result.ok) {
+          console.error('[crj] batch', batchNum, 'INSERT ERROR:', JSON.stringify(inserted))
+          // Try without upsert preference as fallback
+          const fallback = await fetch(`${supabaseUrl}/rest/v1/reviews`, {
+            method:  'POST',
+            headers: {
+              'apikey':        serviceKey,
+              'Authorization': `Bearer ${serviceKey}`,
+              'Content-Type':  'application/json',
+              'Prefer':        'return=representation',
+            },
+            body: JSON.stringify(batch)
+          })
+          const fallbackData = await fallback.json()
+          console.log('[crj] batch', batchNum, 'fallback status:', fallback.status)
+          if (!fallback.ok) {
+            console.error('[crj] batch', batchNum, 'FALLBACK ERROR:', JSON.stringify(fallbackData))
+          } else {
+            const count = Array.isArray(fallbackData) ? fallbackData.length : batch.length
+            saved += count
+            console.log('[crj] batch', batchNum, '— fallback saved', count)
+          }
+        } else {
+          const count = Array.isArray(inserted) ? inserted.length : batch.length
+          saved += count
+          console.log('[crj] batch', batchNum, '— saved', count)
+        }
       }
 
       // Update platform_connections with real data
@@ -134,6 +183,7 @@ export default async function handler(req, res) {
               ...existing[pid],
               identifier:   identifier || existing[pid]?.identifier,
               reviewCount:  reviews.length,
+              importing:    false,   // ← critical: clears spinner on dashboard
               lastSyncedAt: new Date().toISOString(),
               connectedAt:  existing[pid]?.connectedAt || new Date().toISOString(),
               businessInfo: {
