@@ -1,27 +1,16 @@
-// AI engine — calls /api/claude on Vercel, direct on localhost
-async function ai(system, user, max = 800, consumeFn = null) {
-  if (consumeFn) {
-    const check = await consumeFn()
-    if (!check.allowed) return { error: check.reason || 'Trial limit reached. Please upgrade.' }
-  }
+// AI engine — calls /api/claude on Vercel
+async function ai(system, user, max = 800) {
   try {
-    const isLocal = window.location.hostname === 'localhost'
-    let res
-    if (isLocal) {
-      const key = import.meta.env.VITE_ANTHROPIC_KEY
-      if (!key) return { error: 'Add VITE_ANTHROPIC_KEY to your .env file' }
-      res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: max, system, messages: [{ role: 'user', content: user }] }),
-      })
-    } else {
-      res = await fetch('/api/claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: max, system, messages: [{ role: 'user', content: user }] }),
-      })
-    }
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: max,
+        system,
+        messages: [{ role: 'user', content: user }],
+      }),
+    })
     if (!res.ok) return { error: `API error ${res.status}` }
     const data = await res.json()
     const text = data.content?.map(b => b.text || '').join('') || ''
@@ -47,111 +36,233 @@ export async function scanWebsite(url) {
 }
 
 // ── DRAFT RESPONSE ────────────────────────────────────────────────────────────
-export async function draftResponse(review, property, tone = 'professional', consumeFn = null) {
-  const profile = property?.ai_profile || {}
-  const tones = {
-    professional: 'warm and professionally formal, acknowledging specific points raised by the guest',
-    empathetic:   'highly empathetic and caring, showing genuine concern for the guest experience',
-    concise:      'brief and direct, 2 sentences max, acknowledge and invite private follow-up',
-  }
-  return ai(
-    `You are the AI response assistant for ${profile.businessName || property?.name || 'this hospitality property'}.
-Property type: ${profile.industry || 'hotel or restaurant'} in ${profile.country || 'Switzerland'}
-Respond in: ${profile.responseLanguage || 'en'}
-Brand personality: ${profile.responsePersonality || 'Warm, professional hospitality brand that genuinely cares about every guest experience.'}
-Tone: ${tones[tone] || tones.professional}
+export async function draftResponse(review, property, tone = 'professional') {
+  const profile   = property?.ai_profile || {}
+  const name      = profile.businessName || property?.name || 'our property'
+  const lang      = profile.responseLanguage || 'de'
+  const industry  = profile.industry || 'hotel'
+  const reviewer  = review?.author || ''
+  const firstName = reviewer.split(' ')[0] || ''
+  const rating    = review?.rating || 3
+  const platform  = review?.platform || 'Google'
+  const reviewText= review?.text || ''
 
-HOSPITALITY RESPONSE RULES:
-- Maximum 3-4 sentences
-- Never mention specific room numbers, table numbers, or staff names
-- Never make promises about refunds or compensation publicly
-- Invite private contact for unresolved issues (email or phone)
-- Sound human and genuine, not corporate
-- For negative reviews: acknowledge, apologise sincerely, invite private resolution
-- For positive reviews: thank warmly, mention specific positive they highlighted, invite return visit
-- Sign off as: ${profile.autoResponseConfig?.signOff || `The ${property?.name || 'Management'} Team`}
-- Comply with Swiss/DACH hospitality standards — no medical claims, no price commitments`,
-    `Write a ${review.rating}-star ${review.platform || 'Google'} review response.
-Return ONLY valid JSON: { "response": "full response text here", "approach": "1 sentence explaining strategy" }
-Review: "${review.text}"`,
-    400, consumeFn
+  // Greeting in correct language
+  const greetingMap = {
+    de: firstName ? `Liebe/r ${firstName},` : 'Liebe Gästin, lieber Gast,',
+    fr: firstName ? `Cher/Chère ${firstName},` : 'Cher(e) client(e),',
+    it: firstName ? `Gentile ${firstName},` : 'Gentile ospite,',
+    en: firstName ? `Dear ${firstName},` : 'Dear Guest,',
+  }
+  const greeting = profile.greetingStyle || greetingMap[lang] || greetingMap.de
+
+  const signOff = profile.signOffStyle ||
+    profile.autoResponseConfig?.signOff ||
+    (lang === 'de' ? `Mit herzlichen Grüssen,\nDas Team von ${name}` :
+     lang === 'fr' ? `Cordialement,\nL'équipe de ${name}` :
+     lang === 'it' ? `Cordiali saluti,\nIl team di ${name}` :
+                     `Warm regards,\nThe Team at ${name}`)
+
+  const toneDesc = {
+    professional: 'warm and professionally formal — sophisticated yet approachable',
+    empathetic:   'deeply empathetic and human — lead with understanding before solutions',
+    concise:      'brief and efficient — acknowledge the key point, offer next step, sign off',
+    friendly:     'warm, friendly and personal — like a conversation, not a letter',
+  }[tone] || 'warm and professionally formal'
+
+  // Rating-specific strategy
+  const ratingStrategy = rating >= 5
+    ? `This is a 5-star review. Lead with genuine gratitude, highlight one specific detail they mentioned that shows you truly read their review, express warmth about welcoming them back. 3-4 sentences. Celebrate this win.`
+    : rating >= 4
+    ? `This is a 4-star review. Thank them warmly, gently acknowledge any concern without dwelling on it, express confidence in their next visit. 3-4 sentences.`
+    : rating >= 3
+    ? `This is a 3-star review. Acknowledge their experience respectfully, specifically address the concern they raised, show what you're doing or will do about it, invite private follow-up for a better next experience. 4-5 sentences.`
+    : `This is a ${rating}-star review requiring careful de-escalation. Start by acknowledging their disappointment sincerely, specifically address each concern they raised (never be dismissive or defensive), apologise for the experience not meeting expectations, explain what you will do or have done about it, and invite them to contact you directly to discuss further. 5-6 sentences. This response may make the difference between them returning or never coming back.`
+
+  const keyStrengths = profile.keyStrengths?.length
+    ? `Property strengths to weave in naturally where relevant: ${profile.keyStrengths.join(', ')}`
+    : ''
+
+  const neverInclude = profile.autoResponseConfig?.neverInclude ||
+    'Never make promises you cannot keep. Never offer refunds or compensation in a public review response. Never be defensive. Never copy-paste generic responses.'
+
+  const systemPrompt = `You are the official AI response writer for ${name}, a ${industry} in ${profile.city || 'DACH region'}.
+
+Your role is to write review responses that:
+- Sound written by a real, caring human — never robotic or templated
+- Reflect the specific brand voice of ${name}: ${profile.responsePersonality || `A ${profile.brandTone || 'professional and warm'} ${industry} that genuinely cares about every guest`}
+- Are written in ${lang === 'de' ? 'German (Sie form — formal)' : lang === 'fr' ? 'French (vouvoiement)' : lang === 'it' ? 'Italian (Lei form)' : 'English'} — ALWAYS match the language of the review
+- Follow Swiss/DACH hospitality standards and consumer protection norms
+
+${ratingStrategy}
+
+ALWAYS:
+- Address the reviewer by first name using this greeting: "${greeting}"
+- Sign off with: "${signOff}"
+- Reference something specific from their review — never write a response that could work for any review
+- Keep the response tightly focused — no padding
+
+NEVER:
+${neverInclude}
+
+${keyStrengths}
+
+Tone: ${toneDesc}
+
+Return ONLY the response text — no preamble, no explanation, no quotes around it.`
+
+  const userPrompt = `Write a review response for this ${rating}-star ${platform} review${firstName ? ` left by ${firstName}` : ''}:
+
+"${reviewText}"
+
+Remember: start with "${greeting}" and end with the sign-off. Reference something specific from this review.`
+
+  return ai(systemPrompt, userPrompt, 600)
+}
+
+// ── RISK ANALYSIS ─────────────────────────────────────────────────────────────
+export async function generateRiskAnalysis(reviews, property) {
+  const name = property?.name || 'this property'
+  const negative = reviews.filter(r => r.rating <= 2)
+  const unanswered = reviews.filter(r => !r.responded)
+  const avgRating = reviews.length ? (reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(1) : 0
+
+  const sample = negative.slice(0,5).map(r => `${r.rating}★: "${r.text?.slice(0,150)}"`).join('\n')
+
+  return ai(
+    `You are a hospitality reputation analyst specialising in DACH markets. Be specific and actionable.`,
+    `Analyse the reputation risk for ${name}.
+
+Stats:
+- Total reviews: ${reviews.length}
+- Average rating: ${avgRating}★
+- Unanswered reviews: ${unanswered.length} (${Math.round(unanswered.length/Math.max(reviews.length,1)*100)}%)
+- Negative reviews (1-2★): ${negative.length}
+
+Sample of recent negative reviews:
+${sample}
+
+Return JSON: {
+  "riskLevel": "LOW|MODERATE|HIGH|CRITICAL",
+  "summary": "2 sentence executive summary of the risk situation",
+  "topThreats": ["specific threat 1", "specific threat 2", "specific threat 3"],
+  "immediateActions": ["action to take this week", "action 2", "action 3"],
+  "positives": ["what is working well", "strength to maintain"],
+  "revenueImpact": "estimated revenue impact of current rating vs target"
+}`,
+    1000
   )
 }
 
-// ── AI BRIEF ──────────────────────────────────────────────────────────────────
-export async function generateBrief(reviews, property, consumeFn = null) {
-  const type = property?.ai_profile?.industry || 'hotel/restaurant'
-  const txt = reviews.slice(0, 20).map(r => `[${r.rating}★|${r.platform || 'Google'}|${r.review_date}|${r.responded ? 'replied' : 'UNANSWERED'}]: ${r.text}`).join('\n')
-  return ai(
-    'You are ReplyIQ, a hospitality reputation intelligence AI for hotels and restaurants in the DACH region. Return ONLY valid JSON.',
-    `Generate an intelligence brief for this ${type} property.
-Return JSON: { "executiveSummary":"2 sentences on reputation health", "topIssue":"max 5 words", "topIssueDetail":"1 sentence with evidence from reviews", "topStrength":"max 5 words", "topStrengthDetail":"1 sentence", "weeklyTrend":"improving|declining|stable", "urgentAction":"single most important action this week", "riskCount":number, "unansweredCount":number }
-Reviews:\n${txt}`, 700, consumeFn
-  )
-}
+// ── REVENUE IMPACT ────────────────────────────────────────────────────────────
+export async function calcRevenue(property, reviews) {
+  const avgRating = reviews?.length
+    ? (reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(2)
+    : 0
+  const monthlyRevenue = property?.avg_revenue || 150000
+  const targetRating   = property?.target_rating || 4.7
 
-// ── REVENUE IMPACT (deterministic math — no AI) ───────────────────────────────
-export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {
-  const ELASTICITY = 0.054 // HBS Luca 2016: 1 star = 5.4% revenue uplift
-  const gap = Math.max(0, targetRating - currentRating)
-  const pct = gap * ELASTICITY
-  const projected = Math.round(monthlyRevenue * (1 + pct))
-  const monthly = projected - monthlyRevenue
-  const SUBSCRIPTION = 249
-  return {
-    currentMonthlyRevenue: monthlyRevenue,
-    projectedMonthlyRevenue: projected,
-    monthlyGain: monthly,
-    annualGain: monthly * 12,
-    ratingGap: Math.round(gap * 10) / 10,
-    upliftPct: Math.round(pct * 1000) / 10,
-    roiX: monthly > 0 ? Math.round((monthly / SUBSCRIPTION) * 10) / 10 : 0,
-    paybackDays: monthly > 0 ? Math.round((SUBSCRIPTION / monthly) * 30) : 0,
-    confidence: gap <= 0.3 ? 'high' : gap <= 0.7 ? 'medium' : 'low',
-  }
+  return ai(
+    `You are a hospitality revenue analyst. Use real hospitality industry research for DACH markets.`,
+    `Calculate revenue impact for ${property?.name || 'this property'}.
+
+Current average rating: ${avgRating}★
+Target rating: ${targetRating}★
+Monthly revenue baseline: CHF ${monthlyRevenue.toLocaleString()}
+Total reviews: ${reviews?.length || 0}
+Response rate: ${reviews?.length ? Math.round(reviews.filter(r=>r.responded).length/reviews.length*100) : 0}%
+
+Return JSON: {
+  "currentRating": ${avgRating},
+  "targetRating": ${targetRating},
+  "ratingGap": ${(targetRating - avgRating).toFixed(2)},
+  "estimatedRevenueUplift": <number in CHF per month if target rating achieved>,
+  "annualUplift": <annualised CHF>,
+  "responseRateImpact": "<sentence on how improving response rate affects ranking and bookings>",
+  "methodology": "<1 sentence explaining the calculation basis>",
+  "confidence": "LOW|MEDIUM|HIGH"
+}`,
+    600
+  )
 }
 
 // ── COMPETITOR ANALYSIS ───────────────────────────────────────────────────────
 export async function analyseCompetitors(property, competitors) {
-  const type = property?.ai_profile?.industry || 'hotel'
-  const comps = competitors.map(c => `${c.name}: ${c.rating}★ (${c.reviews} reviews)`).join('\n')
+  const name = property?.name || 'your property'
+  const compList = competitors.map(c =>
+    `${c.name}: ${c.rating}★ (${c.reviews} reviews)`
+  ).join('\n')
+
   return ai(
-    'You are ReplyIQ hospitality competitive intelligence AI for DACH region. Return ONLY valid JSON.',
-    `Competitive analysis for ${property.name} (${property.google_rating}★) — ${type}.
-Competitors:\n${comps}
-Return JSON: { "marketPosition":"e.g. #2 of 6", "gapToLeader":number, "revenueAtRisk":"~CHF X,000/month", "urgency":"high|medium|low", "primaryOpportunity":"1 sentence", "threat":"1 sentence", "narrative":"2 sentences", "quickWins":["win 1","win 2","win 3"] }`, 500
+    `You are a hospitality competitive intelligence analyst for the DACH market.`,
+    `Analyse competitive position for ${name}.
+
+Your property stats from Google:
+- Rating: ${property?.platform_connections?.google?.businessInfo?.rating || 'unknown'}★
+- Reviews: ${property?.platform_connections?.google?.businessInfo?.totalReviews || 'unknown'}
+
+Nearby competitors:
+${compList}
+
+Return JSON: {
+  "competitivePosition": "LEADING|STRONG|AVERAGE|LAGGING",
+  "summary": "2 sentence competitive summary",
+  "strengths": ["competitive advantage 1", "competitive advantage 2"],
+  "gaps": ["gap vs competitors 1", "gap 2"],
+  "recommendations": ["specific action to improve competitive position 1", "action 2", "action 3"],
+  "marketInsight": "1 insight about the local hospitality market"
+}`,
+    800
   )
 }
 
 // ── WEEKLY REPORT ─────────────────────────────────────────────────────────────
-export async function generateReport(property, reviews, riskScore, consumeFn = null) {
-  const type = property?.ai_profile?.industry || 'hotel/restaurant'
-  const txt = reviews.slice(0, 15).map(r => `[${r.rating}★|${r.platform || 'Google'}|${r.responded ? 'replied' : 'UNANSWERED'}]: ${r.text}`).join('\n')
-  return ai(
-    'You are ReplyIQ hospitality intelligence AI for DACH region hotels and restaurants. Return ONLY valid JSON.',
-    `Weekly reputation report for ${property.name} (${type}). Rating: ${property.google_rating}★, ${reviews.length} total reviews, risk score: ${riskScore}/100.
-Return JSON: { "weekSummary":"2 sentences", "negativeCount":number, "positiveCount":number, "unansweredCount":number, "riskScore":number, "riskTrend":"increasing|decreasing|stable", "revenueRisk":"~CHF X,000/month", "topThreats":["threat 1","threat 2"], "topStrengths":["strength 1","strength 2"], "actions":[{"action":"text","urgency":"urgent|this-week|this-month","impact":"outcome"}], "win":"highlight of the week", "nextFocus":"1 sentence priority for next week" }
-Reviews:\n${txt}`, 900, consumeFn
-  )
-}
+export async function generateReport(property, reviews) {
+  const name       = property?.name || 'your property'
+  const total      = reviews.length
+  const avgRating  = total ? (reviews.reduce((s,r) => s+r.rating,0)/total).toFixed(1) : 0
+  const unanswered = reviews.filter(r => !r.responded).length
+  const negative   = reviews.filter(r => r.rating <= 2)
+  const positive   = reviews.filter(r => r.rating >= 5)
+  const recent     = reviews.slice(0,10).map(r =>
+    `${r.rating}★ (${r.responded?'answered':'UNANSWERED'}): "${r.text?.slice(0,100)}"`
+  ).join('\n')
 
-// ── CLASSIFY REVIEW ───────────────────────────────────────────────────────────
-export async function classifyReview(review) {
   return ai(
-    'You are ReplyIQ hospitality reputation AI for hotels and restaurants in DACH. Return ONLY valid JSON.',
-    `Classify this hospitality guest review.
-Return JSON: { "sentiment":"positive|negative|neutral", "categories":["cleanliness","staff","food_quality","value","location","noise","check_in","breakfast","room_quality","service_speed","positive_experience"], "severity":"low|medium|high|critical", "summary":"max 12 words describing the review", "riskFlag":true|false, "riskReason":null, "suggestedAction":"1 sentence recommended action" }
-Review (${review.rating}★ on ${review.platform || 'Google'}): "${review.text}"`, 400
-  )
-}
+    `You are the weekly intelligence briefing system for ReplyIQ, a hospitality reputation management platform. Write in a professional but direct tone. Be specific, not generic.`,
+    `Generate the weekly reputation intelligence report for ${name}.
 
-// ── RISK ANALYSIS ─────────────────────────────────────────────────────────────
-export async function generateRiskAnalysis(reviews) {
-  const txt = reviews.slice(0, 20).map(r => `[${r.rating}★|${r.responded ? 'replied' : 'UNANSWERED'}]: ${r.text}`).join('\n')
-  return ai(
-    'You are ReplyIQ hospitality risk intelligence AI for DACH region. Return ONLY valid JSON.',
-    `Analyse reputation risk for this hospitality property.
-Return JSON: { "overallScore":number, "components":{ "ratingVolatility":{"score":number,"detail":"text"}, "responseGap":{"score":number,"detail":"text"}, "complianceRisk":{"score":number,"detail":"text"}, "sentimentTrend":{"score":number,"detail":"text"}, "competitorPressure":{"score":number,"detail":"text"} }, "sevenDayPlan":[{"day":"Day 1-2","action":"text","impact":"text"},{"day":"Day 3-4","action":"text","impact":"text"},{"day":"Day 5-7","action":"text","impact":"text"}] }
-Reviews:\n${txt}`, 800
+This week's data:
+- Total reviews in system: ${total}
+- Average rating: ${avgRating}★
+- Unanswered reviews: ${unanswered} (${total ? Math.round(unanswered/total*100) : 0}% response rate)
+- Negative reviews (1-2★): ${negative.length}
+- 5-star reviews: ${positive.length}
+
+Recent reviews sample:
+${recent}
+
+Return JSON: {
+  "executiveSummary": "3 sentence summary of this week's reputation health — be direct",
+  "riskScore": <0-100 number>,
+  "riskLevel": "LOW|MODERATE|HIGH|CRITICAL",
+  "winOfTheWeek": "the most positive thing that happened this week",
+  "topThreat": "the single biggest reputation risk right now",
+  "stats": {
+    "totalReviews": ${total},
+    "avgRating": ${avgRating},
+    "unansweredCount": ${unanswered},
+    "responseRate": "${total ? Math.round((total-unanswered)/total*100) : 0}%",
+    "negativeCount": ${negative.length},
+    "positiveCount": ${positive.length}
+  },
+  "priorityActions": [
+    {"priority": "URGENT", "action": "specific action to take today", "impact": "why this matters"},
+    {"priority": "THIS_WEEK", "action": "action for this week", "impact": "expected result"},
+    {"priority": "NEXT_WEEK", "action": "action for next week", "impact": "expected result"}
+  ],
+  "nextWeekFocus": "one clear focus area for next week"
+}`,
+    1200
   )
 }
