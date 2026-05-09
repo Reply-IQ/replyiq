@@ -214,7 +214,7 @@ export default function Dashboard() {
       )}
 
       {/* ── KPI Row ── */}
-      <div style={{ display:'grid', gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)', gap:14, marginBottom:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)', gap:12, marginBottom:16 }}>
         {/* Average Rating — with mini chart */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>Your average rating</div>
@@ -267,7 +267,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Platform Health + Needs Reply ── */}
-      <Grid cols={isMobile?1:2} gap={16} style={{ marginBottom:20 }}>
+      <Grid cols={isMobile?1:2} gap={14} style={{ marginBottom:16 }}>
 
         {/* Platform health cards */}
         <Card>

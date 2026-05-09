@@ -398,8 +398,12 @@ export function CompetitorsPage() {
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
   const [syncing, setSyncing]   = useState(false)
-  const yourRating = property?.google_rating || 4.3
-  const allProps = [{ name:`${property?.name||'Your Property'} (YOU)`, rating: yourRating, reviews: property?.total_reviews||0, trend:'—', isYou:true }, ...competitors].sort((a,b)=>b.rating-a.rating)
+  // Use real average from imported reviews, fall back to Google businessInfo
+  const yourRating = reviews?.length
+    ? +(reviews.reduce((s,r) => s + Number(r.rating), 0) / reviews.length).toFixed(1)
+    : property?.platform_connections?.google?.businessInfo?.rating || 0
+  const yourReviews = property?.platform_connections?.google?.businessInfo?.totalReviews || reviews?.length || 0
+  const allProps = [{ name:`${property?.name||'Your Property'} (YOU)`, rating: yourRating, reviews: yourReviews, trend:'—', isYou:true }, ...competitors].sort((a,b)=>b.rating-a.rating)
 
   async function sync() {
     const placeId = property?.platform_connections?.google?.identifier || property?.google_place_id
@@ -481,50 +485,7 @@ export function CompetitorsPage() {
 }
 
 // ── REPORT PAGE ───────────────────────────────────────────────────────────────
-export function ReportPage() {
-  const { property, reviews, showToast, consumeAIGeneration } = useApp()
-  const isMobile = useIsMobile()
-  const [report, setReport] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [emailing, setEmailing] = useState(false)
-  const riskScore = useRiskScore(reviews)
-  const urgC = { urgent:'#B85C38','this-week':'#C9A96E','this-month':'#5a9080' }
-  const urgB = { urgent:'rgba(184,92,56,.08)','this-week':'rgba(201,169,110,.07)','this-month':'rgba(74,124,111,.07)' }
-
-  async function generate() {
-    const check = await consumeAIGeneration()
-    if (!check.allowed) { showToast(check.reason, 'error'); return }
-    setLoading(true)
-    const r = await generateReport(property, reviews, riskScore)
-    if (r.error) showToast('AI error', 'error')
-    else { setReport(r); if (property?.id) await saveReport(property.id, r, r.riskScore||riskScore); showToast('Report generated!','success') }
-    setLoading(false)
-  }
-
-  async function emailReport() {
-    if (!report) { showToast('Generate a report first', 'error'); return }
-    const to = property?.owner_email
-    if (!to) { showToast('Add a report email in Settings first', 'error'); return }
-    setEmailing(true)
-    try {
-      const html = buildReportEmail(report, property)
-      const r = await fetch('/api/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to,
-          subject: `ReplyIQ Weekly Report — ${property?.name || 'Your Property'} — ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
-          html,
-        })
-      })
-      const d = await r.json()
-      if (d.success || d.skipped) showToast(`✓ Report sent to ${to}`, 'success')
-      else showToast('Email failed — check Resend config', 'error')
-    } catch(e) { showToast('Email error: ' + e.message, 'error') }
-    setEmailing(false)
-  }
-
-  function buildReportEmail(r, property) {
+function buildReportEmail(r, property) {
     const name = property?.name || 'Your Property'
     const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
     const riskColor = (r.riskScore||0) >= 70 ? '#B85C38' : (r.riskScore||0) >= 45 ? '#C9A96E' : '#4A7C6F'
@@ -575,6 +536,51 @@ export function ReportPage() {
 </body>
 </html>`
   }
+
+export function ReportPage() {
+  const { property, reviews, showToast, consumeAIGeneration } = useApp()
+  const isMobile = useIsMobile()
+  const [report, setReport] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [emailing, setEmailing] = useState(false)
+  const riskScore = useRiskScore(reviews)
+  const urgC = { urgent:'#B85C38','this-week':'#C9A96E','this-month':'#5a9080' }
+  const urgB = { urgent:'rgba(184,92,56,.08)','this-week':'rgba(201,169,110,.07)','this-month':'rgba(74,124,111,.07)' }
+
+  async function generate() {
+    const check = await consumeAIGeneration()
+    if (!check.allowed) { showToast(check.reason, 'error'); return }
+    setLoading(true)
+    const r = await generateReport(property, reviews, riskScore)
+    if (r.error) showToast('AI error', 'error')
+    else { setReport(r); if (property?.id) await saveReport(property.id, r, r.riskScore||riskScore); showToast('Report generated!','success') }
+    setLoading(false)
+  }
+
+  async function emailReport() {
+    if (!report) { showToast('Generate a report first', 'error'); return }
+    const to = property?.owner_email
+    if (!to) { showToast('Add a report email in Settings first', 'error'); return }
+    setEmailing(true)
+    try {
+      const html = buildReportEmail(report, property)
+      const r = await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to,
+          subject: `ReplyIQ Weekly Report — ${property?.name || 'Your Property'} — ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
+          html,
+        })
+      })
+      const d = await r.json()
+      if (d.success || d.skipped) showToast(`✓ Report sent to ${to}`, 'success')
+      else showToast('Email failed — check Resend config', 'error')
+    } catch(e) { showToast('Email error: ' + e.message, 'error') }
+    setEmailing(false)
+  }
+
+
 
   return (
     <Layout title="Weekly Report" subtitle={`Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}

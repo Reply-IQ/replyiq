@@ -47,14 +47,34 @@ export async function draftResponse(review, property, tone = 'professional') {
   const platform  = review?.platform || 'Google'
   const reviewText= review?.text || ''
 
-  // Greeting in correct language
-  const greetingMap = {
-    de: firstName ? `Liebe/r ${firstName},` : 'Liebe Gästin, lieber Gast,',
-    fr: firstName ? `Cher/Chère ${firstName},` : 'Cher(e) client(e),',
-    it: firstName ? `Gentile ${firstName},` : 'Gentile ospite,',
-    en: firstName ? `Dear ${firstName},` : 'Dear Guest,',
+  // Detect review language from text (overrides profile language for response)
+  function detectReviewLang(text) {
+    if (!text || text.length < 10) return lang
+    const t = text.toLowerCase()
+    const de = ['und','die','der','das','nicht','haben','war','sehr','gut','aber'].filter(w => t.includes(' '+w+' ')||t.startsWith(w+' ')).length
+    const fr = ['est','les','des','pas','pour','avec','tres','nous','vous','mais'].filter(w => t.includes(' '+w+' ')||t.startsWith(w+' ')).length
+    const it = ['molto','sono','con','non','per','che','della','hotel','buono'].filter(w => t.includes(' '+w+' ')||t.startsWith(w+' ')).length
+    const max = Math.max(de, fr, it)
+    if (max === 0) return 'en'
+    if (de === max) return 'de'
+    if (fr === max) return 'fr'
+    if (it === max) return 'it'
+    return 'en'
   }
-  const greeting = profile.greetingStyle || greetingMap[lang] || greetingMap.de
+  const reviewLang = detectReviewLang(reviewText)
+
+  // Build proper greeting based on reviewer name
+  const parts = reviewer.trim().split(' ')
+  const lastName = parts.length > 1 ? parts[parts.length - 1] : ''
+  const isRealName = firstName && firstName.length > 2 && !/[0-9_@]/.test(firstName) && firstName !== 'Guest'
+
+  const greetingMap = {
+    de: isRealName ? 'Guten Tag ' + firstName + (lastName && parts.length > 1 ? ' ' + lastName : '') + ',' : 'Sehr geehrte Damen und Herren,',
+    fr: isRealName ? 'Cher/Chere ' + firstName + ',' : 'Madame, Monsieur,',
+    it: isRealName ? 'Gentile ' + firstName + ',' : 'Gentile ospite,',
+    en: isRealName ? 'Dear ' + firstName + ',' : 'Dear Guest,',
+  }
+  const greeting = profile.greetingStyle || greetingMap[reviewLang] || greetingMap.en
 
   const signOff = profile.signOffStyle ||
     profile.autoResponseConfig?.signOff ||
@@ -91,7 +111,8 @@ export async function draftResponse(review, property, tone = 'professional') {
 Your role is to write review responses that:
 - Sound written by a real, caring human — never robotic or templated
 - Reflect the specific brand voice of ${name}: ${profile.responsePersonality || `A ${profile.brandTone || 'professional and warm'} ${industry} that genuinely cares about every guest`}
-- Are written in ${lang === 'de' ? 'German (Sie form — formal)' : lang === 'fr' ? 'French (vouvoiement)' : lang === 'it' ? 'Italian (Lei form)' : 'English'} — ALWAYS match the language of the review
+- ALWAYS written in the SAME LANGUAGE as the review text. If the guest wrote in English, respond in English. If German respond in German. Never respond in a different language than the review.
+  - Always write from the TEAM perspective. Use Wir/We/Nous. NEVER use ich/mir/I/me/je/moi. You represent the whole team.
 - Follow Swiss/DACH hospitality standards and consumer protection norms
 
 ${ratingStrategy}
@@ -111,11 +132,8 @@ Tone: ${toneDesc}
 
 Return ONLY the response text — no preamble, no explanation, no quotes around it.`
 
-  const userPrompt = `Write a review response for this ${rating}-star ${platform} review${firstName ? ` left by ${firstName}` : ''}:
-
-"${reviewText}"
-
-Remember: start with "${greeting}" and end with the sign-off. Reference something specific from this review.`
+  const reviewLangName = reviewLang === 'de' ? 'German' : reviewLang === 'fr' ? 'French' : reviewLang === 'it' ? 'Italian' : 'English'
+  const userPrompt = 'Write a ' + reviewLangName + ' response for this ' + rating + '-star ' + platform + ' review' + (isRealName ? ' left by ' + firstName : '') + ':\n\n"' + reviewText + '"\n\nRules:\n- Respond in ' + reviewLangName + ' only\n- Use Wir/We/Nous (team), never ich/I/je\n- Start with exactly: "' + greeting + '"\n- End with exactly: "' + signOff + '"\n- Reference a specific detail from this review'
 
   return ai(systemPrompt, userPrompt, 600)
 }
@@ -125,23 +143,33 @@ Remember: start with "${greeting}" and end with the sign-off. Reference somethin
 // ── REVENUE IMPACT (synchronous — based on Luca 2016 Harvard research) ────────
 // ~9% revenue uplift per 1-star rating increase in hospitality
 export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {
-  const current  = parseFloat(currentRating) || 4.0
-  const target   = parseFloat(targetRating)  || 4.7
-  const base     = parseFloat(monthlyRevenue) || 150000
-  const gap      = Math.max(0, target - current)
-  const upliftPct= gap * 9  // 9% per star (Luca 2016)
-  const projected= Math.round(base * (1 + upliftPct / 100))
-  const uplift   = projected - base
+  const current   = parseFloat(currentRating)  || 4.0
+  const target    = parseFloat(targetRating)   || 4.7
+  const base      = parseFloat(monthlyRevenue) || 150000
+  const gap       = Math.max(0, target - current)
+  const upliftPct = gap * 9  // 9% per star (Luca 2016)
+  const projected = Math.round(base * (1 + upliftPct / 100))
+  const uplift    = projected - base
+  const subMonthly = 199
+  const roiX      = uplift > 0 ? +(uplift / subMonthly).toFixed(1) : 0
+  const paybackDays= uplift > 0 ? Math.round(subMonthly / (uplift / 30)) : 0
   return {
-    currentRating:         current,
-    targetRating:          target,
-    ratingGap:             +gap.toFixed(2),
-    currentMonthlyRevenue: Math.round(base),
+    currentRating:           current,
+    targetRating:            target,
+    ratingGap:               +gap.toFixed(2),
+    currentMonthlyRevenue:   Math.round(base),
     projectedMonthlyRevenue: projected,
-    monthlyUplift:         uplift,
-    annualUplift:          uplift * 12,
-    upliftPercent:         +upliftPct.toFixed(1),
-    methodology:           `Based on Harvard Business School research (Luca, 2016): each 1-star increase in rating yields ~9% revenue uplift for hospitality businesses.`,
+    monthlyUplift:           uplift,
+    annualUplift:            uplift * 12,
+    upliftPercent:           +upliftPct.toFixed(1),
+    // aliases used by RevenuePage
+    monthlyGain:             uplift,
+    annualGain:              uplift * 12,
+    upliftPct:               +upliftPct.toFixed(1),
+    roiX,
+    paybackDays,
+    confidence:              gap >= 0.3 ? 'HIGH' : gap >= 0.1 ? 'MEDIUM' : 'LOW',
+    methodology: 'Luca, M. (2016). Reviews, Reputation, and Revenue. HBS Working Paper 12-016.',
   }
 }
 
