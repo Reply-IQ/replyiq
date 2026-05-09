@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     const reviews = reviewsData.map((rv, i) => ({
       clinic_id:        clinicId,
       author:           rv.author_title   || rv.name                  || 'Guest',
-      rating:           rv.review_rating  || rv.stars                 || 3,
+      rating:           Math.round(rv.review_rating  || rv.stars || 3),
       platform:         platform          || 'google',
       review_date:      (rv.review_datetime_utc || rv.publishedAtDate || '').split(' ')[0] || new Date().toISOString().split('T')[0],
       text:             rv.review_text    || rv.text                  || '(No text)',
