@@ -132,11 +132,26 @@ export const useApp = () => {
 
 export function useRiskScore(reviews) {
   if (!reviews?.length) return 0
-  let s = 20
-  s += Math.min(reviews.filter(r => r.rating <= 2).length * 5, 30)
-  s += Math.min(reviews.filter(r => !r.responded && r.rating <= 2).length * 7, 28)
-  if (reviews.some(r => r.ai_risk_flag)) s += 20
-  return Math.min(s, 100)
+
+  const total             = reviews.length
+  const unanswered        = reviews.filter(r => !r.responded).length
+  const negative          = reviews.filter(r => r.rating <= 2).length
+  const unansweredNeg     = reviews.filter(r => !r.responded && r.rating <= 2).length
+
+  // Response rate risk: 0-40 points (main driver)
+  const responseRate = (total - unanswered) / total
+  const responseRisk = Math.round((1 - responseRate) * 40)
+
+  // Negative review ratio: 0-30 points
+  const negativeRisk = Math.round(Math.min(negative / total, 1) * 30)
+
+  // Unanswered critical reviews: 0-20 points (capped — a few unanswered negatives is bad, but not catastrophic)
+  const criticalRisk = Math.min(unansweredNeg * 2, 20)
+
+  // AI risk flags: 0-10 points
+  const aiRisk = reviews.some(r => r.ai_risk_flag) ? 10 : 0
+
+  return Math.min(responseRisk + negativeRisk + criticalRisk + aiRisk, 100)
 }
 
 export function useUnanswered(reviews) {

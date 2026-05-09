@@ -230,8 +230,8 @@ export function InsightItem({ iconBg, iconColor, icon, title, body, last }) {
 
 // ── RISK BADGE ────────────────────────────────────────────────────────────────
 export function RiskBadge({ score }) {
-  const c = score>=70?'#B85C38':score>=45?'#C9A96E':'#4A7C6F'
-  const l = score>=70?'HIGH RISK':score>=45?'MODERATE':'STABLE'
+  const c = score>=80?'#B85C38':score>=55?'#C9A96E':'#4A7C6F'
+  const l = score>=80?'HIGH RISK':score>=55?'MODERATE':'STABLE'
   return (
     <div style={{ display:'flex', alignItems:'center', gap:7, background:`${c}15`, border:`1px solid ${c}40`, borderRadius:20, padding:'5px 14px' }}>
       <div style={{ width:7, height:7, borderRadius:'50%', background:c, animation:'pulse 2s infinite', flexShrink:0 }} />

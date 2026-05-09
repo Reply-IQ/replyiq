@@ -76,15 +76,39 @@ export default function Inbox() {
   async function approve() {
     if (!draft || !selected) return
     setApproving(true)
-    await navigator.clipboard?.writeText(draft).catch(()=>{})
+
+    // Copy to clipboard — try modern API first, fall back to execCommand
+    let copied = false
+    try {
+      await navigator.clipboard.writeText(draft)
+      copied = true
+    } catch {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = draft
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.focus()
+        ta.select()
+        copied = document.execCommand('copy')
+        document.body.removeChild(ta)
+      } catch { copied = false }
+    }
+
+    // Save to DB
     const { data } = await saveResponse(selected.id, draft)
     if (data) {
       updateReviewInState(data)
       setSelected(data)
-      // Open platform
+      // Open platform in new tab
       const p = PLATFORM_META[selected.platform?.toLowerCase()]||PLATFORM_META.google
       window.open(p.url, '_blank', 'noopener')
-      showToast('Response copied! Paste it on '+p.label, 'success')
+      if (copied) {
+        showToast('✓ Response copied! Paste it on ' + p.label, 'success')
+      } else {
+        showToast('Opened ' + p.label + ' — manually copy your response above', 'info')
+      }
     }
     setApproving(false)
   }

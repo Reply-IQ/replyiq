@@ -42,11 +42,26 @@ function AppRoutes() {
     )
   }
 
-  // Onboarding is complete ONLY when localStorage flag is explicitly set by goToDashboard()
-  // Do NOT use property name — it gets updated during onboarding which would
-  // trigger routing before the user clicks "Go to Dashboard"
+  // Primary check: localStorage flag set by goToDashboard()
   const hasOnboardingKey = property?.id && !!localStorage.getItem(`replyiq_onboarded_${property.id}`)
-  const isOnboarded      = !!(property && hasOnboardingKey)
+
+  // Recovery check: returning user who cleared localStorage but already has a real setup
+  // Detects: real hotel name + at least one platform connected
+  // Does NOT trigger during active onboarding because platform_connections is empty until startImport() completes
+  const hasRealSetup = !!(
+    property?.name &&
+    property.name !== 'My Dental Clinic' &&
+    property.name.trim() !== '' &&
+    property?.platform_connections &&
+    Object.keys(property.platform_connections).length > 0
+  )
+
+  // Auto-set localStorage for returning users so future loads are instant
+  if (!hasOnboardingKey && hasRealSetup && property?.id) {
+    localStorage.setItem(`replyiq_onboarded_${property.id}`, '1')
+  }
+
+  const isOnboarded = !!(property && (hasOnboardingKey || hasRealSetup))
 
   if (!isOnboarded) {
     return (

@@ -218,7 +218,7 @@ export function RespondPage() {
 }
 
 // ── RISK PAGE ─────────────────────────────────────────────────────────────────
-function rC(s) { return s>=70?'#B85C38':s>=45?'#C9A96E':'#4A7C6F' }
+function rC(s) { return s>=80?'#B85C38':s>=55?'#C9A96E':'#4A7C6F' }
 
 export function RiskPage() {
   const { reviews, showToast, consumeAIGeneration } = useApp()
@@ -253,7 +253,7 @@ export function RiskPage() {
         <Card style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 20px' }}>
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10 }}>Risk Score</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'5rem', color:rC(score), lineHeight:1 }}>{score}</div>
-          <div style={{ fontSize:'11px', fontWeight:700, color:rC(score), letterSpacing:'2px', marginTop:8 }}>{score>=70?'HIGH RISK':score>=45?'MODERATE':'STABLE'}</div>
+          <div style={{ fontSize:'11px', fontWeight:700, color:rC(score), letterSpacing:'2px', marginTop:8 }}>{score>=80?'HIGH RISK':score>=55?'MODERATE':'STABLE'}</div>
           <div style={{ width:'100%', height:8, background:'var(--surface)', borderRadius:4, margin:'18px 0 6px', overflow:'hidden' }}>
             <div style={{ height:'100%', width:`${score}%`, background:rC(score), borderRadius:4, transition:'width 1s ease' }} />
           </div>
@@ -399,10 +399,11 @@ export function CompetitorsPage() {
   const allProps = [{ name:`${property?.name||'Your Property'} (YOU)`, rating: yourRating, reviews: property?.total_reviews||0, trend:'—', isYou:true }, ...competitors].sort((a,b)=>b.rating-a.rating)
 
   async function sync() {
-    if (!property?.google_place_id) { showToast('Connect Google in Platforms first','error'); return }
+    const placeId = property?.platform_connections?.google?.identifier || property?.google_place_id
+    if (!placeId) { showToast('Connect Google Business first — go to Platforms', 'error'); return }
     setSyncing(true)
     try {
-      const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ placeId:property.google_place_id, clinicName:property.name }) })
+      const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ placeId, clinicName:property.name }) })
       const data = await r.json()
       if (data.competitors?.length > 0) {
         const { supabase } = await import('../lib/supabase.js')

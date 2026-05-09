@@ -63,9 +63,16 @@ export default function Onboarding() {
     setStep(1)
   }
 
-  // ── Save property (always overwrites trigger default) ──────────────────────
+  // ── Save property ─────────────────────────────────────────────────────────
   async function ensurePropertySaved() {
     if (savedPropId.current) return savedPropId.current
+
+    // Returning user: property already exists with real data — don't overwrite with empty form
+    if (property?.id && property?.name && property.name !== 'My Dental Clinic' && !form.name.trim()) {
+      savedPropId.current = property.id
+      return property.id
+    }
+
     const url = form.website_url
       ? (form.website_url.startsWith('http') ? form.website_url : `https://${form.website_url}`)
       : ''
