@@ -53,14 +53,18 @@ export default function Auth() {
               <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:'Georgia,serif', lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
               <div style={{ fontSize:'9px', letterSpacing:'3px', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginTop:5 }}>Reputation Intelligence</div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 10px', background:'rgba(255,0,0,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20 }}>
-              <span style={{ fontSize:'14px' }}>🇨🇭</span>
-              <span style={{ fontSize:'9px', color:'rgba(255,255,255,0.25)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Swiss</span>
+            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', background:'rgba(255,0,0,0.05)', border:'1px solid rgba(255,0,0,0.12)', borderRadius:20 }}>
+              <svg width="14" height="14" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, flexShrink:0 }}>
+                <rect width="20" height="20" fill="#FF0000"/>
+                <rect x="3" y="7" width="14" height="6" fill="white"/>
+                <rect x="7" y="3" width="6" height="14" fill="white"/>
+              </svg>
+              <span style={{ fontSize:'9px', color:'rgba(255,255,255,0.3)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Swiss</span>
             </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(201,169,110,0.07)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:20, padding:'6px 14px' }}>
             <div style={{ width:6, height:6, borderRadius:'50%', background:'#C9A96E' }} />
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>🇨🇭 Swiss · Early Access · CHF 149/mo · Limited spots</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}><svg width="13" height="13" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, display:"inline-block", verticalAlign:"middle", marginRight:5 }}><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>Swiss · Early Access · CHF 149/mo · Limited spots</span>
           </div>
         </div>
 
@@ -159,8 +163,11 @@ export default function Auth() {
             </form>
 
             <div style={{ display:'flex', gap:7, marginTop:18, flexWrap:'wrap' }}>
-              {['GDPR Compliant','🇨🇭 Swiss Data Privacy','Cancel anytime'].map(b=>(
-                <div key={b} style={{ padding:'4px 11px', background:b.includes('🇨🇭')?'rgba(255,0,0,0.04)':'rgba(255,255,255,0.03)', border:b.includes('🇨🇭')?'1px solid rgba(255,0,0,0.15)':'1px solid #243044', borderRadius:20, fontSize:'10px', color:b.includes('🇨🇭')?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.2)' }}>{b}</div>
+              {['GDPR Compliant','Swiss Data Privacy','Cancel anytime'].map(b=>(
+                <div key={b} style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 11px', background:b.includes('Swiss')?'rgba(255,0,0,0.04)':'rgba(255,255,255,0.03)', border:b.includes('Swiss')?'1px solid rgba(255,0,0,0.12)':'1px solid #243044', borderRadius:20, fontSize:'10px', color:b.includes('Swiss')?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.2)' }}>
+                {b.includes('Swiss') && <svg width="11" height="11" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, flexShrink:0 }}><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>}
+                {b}
+              </div>
               ))}
             </div>
 
@@ -198,13 +205,13 @@ export default function Auth() {
               </div>
             </div>
 
-            <div style={{ textAlign:'center', marginTop:20, fontSize:'10px', color:'rgba(255,255,255,0.18)' }}>🇨🇭 replyiq.ch · Zürich, Switzerland · Swiss data privacy</div>
+            <div style={{ textAlign:'center', marginTop:20, fontSize:'10px', color:'rgba(255,255,255,0.18)' }}><svg width="11" height="11" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, display:"inline-block", verticalAlign:"middle", marginRight:5 }}><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>replyiq.ch · Zürich, Switzerland · Swiss data privacy</div>
           </div>
         </div>
 
         <div style={{ padding:'20px 60px', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={{ display:'flex', gap:6 }}>
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.22)' }}>🇨🇭 Trusted in</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.22)' }}><svg width="12" height="12" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, display:"inline-block", verticalAlign:"middle", marginRight:5 }}><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>Trusted in</span>
             {['Zürich','Geneva','Basel','Bern','Lausanne'].map(c=><span key={c} style={{ fontSize:'11px', color:'rgba(255,255,255,0.2)', marginLeft:12 }}>{c}</span>)}
           </div>
           <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.15)' }}>© 2026 ReplyIQ · replyiq.ch</div>
