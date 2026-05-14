@@ -48,9 +48,15 @@ export default function Auth() {
       <div style={{ position:'relative', zIndex:1, minHeight:'100vh', display:'flex', flexDirection:'column' }}>
         {/* Nav */}
         <div style={{ padding:'28px 60px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:'Georgia,serif', lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
-            <div style={{ fontSize:'9px', letterSpacing:'3px', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginTop:5 }}>Reputation Intelligence</div>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div>
+              <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:'Georgia,serif', lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
+              <div style={{ fontSize:'9px', letterSpacing:'3px', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginTop:5 }}>Reputation Intelligence</div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 10px', background:'rgba(255,0,0,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20 }}>
+              <span style={{ fontSize:'14px' }}>🇨🇭</span>
+              <span style={{ fontSize:'9px', color:'rgba(255,255,255,0.25)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Swiss</span>
+            </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(201,169,110,0.07)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:20, padding:'6px 14px' }}>
             <div style={{ width:6, height:6, borderRadius:'50%', background:'#C9A96E' }} />
