@@ -9,7 +9,8 @@
     "api/competitors.js":         { "maxDuration": 20 },
     "api/email.js":               { "maxDuration": 10 },
     "api/create-checkout.js":     { "maxDuration": 15 },
-    "api/stripe-webhook.js":      { "maxDuration": 15 }
+    "api/stripe-webhook.js":      { "maxDuration": 15 },
+    "api/widget.js":              { "maxDuration": 10 }
   },
   "crons": [{ "path": "/api/sync-all-reviews", "schedule": "0 3 * * *" }]
 }

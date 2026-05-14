@@ -119,10 +119,10 @@ export default function Settings() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
                   <div>
                     <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.1rem', marginBottom:3 }}>Early Access</div>
-                    <div style={{ fontSize:'12px', color:'var(--text3)' }}>You keep CHF 199/mo forever · {Object.keys(property?.platform_connections||{}).length} platforms connected</div>
+                    <div style={{ fontSize:'12px', color:'var(--text3)' }}>You keep CHF 149/mo forever · {Object.keys(property?.platform_connections||{}).length} platforms connected</div>
                   </div>
                   <div style={{ textAlign:'right' }}>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', color:'var(--gold)' }}>CHF 199<span style={{ fontSize:'11px', color:'var(--text3)' }}>/mo</span></div>
+                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', color:'var(--gold)' }}>CHF 149<span style={{ fontSize:'11px', color:'var(--text3)' }}>/mo</span></div>
                     <span style={{ color:'#4A7C6F', fontWeight:700, fontSize:'12px' }}>✓ Active</span>
                   </div>
                 </div>
@@ -135,8 +135,8 @@ export default function Settings() {
                   <div style={{ padding:'16px', background:'rgba(201,169,110,.06)', border:'2px solid rgba(201,169,110,.3)', borderRadius:'var(--r-md)', position:'relative' }}>
                     <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', background:'var(--gold)', color:'var(--bg)', fontSize:'10px', fontWeight:700, padding:'2px 10px', borderRadius:20, whiteSpace:'nowrap' }}>LIMITED SPOTS</div>
                     <div style={{ fontSize:'11px', color:'var(--gold)', fontWeight:700, letterSpacing:'1px', marginBottom:6 }}>EARLY ACCESS</div>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', color:'var(--gold)', marginBottom:2 }}>CHF 199<span style={{ fontSize:'11px', color:'var(--text3)', fontFamily:'inherit' }}>/mo</span></div>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10 }}>or CHF 1,990/yr · 2 months free</div>
+                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', color:'var(--gold)', marginBottom:2 }}>CHF 149<span style={{ fontSize:'11px', color:'var(--text3)', fontFamily:'inherit' }}>/mo</span></div>
+                    <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10 }}>or CHF 1,490/yr · 2 months free</div>
                     <div style={{ fontSize:'11px', color:'var(--text2)', lineHeight:1.7 }}>
                       Lock in forever · 1 booking covers your cost
                     </div>
@@ -144,36 +144,192 @@ export default function Settings() {
                   {/* Professional */}
                   <div style={{ padding:'16px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r-md)', opacity:0.6 }}>
                     <div style={{ fontSize:'11px', color:'var(--text3)', fontWeight:700, letterSpacing:'1px', marginBottom:6 }}>PROFESSIONAL</div>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', color:'var(--text2)', marginBottom:2 }}>CHF 249<span style={{ fontSize:'11px', color:'var(--text3)', fontFamily:'inherit' }}>/mo</span></div>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10 }}>or CHF 2,490/yr</div>
+                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', color:'var(--text2)', marginBottom:2 }}>CHF 199<span style={{ fontSize:'11px', color:'var(--text3)', fontFamily:'inherit' }}>/mo</span></div>
+                    <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10 }}>or CHF 1,990/yr</div>
                     <div style={{ fontSize:'11px', color:'var(--text3)', lineHeight:1.7 }}>Future pricing · After early access closes</div>
                   </div>
                 </div>
 
                 {/* Features */}
-                {['All review platforms','Unlimited AI responses','Daily automatic sync','Competitor benchmarking','Revenue ROI model','Weekly reports'].map((f,i,arr) => (
+                {[
+                  'All review platforms',
+                  'Unlimited AI responses — no per-reply fees, ever',
+                  'Daily automatic sync',
+                  'Competitor benchmarking',
+                  'Revenue ROI model',
+                  'Weekly email reports',
+                  'Review widget for your website',
+                  'Smart Snippets for personalised replies',
+                ].map((f,i,arr) => (
                   <div key={f} style={{ display:'flex', gap:10, padding:'7px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
                     <span style={{ color:'var(--gold)' }}>✓</span><span style={{ color:'var(--text2)' }}>{f}</span>
                   </div>
                 ))}
 
+                {/* DACH Data Privacy Notice */}
+                <div style={{ marginTop:14, padding:'12px 14px', background:'rgba(201,169,110,.04)', border:'1px solid rgba(201,169,110,.15)', borderRadius:10, fontSize:'11px', color:'var(--text3)', lineHeight:1.7 }}>
+                  🇨🇭 <strong style={{ color:'var(--gold)' }}>Swiss company.</strong> Your data is stored in Switzerland and governed by Swiss data protection law (DSG/nDSG). We never sell your data. No US cloud providers process your guest information.
+                </div>
+
                 {/* Upgrade buttons */}
                 <div style={{ display:'flex', gap:8, marginTop:16 }}>
                   <Button variant="secondary" fullWidth disabled={!!upgrading} onClick={() => checkout('monthly')}>
-                    {upgrading==='monthly' ? <><Spinner /> Loading...</> : 'Monthly — CHF 199'}
+                    {upgrading==='monthly' ? <><Spinner /> Loading...</> : 'Monthly — CHF 149'}
                   </Button>
                   <Button fullWidth disabled={!!upgrading} style={{ background:'linear-gradient(135deg,var(--gold),var(--amber))', color:'var(--bg)' }} onClick={() => checkout('annual')}>
-                    {upgrading==='annual' ? <><Spinner /> Loading...</> : 'Yearly — CHF 1,990'}
+                    {upgrading==='annual' ? <><Spinner /> Loading...</> : 'Yearly — CHF 1,490'}
                   </Button>
                 </div>
                 <div style={{ textAlign:'center', marginTop:10, fontSize:'11px', color:'var(--text3)' }}>
-                  Cancel anytime · Early adopters keep CHF 199 forever
+                  Cancel anytime · Early adopters keep CHF 149 forever
                 </div>
               </>
             )}
           </Card>
+
+          {/* SMART SNIPPETS */}
+          <SnippetsCard property={property} updatePropertyInState={updatePropertyInState} showToast={showToast} />
+
+          {/* AUTO-REPLY */}
+          <AutoReplyCard property={property} updatePropertyInState={updatePropertyInState} showToast={showToast} />
+
         </div>
       </Grid>
     </Layout>
+  )
+}
+
+// ── Smart Snippets Card ───────────────────────────────────────────────────────
+function SnippetsCard({ property, updatePropertyInState, showToast }) {
+  const snippets = property?.ai_profile?.smartSnippets || []
+  const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function addSnippet() {
+    if (!text.trim()) return
+    setSaving(true)
+    const updated = [...snippets, text.trim()]
+    const newProfile = { ...(property?.ai_profile || {}), smartSnippets: updated }
+    const { data, error } = await updateProperty({ ai_profile: newProfile })
+    if (error) showToast('Error saving snippet', 'error')
+    else { updatePropertyInState(data); setText(''); showToast('Snippet added!', 'success') }
+    setSaving(false)
+  }
+
+  async function removeSnippet(idx) {
+    const updated = snippets.filter((_,i) => i !== idx)
+    const newProfile = { ...(property?.ai_profile || {}), smartSnippets: updated }
+    const { data, error } = await updateProperty({ ai_profile: newProfile })
+    if (error) showToast('Error removing snippet', 'error')
+    else { updatePropertyInState(data); showToast('Snippet removed', 'info') }
+  }
+
+  return (
+    <Card>
+      <SectionHeader title="✨ Smart Snippets" subtitle="Facts the AI weaves naturally into every response" />
+      <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:14, lineHeight:1.6 }}>
+        Add recurring facts about your property. The AI uses these to personalise every reply — parking info, breakfast hours, pet policy, contact details, anything that matters to guests.
+      </div>
+      {snippets.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+          {snippets.map((snip, i) => (
+            <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:'var(--surface)', borderRadius:8, border:'1px solid var(--border)' }}>
+              <span style={{ flex:1, fontSize:'12px', color:'var(--text2)' }}>{snip}</span>
+              <button onClick={() => removeSnippet(i)} style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:'16px', lineHeight:1, padding:0 }}
+                onMouseEnter={e => e.target.style.color='var(--red)'}
+                onMouseLeave={e => e.target.style.color='var(--text3)'}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display:'flex', gap:8 }}>
+        <input
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addSnippet()}
+          placeholder='e.g. "Free parking available on-site for all guests"'
+          style={{ flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
+          onFocus={e => e.target.style.borderColor='var(--gold)'}
+          onBlur={e => e.target.style.borderColor='var(--border)'}
+        />
+        <Button onClick={addSnippet} disabled={!text.trim() || saving} variant="secondary">
+          {saving ? <Spinner /> : '+ Add'}
+        </Button>
+      </div>
+      {snippets.length === 0 && (
+        <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:8, fontStyle:'italic' }}>
+          Examples: breakfast hours, check-in time, parking, pet policy, spa booking email, best room views...
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── Auto-Reply Card ───────────────────────────────────────────────────────────
+function AutoReplyCard({ property, updatePropertyInState, showToast }) {
+  const enabled  = property?.ai_profile?.autoReply5Star || false
+  const template = property?.ai_profile?.autoReply5StarTemplate || ''
+  const [tmpl, setTmpl] = useState(template)
+  const [saving, setSaving] = useState(false)
+
+  async function toggle() {
+    setSaving(true)
+    const newProfile = { ...(property?.ai_profile || {}), autoReply5Star: !enabled }
+    const { data, error } = await updateProperty({ ai_profile: newProfile })
+    if (error) showToast('Error saving setting', 'error')
+    else { updatePropertyInState(data); showToast(!enabled ? 'Auto-reply enabled' : 'Auto-reply disabled', 'success') }
+    setSaving(false)
+  }
+
+  async function saveTemplate() {
+    setSaving(true)
+    const newProfile = { ...(property?.ai_profile || {}), autoReply5StarTemplate: tmpl }
+    const { data, error } = await updateProperty({ ai_profile: newProfile })
+    if (error) showToast('Error saving template', 'error')
+    else { updatePropertyInState(data); showToast('Template saved!', 'success') }
+    setSaving(false)
+  }
+
+  return (
+    <Card>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+        <div>
+          <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:3 }}>⚡ Auto-Reply for 5-Star Reviews</div>
+          <div style={{ fontSize:'12px', color:'var(--text3)' }}>Automatically posts a thank-you to text-free 5-star reviews</div>
+        </div>
+        <button onClick={toggle} disabled={saving} style={{
+          width:44, height:24, borderRadius:12,
+          background: enabled ? 'var(--gold)' : 'var(--border)',
+          border:'none', cursor:saving?'not-allowed':'pointer',
+          position:'relative', transition:'all .2s', flexShrink:0
+        }}>
+          <div style={{ position:'absolute', top:3, left:enabled?20:3, width:18, height:18, borderRadius:'50%', background:'white', transition:'all .2s' }} />
+        </button>
+      </div>
+      {enabled && (
+        <>
+          <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:8 }}>
+            Customise the template below. Use <code style={{ background:'var(--surface)', padding:'1px 5px', borderRadius:4 }}>{'{name}'}</code> for the guest's name.
+          </div>
+          <textarea
+            value={tmpl}
+            onChange={e => setTmpl(e.target.value)}
+            placeholder={`e.g. "Guten Tag {name}, vielen Dank für Ihre 5 Sterne! Wir freuen uns, Sie bald wieder begrüßen zu dürfen. Mit herzlichen Grüssen, Das Team von ${property?.name||'unserem Hotel'}"`}
+            rows={4}
+            style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', color:'var(--text1)', fontSize:'13px', resize:'vertical', outline:'none', boxSizing:'border-box', lineHeight:1.6, marginBottom:10 }}
+            onFocus={e => e.target.style.borderColor='var(--gold)'}
+            onBlur={e => e.target.style.borderColor='var(--border)'}
+          />
+          <Button variant="secondary" onClick={saveTemplate} disabled={saving}>
+            {saving ? <Spinner /> : 'Save Template'}
+          </Button>
+        </>
+      )}
+      {!enabled && (
+        <div style={{ fontSize:'11px', color:'var(--text3)', fontStyle:'italic' }}>
+          When enabled, ReplyIQ posts a personalised thank-you to every 5-star review with no text. No human approval needed — fully automatic.
+        </div>
+      )}
+    </Card>
   )
 }

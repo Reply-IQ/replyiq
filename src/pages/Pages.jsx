@@ -378,7 +378,7 @@ export function RevenuePage() {
             <div style={{ background:'var(--surface)', borderRadius:8, padding:'12px 14px', fontSize:'13px', color:'var(--text2)', lineHeight:1.7, borderLeft:'3px solid var(--gold)', marginBottom:14 }}>
               A {result.ratingGap}★ improvement = {result.upliftPct}% projected revenue uplift based on HBS restaurant/hotel data.
             </div>
-            {[['Current monthly revenue',`CHF ${result.currentMonthlyRevenue.toLocaleString()}`],['Projected monthly revenue',`CHF ${result.projectedMonthlyRevenue.toLocaleString()}`],['Monthly gain',`CHF ${result.monthlyGain.toLocaleString()}`],['Annual gain',`CHF ${result.annualGain.toLocaleString()}`],['ReplyIQ subscription','CHF 249/month'],['ROI',`${result.roiX}× return`],['Confidence',result.confidence]].map(([l,v],i,arr)=>(
+            {[['Current monthly revenue',`CHF ${result.currentMonthlyRevenue.toLocaleString()}`],['Projected monthly revenue',`CHF ${result.projectedMonthlyRevenue.toLocaleString()}`],['Monthly gain',`CHF ${result.monthlyGain.toLocaleString()}`],['Annual gain',`CHF ${result.annualGain.toLocaleString()}`],['ReplyIQ subscription','CHF 149/month'],['ROI',`${result.roiX}× return`],['Confidence',result.confidence]].map(([l,v],i,arr)=>(
               <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
                 <span style={{ color:'var(--text3)' }}>{l}</span>
                 <span style={{ fontFamily:'var(--font-mono)', fontWeight:600, color:i>=2&&i<=4?'var(--gold)':'var(--text1)' }}>{v}</span>
@@ -635,6 +635,99 @@ export function ReportPage() {
           <Card><div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'#5a9080', marginBottom:8, fontWeight:600 }}>→ Next Week's Focus</div><div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65 }}>{report.nextFocus}</div></Card>
         </Grid>
       </>}
+    </Layout>
+  )
+}
+
+
+// ── WIDGET PAGE ───────────────────────────────────────────────────────────────
+export function WidgetPage() {
+  const { property } = useApp()
+  const isMobile     = useIsMobile()
+  const [copied, setCopied] = useState(null)
+  const pid = property?.id || ''
+
+  const snippets = [
+    {
+      label: 'Badge (recommended)',
+      desc:  'A compact pill showing your rating. Place it anywhere on your site.',
+      style: 'badge',
+      code: `<div id="replyiq-widget" data-property-id="${pid}" data-style="badge" data-theme="light"></div>\n<script src="https://app.replyiq.ch/widget.js" async></script>`,
+    },
+    {
+      label: 'Card',
+      desc:  'A larger card showing your rating, stars and review count. Great for your homepage.',
+      style: 'card',
+      code: `<div id="replyiq-widget" data-property-id="${pid}" data-style="card" data-theme="light"></div>\n<script src="https://app.replyiq.ch/widget.js" async></script>`,
+    },
+    {
+      label: 'Inline Text',
+      desc:  'Embed your rating inline within any text or paragraph.',
+      style: 'inline',
+      code: `<span id="replyiq-widget" data-property-id="${pid}" data-style="inline"></span>\n<script src="https://app.replyiq.ch/widget.js" async></script>`,
+    },
+  ]
+
+  async function copy(idx, code) {
+    try { await navigator.clipboard.writeText(code) } catch {}
+    setCopied(idx)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  return (
+    <Layout title="Review Widget" subtitle="Embed your Google rating on your own website">
+      <Card style={{ marginBottom:16, borderLeft:'3px solid var(--gold)' }}>
+        <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7 }}>
+          <strong style={{ color:'var(--gold)' }}>Every widget is live.</strong> It automatically updates when your rating changes. Each embed includes a "Powered by ReplyIQ" backlink — free marketing for you, social proof for your site.
+        </div>
+      </Card>
+
+      {!pid ? (
+        <EmptyState icon="⊞" title="Connect Google first" description="Your widget is ready once you connect your Google Business profile on the Platforms page." />
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          {snippets.map((snip, i) => (
+            <Card key={i}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10, flexWrap:'wrap', gap:8 }}>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:'14px', color:'var(--text1)', marginBottom:3 }}>{snip.label}</div>
+                  <div style={{ fontSize:'12px', color:'var(--text3)' }}>{snip.desc}</div>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => copy(i, snip.code)}>
+                  {copied === i ? '✓ Copied!' : '📋 Copy Code'}
+                </Button>
+              </div>
+              <pre style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', fontSize:'11px', color:'var(--text2)', overflowX:'auto', margin:0, lineHeight:1.6, whiteSpace:'pre-wrap', wordBreak:'break-all' }}>
+                {snip.code}
+              </pre>
+            </Card>
+          ))}
+
+          <Card>
+            <div style={{ fontWeight:700, fontSize:'13px', color:'var(--text1)', marginBottom:8 }}>Preview</div>
+            <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:12 }}>
+              Live preview of how your badge looks — rating pulled from your real Google data.
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px', background:'white', borderRadius:10, flexWrap:'wrap' }}>
+              <div style={{ display:'inline-flex', alignItems:'center', gap:10, background:'white', border:'1px solid #e0e0e0', borderRadius:50, padding:'8px 16px 8px 10px' }}>
+                <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#C9A96E,#F59E0B)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px' }}>★</div>
+                <div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:'16px', fontWeight:700, color:'#111' }}>
+                      {property?.platform_connections?.google?.businessInfo?.rating?.toFixed(1) || '4.5'}
+                    </span>
+                    <span style={{ color:'#C9A96E', fontSize:'13px' }}>★★★★★</span>
+                  </div>
+                  <div style={{ fontSize:'10px', color:'#666', marginTop:1 }}>
+                    {(property?.platform_connections?.google?.businessInfo?.totalReviews || 0).toLocaleString()} reviews · Google
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:'11px', color:'#999' }}>← This badge appears on your website</span>
+            </div>
+          </Card>
+        </div>
+      )}
     </Layout>
   )
 }

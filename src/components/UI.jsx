@@ -277,15 +277,15 @@ export function UpgradeModal({ onClose, onCheckout, reason }) {
 
         <div style={{ textAlign:'center', marginBottom:28 }}>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', marginBottom:6 }}>Upgrade ReplyIQ</div>
-          <div style={{ fontSize:'12px', color:'var(--text3)' }}>Early adopter pricing · Lock in CHF 199 forever</div>
+          <div style={{ fontSize:'12px', color:'var(--text3)' }}>Early adopter pricing · Lock in CHF 149 forever</div>
           {reason && <div style={{ fontSize:'13px', color:'#B85C38', background:'rgba(184,92,56,0.08)', border:'1px solid rgba(184,92,56,0.2)', borderRadius:8, padding:'10px 14px', marginTop:12 }}>{reason}</div>}
         </div>
 
         {/* Plans */}
         <div style={{ display:'flex', gap:12, marginBottom:24 }}>
           {[
-            { plan:'monthly', price:'CHF 199',   period:'/month',  label:'Monthly',  badge:'EARLY ACCESS',  highlight:false },
-            { plan:'annual',  price:'CHF 1,990', period:'/year',   label:'Annual',   badge:'2 MONTHS FREE', highlight:true  },
+            { plan:'monthly', price:'CHF 149',   period:'/month',  label:'Monthly',  badge:'EARLY ACCESS',  highlight:false },
+            { plan:'annual',  price:'CHF 1,490', period:'/year',   label:'Annual',   badge:'2 MONTHS FREE', highlight:true  },
           ].map(p => (
             <button key={p.plan} onClick={() => onCheckout(p.plan)}
               style={{ flex:1, background:p.highlight?'rgba(201,169,110,0.08)':'var(--surface)', border:`1px solid ${p.highlight?'rgba(201,169,110,0.35)':'#243044'}`, borderRadius:'var(--r-md)', padding:'20px 16px', cursor:'pointer', textAlign:'center', transition:'var(--ease)', fontFamily:'var(--font-sans)', position:'relative' }}
@@ -315,7 +315,7 @@ export function UpgradeModal({ onClose, onCheckout, reason }) {
         </div>
 
         <div style={{ padding:'12px 14px', background:'rgba(201,169,110,0.04)', border:'1px solid rgba(201,169,110,0.12)', borderRadius:8, fontSize:'11px', color:'var(--text3)', textAlign:'center', marginBottom:12 }}>
-          Early adopters keep CHF 199/mo forever · 1 booking covers your monthly cost
+          Early adopters keep CHF 149/mo forever · 1 booking covers your monthly cost
         </div>
 
         <div style={{ fontSize:'11px', color:'var(--text3)', textAlign:'center' }}>

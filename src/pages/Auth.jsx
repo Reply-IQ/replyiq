@@ -54,7 +54,7 @@ export default function Auth() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(201,169,110,0.07)', border:'1px solid rgba(201,169,110,0.15)', borderRadius:20, padding:'6px 14px' }}>
             <div style={{ width:6, height:6, borderRadius:'50%', background:'#C9A96E' }} />
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Early Access · CHF 199/mo · Limited spots</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>🇨🇭 Swiss · Early Access · CHF 149/mo · Limited spots</span>
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export default function Auth() {
             </div>
 
             <div style={{ display:'flex', gap:40, marginBottom:44 }}>
-              {[['100%','response rate'],['0.3★','avg rating lift'],['CHF 199','per month to start']].map(([v,l],i,arr) => (
+              {[['100%','response rate'],['0.3★','avg rating lift'],['CHF 149','per month to start']].map(([v,l],i,arr) => (
                 <div key={l} style={{ paddingRight:i<arr.length-1?40:0, borderRight:i<arr.length-1?'1px solid rgba(255,255,255,0.07)':'none' }}>
                   <div style={{ fontSize:'2.6rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:'Georgia,serif' }}>{v}</div>
                   <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.25)', marginTop:6 }}>{l}</div>
@@ -153,8 +153,8 @@ export default function Auth() {
             </form>
 
             <div style={{ display:'flex', gap:7, marginTop:18, flexWrap:'wrap' }}>
-              {['GDPR Compliant','Swiss Data','Cancel anytime'].map(b=>(
-                <div key={b} style={{ padding:'4px 11px', background:'rgba(255,255,255,0.03)', border:'1px solid #243044', borderRadius:20, fontSize:'10px', color:'rgba(255,255,255,0.2)' }}>{b}</div>
+              {['GDPR Compliant','🇨🇭 Swiss Data Privacy','Cancel anytime'].map(b=>(
+                <div key={b} style={{ padding:'4px 11px', background:b.includes('🇨🇭')?'rgba(255,0,0,0.04)':'rgba(255,255,255,0.03)', border:b.includes('🇨🇭')?'1px solid rgba(255,0,0,0.15)':'1px solid #243044', borderRadius:20, fontSize:'10px', color:b.includes('🇨🇭')?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.2)' }}>{b}</div>
               ))}
             </div>
 
@@ -168,8 +168,8 @@ export default function Auth() {
                   <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)', marginTop:3 }}>Limited spots · Lock in forever</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
-                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.5rem', color:'#C9A96E', lineHeight:1 }}>CHF 199<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
-                  <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', marginTop:3 }}>or CHF 1,990/yr · 2 months free</div>
+                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.5rem', color:'#C9A96E', lineHeight:1 }}>CHF 149<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
+                  <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', marginTop:3 }}>or CHF 1,490/yr · 2 months free</div>
                 </div>
               </div>
               <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', paddingTop:10, borderTop:'1px solid rgba(255,255,255,0.06)', textAlign:'center' }}>
@@ -192,13 +192,13 @@ export default function Auth() {
               </div>
             </div>
 
-            <div style={{ textAlign:'center', marginTop:20, fontSize:'10px', color:'rgba(255,255,255,0.13)' }}>replyiq.ch · Zürich, Switzerland</div>
+            <div style={{ textAlign:'center', marginTop:20, fontSize:'10px', color:'rgba(255,255,255,0.18)' }}>🇨🇭 replyiq.ch · Zürich, Switzerland · Swiss data privacy</div>
           </div>
         </div>
 
         <div style={{ padding:'20px 60px', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={{ display:'flex', gap:6 }}>
-            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.15)' }}>Trusted in</span>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.22)' }}>🇨🇭 Trusted in</span>
             {['Zürich','Geneva','Basel','Bern','Lausanne'].map(c=><span key={c} style={{ fontSize:'11px', color:'rgba(255,255,255,0.2)', marginLeft:12 }}>{c}</span>)}
           </div>
           <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.15)' }}>© 2026 ReplyIQ · replyiq.ch</div>

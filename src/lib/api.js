@@ -103,6 +103,11 @@ export async function draftResponse(review, property, tone = 'professional') {
     ? `Property strengths to weave in naturally where relevant: ${profile.keyStrengths.join(', ')}`
     : ''
 
+  // Smart Snippets — recurring facts to weave in where relevant
+  const smartSnippets = profile.smartSnippets?.length
+    ? `\n\nSMART SNIPPETS — weave these facts naturally into the response where relevant (do NOT force all of them in):\n${profile.smartSnippets.map(s => `- ${s}`).join('\n')}`
+    : ''
+
   const neverInclude = profile.autoResponseConfig?.neverInclude ||
     'Never make promises you cannot keep. Never offer refunds or compensation in a public review response. Never be defensive. Never copy-paste generic responses.'
 
@@ -126,7 +131,7 @@ ALWAYS:
 NEVER:
 ${neverInclude}
 
-${keyStrengths}
+${keyStrengths}${smartSnippets}
 
 Tone: ${toneDesc}
 
@@ -150,7 +155,7 @@ export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {
   const upliftPct = gap * 9  // 9% per star (Luca 2016)
   const projected = Math.round(base * (1 + upliftPct / 100))
   const uplift    = projected - base
-  const subMonthly = 199
+  const subMonthly = 149
   const roiX      = uplift > 0 ? +(uplift / subMonthly).toFixed(1) : 0
   const paybackDays= uplift > 0 ? Math.round(subMonthly / (uplift / 30)) : 0
   return {

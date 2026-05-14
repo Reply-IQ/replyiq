@@ -13,6 +13,7 @@ const SIDEBAR_NAV = [
   { path: '/revenue',     label: 'ROI Impact',  icon: '◆' },
   { path: '/competitors', label: 'Competitors', icon: '⊞' },
   { path: '/report',      label: 'Report',      icon: '▤' },
+  { path: '/widget',      label: 'Widget',      icon: '⬡' },
   { path: '/platforms',   label: 'Platforms',   icon: '⊛' },
   { path: '/settings',    label: 'Settings',    icon: '⚙' },
 ]
@@ -70,7 +71,10 @@ export function Layout({ children, title, subtitle, topbarRight }) {
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,var(--gold),var(--amber))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>★</div>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--text1)' }}>Reply<span style={{ color: 'var(--gold)' }}>IQ</span></span>
+            <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--text1)' }}>Reply<span style={{ color: 'var(--gold)' }}>IQ</span></span>
+              <span style={{ fontSize:'8px', color:'rgba(201,169,110,0.45)', letterSpacing:'1.5px' }}>🇨🇭 SWISS</span>
+            </div>
           </div>
 
           {/* Page title on mobile (right side) */}
@@ -169,6 +173,10 @@ export function Layout({ children, title, subtitle, topbarRight }) {
           <div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', letterSpacing: '-0.5px', color: 'var(--white)', lineHeight: 1 }}>Reply<span style={{ color: '#C9A96E' }}>IQ</span></div>
             <div style={{ fontSize: '9px', color: 'var(--text3)', letterSpacing: '2px', textTransform: 'uppercase', marginTop: 2 }}>Reputation AI</div>
+            <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:5 }}>
+              <span style={{ fontSize:'10px' }}>🇨🇭</span>
+              <span style={{ fontSize:'8px', color:'rgba(201,169,110,0.5)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Swiss</span>
+            </div>
           </div>
         </div>
 
@@ -195,7 +203,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
         {!trialActive && !trialExpired && (
           <div style={{ margin: '0 10px 10px', padding: '14px', background: 'rgba(201,169,110,.06)', border: '1px solid rgba(201,169,110,.15)', borderRadius: 12 }}>
             <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--gold)', marginBottom: 4 }}>⚡ Early Access</div>
-            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: 10, lineHeight: 1.5 }}>CHF 199/mo · Limited spots</div>
+            <div style={{ fontSize: '11px', color: 'var(--text3)', marginBottom: 10, lineHeight: 1.5 }}>CHF 149/mo · Limited spots</div>
             <button onClick={() => setShowUpgrade(true)} style={{ width: '100%', padding: '8px', background: 'linear-gradient(135deg,var(--gold),var(--amber))', border: 'none', borderRadius: 8, color: 'var(--bg)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               Upgrade Now →
             </button>

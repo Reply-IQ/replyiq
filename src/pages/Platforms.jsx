@@ -5,11 +5,12 @@ import { useApp } from '../lib/store.jsx'
 import { supabase } from '../lib/supabase.js'
 
 const PLATFORMS = [
-  { id: 'google',      icon: '🔍', color: '#4285F4', name: 'Google Business',  desc: 'Your most important platform. All guest reviews imported automatically.',   fieldLabel: 'Google Place ID',   fieldPH: 'ChIJN1t_tDeuEmsRUsoyG83frY4', hint: 'Find yours at: developers.google.com/maps/documentation/javascript/examples/places-placeid-finder' },
-  { id: 'tripadvisor', icon: '🦉', color: '#00AF87', name: 'TripAdvisor',      desc: 'Critical for hotels. Millions of travellers check TripAdvisor before booking.', fieldLabel: 'TripAdvisor URL', fieldPH: 'https://www.tripadvisor.com/Hotel_Review-...', hint: 'Copy the full URL of your TripAdvisor property page' },
-  { id: 'booking',     icon: '🏨', color: '#003580', name: 'Booking.com',      desc: 'Essential for hotels. Guests trust Booking reviews heavily.',              fieldLabel: 'Booking.com URL',   fieldPH: 'https://www.booking.com/hotel/ch/...', hint: 'Copy the full URL of your Booking.com property page' },
-  { id: 'instagram',   icon: '📸', color: '#E1306C', name: 'Instagram',        desc: 'Monitor comments and DMs. Requires the ReplyIQ Chrome extension.',        fieldLabel: 'Instagram Handle',  fieldPH: '@yourhotel', hint: 'Use the ReplyIQ Chrome extension for Instagram comments' },
-  { id: 'facebook',    icon: '📘', color: '#1877F2', name: 'Facebook Reviews', desc: 'Many guests still leave reviews on Facebook.',                            fieldLabel: 'Facebook Page URL', fieldPH: 'https://www.facebook.com/YourHotel', hint: 'Copy the URL of your Facebook business page' },
+  { id: 'google',       icon: '🔍', color: '#4285F4', name: 'Google Business',  desc: 'Your most important platform. All guest reviews imported automatically.',         fieldLabel: 'Google Place ID',    fieldPH: 'ChIJN1t_tDeuEmsRUsoyG83frY4',       hint: 'Find yours at: developers.google.com/maps/documentation/javascript/examples/places-placeid-finder' },
+  { id: 'tripadvisor',  icon: '🦉', color: '#00AF87', name: 'TripAdvisor',      desc: 'Critical for hotels. Millions of travellers check TripAdvisor before booking.',   fieldLabel: 'TripAdvisor URL',    fieldPH: 'https://www.tripadvisor.com/Hotel_Review-...', hint: 'Copy the full URL of your TripAdvisor property page' },
+  { id: 'booking',      icon: '🏨', color: '#003580', name: 'Booking.com',      desc: 'Essential for hotels. Guests trust Booking reviews heavily.',                    fieldLabel: 'Booking.com URL',    fieldPH: 'https://www.booking.com/hotel/ch/...',  hint: 'Copy the full URL of your Booking.com property page' },
+  { id: 'holidaycheck', icon: '🌞', color: '#FF6600', name: 'HolidayCheck',     desc: '9.4M German-speaking users. A must-have for the DACH market — German guests trust HolidayCheck more than TripAdvisor.', fieldLabel: 'HolidayCheck URL', fieldPH: 'https://www.holidaycheck.de/h/...', hint: 'Copy the full URL of your HolidayCheck property page' },
+  { id: 'instagram',    icon: '📸', color: '#E1306C', name: 'Instagram',        desc: 'Monitor comments and DMs. Requires the ReplyIQ Chrome extension.',              fieldLabel: 'Instagram Handle',   fieldPH: '@yourhotel',                           hint: 'Use the ReplyIQ Chrome extension for Instagram comments' },
+  { id: 'facebook',     icon: '📘', color: '#1877F2', name: 'Facebook Reviews', desc: 'Many guests still leave reviews on Facebook.',                                  fieldLabel: 'Facebook Page URL',  fieldPH: 'https://www.facebook.com/YourHotel',   hint: 'Copy the URL of your Facebook business page' },
 ]
 
 export default function Platforms() {
@@ -180,7 +181,7 @@ export default function Platforms() {
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Platforms Connected', value: `${connected} / ${PLATFORMS.length}`, accent: 'var(--gold)' },
+          { label: 'Platforms Connected', value: `${connected} / 6`, accent: 'var(--gold)' },
           { label: 'Total Reviews',        value: totalReviews.toLocaleString(),        accent: '#5a9080' },
           { label: 'Auto-Response',        value: connected > 0 ? '✓ Active 24/7' : 'Connect a platform', accent: connected > 0 ? '#4A7C6F' : 'var(--text3)' },
         ].map(s => (
