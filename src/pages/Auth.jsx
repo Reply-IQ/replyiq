@@ -279,7 +279,7 @@ function buildProspectEmail(name, hotel, lang) {
 
   return '<!DOCTYPE html><html>' +
     '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
-    '<body style="margin:0;padding:0;background:#0A0A0F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#E8E4DC">' +
+    '<body style="margin:0;padding:0;background:#0A0A0F;font-family:-apple-system,sans-serif;color:#E8E4DC">' +
     '<div style="max-width:580px;margin:0 auto;padding:32px 20px">' +
 
     // Logo
@@ -436,7 +436,7 @@ export default function Auth() {
           {/* Logo + Swiss badge */}
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <div>
-              <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:'Georgia,serif', lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
+              <div style={{ fontSize:'1.6rem', fontWeight:700, letterSpacing:'-1px', color:'#fff', fontFamily:"Georgia,serif", lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
               <div style={{ fontSize:'9px', letterSpacing:'3px', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginTop:4 }}>Reputation Intelligence</div>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', background:'rgba(255,0,0,0.05)', border:'1px solid rgba(255,0,0,0.12)', borderRadius:20 }}>
@@ -479,7 +479,7 @@ export default function Auth() {
 
           {/* Left hero */}
           <div style={{ flex:1, padding:'20px 60px 60px', display:'flex', flexDirection:'column', justifyContent:'center', minWidth:0 }}>
-            <div style={{ fontFamily:'Georgia,serif', lineHeight:1.05, letterSpacing:'-2px', marginBottom:24 }}>
+            <div style={{ fontFamily:"Georgia,serif", lineHeight:1.05, letterSpacing:'-2px', marginBottom:24 }}>
               <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#fff' }}>{T.tagline1}</div>
               <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#fff' }}>{T.tagline2}</div>
               <div style={{ fontSize:'clamp(3rem,5vw,5.5rem)', fontWeight:700, color:'#C9A96E' }}>{T.tagline3}</div>
@@ -492,7 +492,7 @@ export default function Auth() {
             <div style={{ display:'flex', gap:40, marginBottom:44 }}>
               {[['100%', T.stat1l], ['0.3★', T.stat2l], ['CHF 149', T.stat3l]].map(([v,l],i,arr) => (
                 <div key={l} style={{ paddingRight:i<arr.length-1?40:0, borderRight:i<arr.length-1?'1px solid rgba(255,255,255,0.07)':'none' }}>
-                  <div style={{ fontSize:'2.6rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:'Georgia,serif' }}>{v}</div>
+                  <div style={{ fontSize:'2.6rem', fontWeight:700, color:'#C9A96E', letterSpacing:'-1.5px', lineHeight:1, fontFamily:"Georgia,serif" }}>{v}</div>
                   <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.25)', marginTop:6 }}>{l}</div>
                 </div>
               ))}
@@ -530,7 +530,7 @@ export default function Auth() {
 
             {/* Sign in */}
             <div style={{ marginBottom:24 }}>
-              <div style={{ fontSize:'1.4rem', fontWeight:700, color:'#fff', letterSpacing:'-0.5px', marginBottom:6, fontFamily:'Georgia,serif' }}>{T.welcomeBack}</div>
+              <div style={{ fontSize:'1.4rem', fontWeight:700, color:'#fff', letterSpacing:'-0.5px', marginBottom:6, fontFamily:"Georgia,serif" }}>{T.welcomeBack}</div>
               <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.28)', marginBottom:22 }}>{T.signInSub}</div>
 
               <form onSubmit={signIn} style={{ display:'flex', flexDirection:'column', gap:14 }}>
@@ -566,12 +566,12 @@ export default function Auth() {
             {reqSent ? (
               <div style={{ background:'rgba(16,185,129,0.07)', border:'1px solid rgba(16,185,129,0.18)', borderRadius:12, padding:'22px', textAlign:'center', marginBottom:20 }}>
                 <div style={{ fontSize:'28px', marginBottom:10 }}>✓</div>
-                <div style={{ fontSize:'15px', fontWeight:700, color:'#34D399', marginBottom:8, fontFamily:'Georgia,serif' }}>{T.successTitle}</div>
+                <div style={{ fontSize:'15px', fontWeight:700, color:'#34D399', marginBottom:8, fontFamily:"Georgia,serif" }}>{T.successTitle}</div>
                 <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.4)', lineHeight:1.7 }}>{T.successMsg}</div>
               </div>
             ) : (
               <div style={{ background:'rgba(201,169,110,0.03)', border:'1px solid rgba(201,169,110,0.1)', borderRadius:14, padding:'20px', marginBottom:20 }}>
-                <div style={{ fontSize:'13px', fontWeight:700, color:'#C9A96E', marginBottom:6, fontFamily:'Georgia,serif' }}>{T.accessTitle}</div>
+                <div style={{ fontSize:'13px', fontWeight:700, color:'#C9A96E', marginBottom:6, fontFamily:"Georgia,serif" }}>{T.accessTitle}</div>
                 <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)', lineHeight:1.65, marginBottom:16 }}>{T.accessDesc}</div>
 
                 <form onSubmit={requestAccess} style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -614,7 +614,7 @@ export default function Auth() {
                   <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginTop:3 }}>{T.pricingSub}</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
-                  <div style={{ fontFamily:'Georgia,serif', fontSize:'1.4rem', color:'#C9A96E', lineHeight:1 }}>CHF 149<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
+                  <div style={{ fontFamily:"Georgia,serif", fontSize:'1.4rem', color:'#C9A96E', lineHeight:1 }}>CHF 149<span style={{ fontSize:'11px', color:'rgba(255,255,255,0.3)' }}>/mo</span></div>
                   <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.25)', marginTop:2 }}>or CHF 1,490/yr</div>
                 </div>
               </div>
