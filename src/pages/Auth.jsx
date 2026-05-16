@@ -47,17 +47,15 @@ export default function Auth() {
         body: JSON.stringify({
           to: 'alexriese410@gmail.com',
           subject: `New ReplyIQ Access Request — ${reqHotel}`,
-          html: \`<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0A0A0F;color:#F0F0F5;padding:32px">
-            <div style="max-width:500px;margin:0 auto;background:#1A1A24;border-radius:12px;padding:28px;border:1px solid #2A2A3A">
-              <div style="font-size:22px;font-weight:700;color:#C9A96E;margin-bottom:20px">New Access Request</div>
-              <div style="margin-bottom:12px"><strong style="color:#C9A96E">Name:</strong> <span style="color:#A0A0B8">\${reqName}</span></div>
-              <div style="margin-bottom:12px"><strong style="color:#C9A96E">Hotel:</strong> <span style="color:#A0A0B8">\${reqHotel}</span></div>
-              <div style="margin-bottom:24px"><strong style="color:#C9A96E">Email:</strong> <span style="color:#A0A0B8">\${email}</span></div>
-              <div style="background:#0A0A0F;border-radius:8px;padding:16px;font-size:13px;color:#606080">
-                To approve: go to Supabase → Authentication → Users → Invite user with this email, then send them the login details.
-              </div>
-            </div>
-          </body></html>\`
+          html: '<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0A0A0F;color:#F0F0F5;padding:32px">' +
+            '<div style="max-width:500px;margin:0 auto;background:#1A1A24;border-radius:12px;padding:28px;border:1px solid #2A2A3A">' +
+            '<div style="font-size:22px;font-weight:700;color:#C9A96E;margin-bottom:20px">New Access Request</div>' +
+            '<div style="margin-bottom:12px"><strong style="color:#C9A96E">Name:</strong> <span style="color:#A0A0B8">' + reqName + '</span></div>' +
+            '<div style="margin-bottom:12px"><strong style="color:#C9A96E">Hotel:</strong> <span style="color:#A0A0B8">' + reqHotel + '</span></div>' +
+            '<div style="margin-bottom:24px"><strong style="color:#C9A96E">Email:</strong> <span style="color:#A0A0B8">' + email + '</span></div>' +
+            '<div style="background:#0A0A0F;border-radius:8px;padding:16px;font-size:13px;color:#606080">' +
+            'To approve: Supabase &rarr; Authentication &rarr; Users &rarr; Invite user, then send login details.' +
+            '</div></div></body></html>'
         })
       })
       setReqSent(true)
