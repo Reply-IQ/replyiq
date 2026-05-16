@@ -386,7 +386,7 @@ export default function Auth() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'alexriese410@gmail.com',
+          to: 'info@replyiq.ch',
           subject: 'New ReplyIQ Access Request — ' + reqHotel,
           html: buildInternalNotification(reqName, reqHotel, reqEmail)
         })
