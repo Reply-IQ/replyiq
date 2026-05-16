@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Layout } from '../components/Layout.jsx'
-import { Button, Spinner, UpgradeModal } from '../components/UI.jsx'
+import { Button, Spinner } from '../components/UI.jsx'
 import { useApp, useIsMobile, useLang } from '../lib/store.jsx'
 import { T, t } from '../lib/i18n.js'
 import { draftResponse } from '../lib/api.js'
@@ -33,7 +33,7 @@ function Stars({ n, size=12 }) {
 }
 
 export default function Inbox() {
-  const { reviews, property, updateReviewInState, consumeAIGeneration, showToast } = useApp()
+  const { reviews, property, updateReviewInState, showToast } = useApp()
   const isMobile = useIsMobile()
   const { lang }  = useLang()
 
@@ -45,8 +45,6 @@ export default function Inbox() {
   const [approving,     setApproving]    = useState(false)
   const [editMode,      setEditMode]     = useState(false)
   const [aiError,       setAiError]      = useState(false)
-  const [showUpgrade,   setShowUpgrade]  = useState(false)
-  const [upgradeReason, setUpgradeReason]= useState('')
   // Mobile: track which panel is visible
   const [mobileView,   setMobileView]   = useState('list') // 'list' | 'detail'
 
@@ -76,9 +74,7 @@ export default function Inbox() {
 
   async function generate() {
     if (!selected) return
-    const check = await consumeAIGeneration()
-    if (!check.allowed) { setUpgradeReason(check.reason); setShowUpgrade(true); return }
-    setGenerating(true)
+setGenerating(true)
     setDraft('')
     setAiError(false)
     const r = await draftResponse(selected, property, tone)
@@ -405,14 +401,7 @@ export default function Inbox() {
         )}
       </div>
 
-      {showUpgrade && (
-        <UpgradeModal onClose={() => setShowUpgrade(false)} reason={upgradeReason}
-          onCheckout={async (plan) => {
-            const r = await fetch('/api/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan, clinicId: property?.id, email: property?.owner_email }) })
-            const d = await r.json()
-            if (d.url) window.location.href = d.url
-          }} />
-      )}
+
     </Layout>
   )
 }

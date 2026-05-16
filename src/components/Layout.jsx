@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { RiskBadge, TrialBanner, UpgradeModal } from './UI.jsx'
+import { RiskBadge } from './UI.jsx'
 import { useApp, useRiskScore, useUnanswered, useIsMobile, useLang } from '../lib/store.jsx'
 import { signOut } from '../lib/supabase.js'
 import { T, t } from '../lib/i18n.js'
@@ -43,9 +43,8 @@ function getGreeting(lang) {
 
 export function Layout({ children, title, subtitle, topbarRight }) {
   const { pathname } = useLocation()
-  const { property, reviews, showToast, trialActive, trialExpired, aiUsed, aiLimit, aiRemaining, daysLeft } = useApp()
+  const { property, reviews, showToast } = useApp()
   const { lang } = useLang()
-  const [showUpgrade, setShowUpgrade] = useState(false)
   const isMobile  = useIsMobile()
   const riskScore = useRiskScore(reviews)
   const unans     = useUnanswered(reviews)
@@ -54,25 +53,9 @@ export function Layout({ children, title, subtitle, topbarRight }) {
   const initials  = property?.name?.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '??'
   const isInbox   = pathname === '/inbox'
 
-  const planLabel = trialActive
-    ? t(T.sidebar.proPlan, lang)
-    : trialExpired
-    ? t(T.trial.trialExpired, lang)
-    : `${t(T.sidebar.trialLeft, lang)} · ${daysLeft}d`
+  const planLabel = t(T.sidebar.proPlan, lang)
 
-  async function handleCheckout(plan) {
-    try {
-      const r = await fetch('/api/create-checkout', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ plan, clinicId:property?.id, email:property?.owner_email }),
-      })
-      const data = await r.json()
-      if (data.url) window.location.href = data.url
-      else showToast('Stripe not configured yet', 'error')
-    } catch (e) { showToast('Checkout failed: ' + e.message, 'error') }
-  }
-
-  // ── MOBILE ──────────────────────────────────────────────────────────────────
+// ── MOBILE ──────────────────────────────────────────────────────────────────
   if (isMobile) {
     const BOTTOM_H = 60
 
@@ -94,14 +77,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
 
         </header>
 
-        {!trialActive && !trialExpired && (
-          <div style={{ background:'rgba(201,169,110,.06)', borderBottom:'1px solid rgba(201,169,110,.15)', padding:'8px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-            <span style={{ fontSize:'11px', color:'var(--gold)' }}>⚡ {daysLeft}d · {aiRemaining} AI</span>
-            <button onClick={() => setShowUpgrade(true)} style={{ fontSize:'11px', fontWeight:700, color:'var(--bg)', background:'var(--gold)', border:'none', borderRadius:6, padding:'4px 10px', cursor:'pointer', fontFamily:'var(--font-sans)' }}>
-              {t(T.trial.upgrade, lang)}
-            </button>
-          </div>
-        )}
+
 
         {topbarRight && !isInbox && (
           <div style={{ padding:'8px 16px', borderBottom:'1px solid var(--border)', background:'var(--surface)', display:'flex', justifyContent:'flex-end', gap:8, flexShrink:0 }}>
@@ -132,7 +108,6 @@ export function Layout({ children, title, subtitle, topbarRight }) {
           })}
         </nav>
 
-        {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} onCheckout={handleCheckout} />}
       </div>
     )
   }
@@ -178,18 +153,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
           })}
         </nav>
 
-        {/* Upgrade CTA */}
-        {!trialActive && !trialExpired && (
-          <div style={{ margin:'0 10px 10px', padding:'14px', background:'rgba(201,169,110,.06)', border:'1px solid rgba(201,169,110,.15)', borderRadius:12 }}>
-            <div style={{ fontSize:'12px', fontWeight:700, color:'var(--gold)', marginBottom:4 }}>⚡ {t(T.trial.earlyAccess, lang)}</div>
-            <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10, lineHeight:1.5 }}>CHF 149/mo · {t(T.trial.spots, lang)}</div>
-            <button onClick={() => setShowUpgrade(true)} style={{ width:'100%', padding:'8px', background:'linear-gradient(135deg,var(--gold),var(--amber))', border:'none', borderRadius:8, color:'var(--bg)', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
-              {t(T.trial.upgrade, lang)}
-            </button>
-          </div>
-        )}
-
-        {/* Property + sign out */}
+{/* Property + sign out */}
         <div style={{ padding:'12px 16px', borderTop:'1px solid var(--border)', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
             <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,var(--gold),var(--amber))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, color:'var(--bg)', flexShrink:0 }}>{initials}</div>
@@ -230,25 +194,11 @@ export function Layout({ children, title, subtitle, topbarRight }) {
         </header>
 
         <main style={{ flex:1, overflowY:isInbox?'hidden':'auto', overflowX:'hidden', padding:isInbox?0:'18px 22px', minWidth:0 }}>
-          {!trialActive && !trialExpired && (
-            <TrialBanner daysLeft={daysLeft} aiUsed={aiUsed} aiLimit={aiLimit} aiRemaining={aiRemaining} onUpgrade={() => setShowUpgrade(true)} lang={lang} />
-          )}
-          {trialExpired && (
-            <div style={{ background:'rgba(184,92,56,0.1)', border:'1px solid rgba(184,92,56,0.3)', borderRadius:'var(--r-md)', padding:'14px 18px', marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
-              <div>
-                <div style={{ fontWeight:700, color:'#B85C38', fontSize:'13px', marginBottom:3 }}>{t(T.trial.trialExpired, lang)}</div>
-                <div style={{ fontSize:'12px', color:'var(--text2)' }}>{t(T.trial.upgradeMsg, lang)}</div>
-              </div>
-              <button onClick={() => setShowUpgrade(true)} style={{ background:'linear-gradient(135deg,#C9A96E,#b8945a)', border:'none', borderRadius:8, padding:'8px 18px', color:'#141920', fontSize:'12px', fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
-                {t(T.trial.upgrade, lang)}
-              </button>
-            </div>
-          )}
+
           {children}
         </main>
       </div>
 
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} onCheckout={handleCheckout} />}
     </div>
   )
 }

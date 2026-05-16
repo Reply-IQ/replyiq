@@ -79,35 +79,14 @@ export function AppProvider({ children }) {
   const updateReviewInState   = useCallback((u) => setReviews(p => p.map(r => r.id === u.id ? u : r)), [])
   const updatePropertyInState = useCallback((u) => setProperty(u), [])
 
-  // ── Trial helpers ──────────────────────────────────────────────────────────
-  const trialStatus  = property?.subscription_status || 'trial'
-  const trialActive  = trialStatus === 'active'
-  const trialExpired = trialStatus === 'expired' ||
-    (trialStatus === 'trial' && property?.trial_ends_at && new Date() > new Date(property.trial_ends_at))
-
-  const aiUsed      = property?.ai_generations_used  || 0
-  const aiLimit     = property?.ai_generations_limit || 10
-  const aiRemaining = Math.max(0, aiLimit - aiUsed)
-  const canUseAI    = trialActive || aiRemaining > 0
-
-  const daysLeft = property?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(property.trial_ends_at) - new Date()) / (1000 * 60 * 60 * 24)))
-    : 14
+  // ── Invite-only model — no trial, all users get full access ───────────────
+  const trialActive  = true
+  const trialExpired = false
+  const canUseAI     = true
+  const aiUsed = 0, aiLimit = 999, aiRemaining = 999, daysLeft = 0
 
   async function consumeAIGeneration() {
-    if (!property?.id) return { allowed: false, reason: 'No property found' }
-    if (trialActive) {
-      const newUsed = aiUsed + 1
-      await supabase.from('clinics').update({ ai_generations_used: newUsed }).eq('id', property.id)
-      setProperty(p => ({ ...p, ai_generations_used: newUsed }))
-      return { allowed: true }
-    }
-    if (trialExpired) return { allowed: false, reason: 'Your trial has ended. Upgrade to continue.' }
-    if (aiRemaining <= 0) return { allowed: false, reason: `You have used all ${aiLimit} AI generations. Upgrade to continue.` }
-    const newUsed = aiUsed + 1
-    await supabase.from('clinics').update({ ai_generations_used: newUsed }).eq('id', property.id)
-    setProperty(p => ({ ...p, ai_generations_used: newUsed }))
-    return { allowed: true, remaining: aiRemaining - 1 }
+    return { allowed: true }
   }
 
   return (
@@ -115,8 +94,6 @@ export function AppProvider({ children }) {
       user, property, reviews, competitors, loading,
       loadAll, showToast, updateReviewInState, updatePropertyInState,
       toast, setToast,
-      trialStatus, trialActive, trialExpired, canUseAI,
-      aiUsed, aiLimit, aiRemaining, daysLeft,
       consumeAIGeneration,
     }}>
       {children}
