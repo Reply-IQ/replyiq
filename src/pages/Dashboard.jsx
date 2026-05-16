@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Grid, Button, Spinner, EmptyState, SectionHeader, InsightItem, Divider } from '../components/UI.jsx'
-import { useApp, useRiskScore, useUnanswered, useIsMobile } from '../lib/store.jsx'
+import { useApp, useRiskScore, useUnanswered, useIsMobile, useLang } from '../lib/store.jsx'
+import { T, t } from '../lib/i18n.js'
 import { generateBrief } from '../lib/api.js'
 import { saveBrief } from '../lib/supabase.js'
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const { property, reviews, showToast, loadAll } = useApp()
   const navigate   = useNavigate()
   const isMobile   = useIsMobile()
+  const { lang }   = useLang()
   const [brief, setBrief]               = useState(null)
   const [loading, setLoading]           = useState(false)
   const [importProgress, setImportProgress] = useState(null) // { elapsed, platform }
@@ -262,7 +264,7 @@ export default function Dashboard() {
           <div style={{ height:4, background:'var(--surface)', borderRadius:2, overflow:'hidden', marginBottom:6 }}>
             <div style={{ height:'100%', width:`${responseRate}%`, background:responseRate>=80?'#4A7C6F':'#B85C38', borderRadius:2, transition:'width 1s ease' }} />
           </div>
-          <div style={{ fontSize:'11px', color:'var(--text3)' }}>{responseRate>=80?'↑ 15% vs last month':'Needs improvement'}</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)' }}>{responseRate>=80?'↑ 15% vs last month':t(T.dashboard.needsImprovement, lang)}</div>
         </div>
       </div>
 

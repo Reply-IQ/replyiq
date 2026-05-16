@@ -10,7 +10,8 @@
     "api/email.js":               { "maxDuration": 10 },
     "api/create-checkout.js":     { "maxDuration": 15 },
     "api/stripe-webhook.js":      { "maxDuration": 15 },
-    "api/widget.js":              { "maxDuration": 10 }
+    "api/widget.js":              { "maxDuration": 10 },
+    "api/send-invite.js":         { "maxDuration": 15 }
   },
   "crons": [{ "path": "/api/sync-all-reviews", "schedule": "0 3 * * *" }]
 }

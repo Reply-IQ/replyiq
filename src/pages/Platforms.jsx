@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Button, Spinner } from '../components/UI.jsx'
-import { useApp } from '../lib/store.jsx'
+import { useApp, useLang } from '../lib/store.jsx'
+import { T, t } from '../lib/i18n.js'
 import { supabase } from '../lib/supabase.js'
 
 const PLATFORMS = [
@@ -176,14 +177,14 @@ export default function Platforms() {
   const connected    = Object.keys(connections).length
 
   return (
-    <Layout title="Platforms" subtitle="Connect your review platforms — AI monitors all simultaneously">
+    <Layout title={t(T.nav.platforms, lang)} subtitle={t(T.platforms.subtitle, lang)}>
 
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Platforms Connected', value: `${connected} / 6`, accent: 'var(--gold)' },
-          { label: 'Total Reviews',        value: totalReviews.toLocaleString(),        accent: '#5a9080' },
-          { label: 'Auto-Response',        value: connected > 0 ? '✓ Active 24/7' : 'Connect a platform', accent: connected > 0 ? '#4A7C6F' : 'var(--text3)' },
+          { label: t(T.platforms.connected, lang)+' '+t(T.nav.platforms, lang), value: `${connected} / 6`, accent: 'var(--gold)' },
+          { label: t(T.platforms.totalReviews, lang),        value: totalReviews.toLocaleString(),        accent: '#5a9080' },
+          { label: t(T.platforms.autoResponse, lang),        value: connected > 0 ? t(T.platforms.active247, lang) : 'Connect a platform', accent: connected > 0 ? '#4A7C6F' : 'var(--text3)' },
         ].map(s => (
           <div key={s.label} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px' }}>
             <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--text3)', marginBottom: 8 }}>{s.label}</div>

@@ -168,3 +168,21 @@ export function useIsMobile() {
   }, [])
   return mobile
 }
+
+// ── LANGUAGE CONTEXT ──────────────────────────────────────────────────────────
+const SUPPORTED = ['en', 'de', 'fr']
+
+export function useLang() {
+  const [lang, setLangState] = useState(() => {
+    const stored = localStorage.getItem('replyiq_lang')
+    return SUPPORTED.includes(stored) ? stored : 'en'
+  })
+
+  function setLang(l) {
+    if (!SUPPORTED.includes(l)) return
+    localStorage.setItem('replyiq_lang', l)
+    setLangState(l)
+  }
+
+  return { lang, setLang }
+}

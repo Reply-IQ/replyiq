@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Grid, Button, Input, Spinner, SectionHeader } from '../components/UI.jsx'
-import { useApp, useIsMobile } from '../lib/store.jsx'
+import { useApp, useIsMobile, useLang } from '../lib/store.jsx'
+import { T, t } from '../lib/i18n.js'
 import { updateProperty } from '../lib/supabase.js'
-import { scanWebsite } from '../lib/api.js'
+import { scanWebsite, draft5StarTemplate } from '../lib/api.js'
 
 export default function Settings() {
   const { property, updatePropertyInState, showToast } = useApp()
+  const { lang, setLang } = useLang()
   const isMobile = useIsMobile()
   const [form,     setForm]     = useState(property || {})
   const [saving,   setSaving]   = useState(false)
@@ -195,6 +197,37 @@ export default function Settings() {
 
         </div>
       </Grid>
+
+      {/* Language selector — prominent card */}
+      <div style={{ marginTop:16 }}>
+        <Card>
+          <SectionHeader title={t(T.settings.language, lang)} subtitle={t(T.settings.langDesc, lang)} />
+          <div style={{ display:'flex', gap:10, marginTop:4 }}>
+            {[
+              { code:'en', label:'English', flag:'🇬🇧', native:'English' },
+              { code:'de', label:'German',  flag:'🇩🇪', native:'Deutsch' },
+              { code:'fr', label:'French',  flag:'🇫🇷', native:'Français' },
+            ].map(({ code, label, native }) => {
+              const active = lang === code
+              return (
+                <button key={code} onClick={() => setLang(code)} style={{
+                  display:'flex', alignItems:'center', gap:10, padding:'12px 18px',
+                  background: active ? 'rgba(201,169,110,.08)' : 'var(--surface)',
+                  border: active ? '1px solid rgba(201,169,110,.4)' : '1px solid var(--border)',
+                  borderRadius:10, cursor:'pointer', transition:'var(--ease)',
+                  fontFamily:'var(--font-sans)',
+                }}>
+                  <div style={{ textAlign:'left' }}>
+                    <div style={{ fontSize:'13px', fontWeight:700, color:active?'var(--gold)':'var(--text1)' }}>{native}</div>
+                    <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:2 }}>{label}</div>
+                  </div>
+                  {active && <span style={{ color:'var(--gold)', fontSize:'16px', marginLeft:'auto' }}>✓</span>}
+                </button>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
     </Layout>
   )
 }
@@ -267,23 +300,43 @@ function SnippetsCard({ property, updatePropertyInState, showToast }) {
 
 // ── Auto-Reply Card ───────────────────────────────────────────────────────────
 function AutoReplyCard({ property, updatePropertyInState, showToast }) {
-  const enabled  = property?.ai_profile?.autoReply5Star || false
-  const template = property?.ai_profile?.autoReply5StarTemplate || ''
-  const [tmpl, setTmpl] = useState(template)
-  const [saving, setSaving] = useState(false)
+  const profile  = property?.ai_profile || {}
+  const enabled  = profile.autoReply5Star || false
+  const saved    = profile.autoReply5StarTemplate || ''
+  const [tmpl,      setTmpl]      = useState(saved)
+  const [saving,    setSaving]    = useState(false)
+  const [drafting,  setDrafting]  = useState(false)
+  const [aiError,   setAiError]   = useState(false)
+
+  // Keep local state in sync when property reloads
+  useState(() => { setTmpl(saved) }, [saved])
 
   async function toggle() {
     setSaving(true)
-    const newProfile = { ...(property?.ai_profile || {}), autoReply5Star: !enabled }
+    const newProfile = { ...profile, autoReply5Star: !enabled }
     const { data, error } = await updateProperty({ ai_profile: newProfile })
     if (error) showToast('Error saving setting', 'error')
     else { updatePropertyInState(data); showToast(!enabled ? 'Auto-reply enabled' : 'Auto-reply disabled', 'success') }
     setSaving(false)
   }
 
+  async function aiDraft() {
+    setDrafting(true)
+    setAiError(false)
+    const result = await draft5StarTemplate(property)
+    if (result?.response || result?.raw) {
+      setTmpl(result.response || result.raw)
+    } else {
+      setAiError(true)
+      showToast('AI draft failed — try again', 'error')
+    }
+    setDrafting(false)
+  }
+
   async function saveTemplate() {
+    if (!tmpl.trim()) { showToast('Template cannot be empty', 'error'); return }
     setSaving(true)
-    const newProfile = { ...(property?.ai_profile || {}), autoReply5StarTemplate: tmpl }
+    const newProfile = { ...profile, autoReply5StarTemplate: tmpl }
     const { data, error } = await updateProperty({ ai_profile: newProfile })
     if (error) showToast('Error saving template', 'error')
     else { updatePropertyInState(data); showToast('Template saved!', 'success') }
@@ -292,42 +345,100 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
 
   return (
     <Card>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+      {/* Header + toggle */}
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
         <div>
           <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:3 }}>⚡ Auto-Reply for 5-Star Reviews</div>
-          <div style={{ fontSize:'12px', color:'var(--text3)' }}>Automatically posts a thank-you to text-free 5-star reviews</div>
+          <div style={{ fontSize:'12px', color:'var(--text3)', lineHeight:1.5 }}>
+            Automatically posts a personalised thank-you to text-free 5-star reviews.<br/>
+            Your AI brand voice, snippets and sign-off are all applied automatically.
+          </div>
         </div>
         <button onClick={toggle} disabled={saving} style={{
-          width:44, height:24, borderRadius:12,
+          width:44, height:24, borderRadius:12, flexShrink:0, marginLeft:16,
           background: enabled ? 'var(--gold)' : 'var(--border)',
           border:'none', cursor:saving?'not-allowed':'pointer',
-          position:'relative', transition:'all .2s', flexShrink:0
+          position:'relative', transition:'background .2s',
         }}>
-          <div style={{ position:'absolute', top:3, left:enabled?20:3, width:18, height:18, borderRadius:'50%', background:'white', transition:'all .2s' }} />
+          <div style={{ position:'absolute', top:3, left:enabled?20:3, width:18, height:18, borderRadius:'50%', background:'white', transition:'left .2s' }} />
         </button>
       </div>
+
       {enabled && (
         <>
-          <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:8 }}>
-            Customise the template below. Use <code style={{ background:'var(--surface)', padding:'1px 5px', borderRadius:4 }}>{'{name}'}</code> for the guest's name.
+          {/* Context note */}
+          <div style={{ padding:'10px 14px', background:'rgba(201,169,110,.04)', border:'1px solid rgba(201,169,110,.12)', borderRadius:8, fontSize:'12px', color:'var(--text3)', lineHeight:1.65, marginBottom:14 }}>
+            <strong style={{ color:'var(--gold)' }}>What the AI knows about your property:</strong><br/>
+            Brand voice: <em>{profile.responsePersonality?.slice(0,80) || profile.brandTone || 'Not set — scan your website in Settings'}</em>
+            {profile.smartSnippets?.length > 0 && <><br/>Smart snippets active: {profile.smartSnippets.length} fact{profile.smartSnippets.length > 1 ? 's' : ''} available</>}
+            {profile.keyStrengths?.length > 0 && <><br/>Key strengths: {profile.keyStrengths.slice(0,3).join(', ')}</>}
           </div>
-          <textarea
-            value={tmpl}
-            onChange={e => setTmpl(e.target.value)}
-            placeholder={`e.g. "Guten Tag {name}, vielen Dank für Ihre 5 Sterne! Wir freuen uns, Sie bald wieder begrüßen zu dürfen. Mit herzlichen Grüssen, Das Team von ${property?.name||'unserem Hotel'}"`}
-            rows={4}
-            style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', color:'var(--text1)', fontSize:'13px', resize:'vertical', outline:'none', boxSizing:'border-box', lineHeight:1.6, marginBottom:10 }}
-            onFocus={e => e.target.style.borderColor='var(--gold)'}
-            onBlur={e => e.target.style.borderColor='var(--border)'}
-          />
-          <Button variant="secondary" onClick={saveTemplate} disabled={saving}>
-            {saving ? <Spinner /> : 'Save Template'}
-          </Button>
+
+          {/* Template editor */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+            <div style={{ fontSize:'12px', color:'var(--text3)' }}>
+              Template — use <code style={{ background:'var(--surface)', padding:'1px 5px', borderRadius:4, fontSize:'11px' }}>{'{name}'}</code> for the guest's name
+            </div>
+            {/* AI Draft button */}
+            <button
+              onClick={aiDraft}
+              disabled={drafting || saving}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', background:'rgba(201,169,110,.08)', border:'1px solid rgba(201,169,110,.25)', borderRadius:8, color:'var(--gold)', fontSize:'12px', fontWeight:600, cursor:drafting?'not-allowed':'pointer', fontFamily:'var(--font-sans)', transition:'var(--ease)' }}
+              onMouseEnter={e => { if (!drafting) e.currentTarget.style.background='rgba(201,169,110,.14)' }}
+              onMouseLeave={e => e.currentTarget.style.background='rgba(201,169,110,.08)'}
+            >
+              {drafting ? <><Spinner size={11}/>Drafting...</> : <>✨ AI Draft</>}
+            </button>
+          </div>
+
+          {/* Error state */}
+          {aiError && !drafting && (
+            <div style={{ padding:'10px 12px', background:'rgba(184,92,56,.08)', border:'1px solid rgba(184,92,56,.2)', borderRadius:8, fontSize:'12px', color:'#B85C38', marginBottom:10 }}>
+              AI draft failed. Check your internet connection and try again.
+            </div>
+          )}
+
+          {/* Drafting animation */}
+          {drafting && (
+            <div style={{ padding:'16px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, marginBottom:10, fontSize:'13px', color:'var(--gold)', textAlign:'center' }}>
+              <Spinner size={16} /><span style={{ marginLeft:8 }}>Writing in your brand voice...</span>
+            </div>
+          )}
+
+          {/* Textarea */}
+          {!drafting && (
+            <textarea
+              value={tmpl}
+              onChange={e => setTmpl(e.target.value)}
+              placeholder={'Click "AI Draft" to generate a personalised template in your brand voice, then edit if needed.'}
+              rows={5}
+              style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', color:'var(--text1)', fontSize:'13px', resize:'vertical', outline:'none', boxSizing:'border-box', lineHeight:1.7, marginBottom:12, fontFamily:'var(--font-sans)' }}
+              onFocus={e => e.target.style.borderColor='var(--gold)'}
+              onBlur={e => e.target.style.borderColor='var(--border)'}
+            />
+          )}
+
+          <div style={{ display:'flex', gap:8 }}>
+            <Button onClick={saveTemplate} disabled={saving || drafting || !tmpl.trim()}>
+              {saving ? <><Spinner />Saving...</> : '✓ Save Template'}
+            </Button>
+            {tmpl && !saving && (
+              <Button variant="ghost" onClick={() => setTmpl('')}>Clear</Button>
+            )}
+          </div>
+
+          {saved && (
+            <div style={{ marginTop:12, padding:'8px 12px', background:'rgba(74,124,111,.06)', border:'1px solid rgba(74,124,111,.15)', borderRadius:8, fontSize:'11px', color:'#4A7C6F' }}>
+              ✓ Active template saved — auto-replies are live for text-free 5-star reviews
+            </div>
+          )}
         </>
       )}
+
       {!enabled && (
-        <div style={{ fontSize:'11px', color:'var(--text3)', fontStyle:'italic' }}>
-          When enabled, ReplyIQ posts a personalised thank-you to every 5-star review with no text. No human approval needed — fully automatic.
+        <div style={{ fontSize:'11px', color:'var(--text3)', fontStyle:'italic', lineHeight:1.7 }}>
+          When enabled, ReplyIQ automatically posts a thank-you to every 5-star review with no text.
+          The AI uses your full brand voice, smart snippets and sign-off style — no approval needed.
         </div>
       )}
     </Card>

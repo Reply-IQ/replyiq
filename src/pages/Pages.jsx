@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
 import { Layout } from '../components/Layout.jsx'
 import { Card, Grid, KpiCard, Button, Spinner, EmptyState, SectionHeader, Stars, PlatformBadge, Tabs, RatingSelector, Textarea, Input, Divider, Alert } from '../components/UI.jsx'
-import { useApp, useRiskScore, useIsMobile } from '../lib/store.jsx'
+import { useApp, useRiskScore, useIsMobile, useLang } from '../lib/store.jsx'
+import { T, t } from '../lib/i18n.js'
 import { draftResponse, generateRiskAnalysis, calcRevenue, analyseCompetitors, generateReport } from '../lib/api.js'
 import { saveAiClassification, saveResponse, saveReport } from '../lib/supabase.js'
 
 // ── REVIEWS PAGE ──────────────────────────────────────────────────────────────
 export function ReviewsPage() {
   const { reviews, property, showToast, updateReviewInState, consumeAIGeneration } = useApp()
+  const { lang } = useLang()
   const [filter, setFilter] = useState('all')
   const [loadingMap, setLM] = useState({})
   const [tone, setTone]     = useState('professional')
@@ -47,21 +49,21 @@ export function ReviewsPage() {
   }
 
   return (
-    <Layout title="Reviews" subtitle={`${reviews.length} total · ${reviews.filter(r=>!r.responded).length} unanswered`}
+    <Layout title={t(T.nav.reviews, lang)} subtitle={`${reviews.length} total · ${reviews.filter(r=>!r.responded).length} ${t(T.competitors.reviews, lang).toLowerCase()}`}
       topbarRight={
         <div style={{ display: 'flex', gap: 8 }}>
-          {['professional','empathetic','concise'].map(t => (
-            <Button key={t} variant={tone===t?'secondary':'ghost'} size="sm" onClick={()=>setTone(t)} style={{ textTransform: 'capitalize' }}>{t}</Button>
+          {[['professional',t(T.inbox.professional,lang)],['empathetic',t(T.inbox.empathetic,lang)],['concise',t(T.inbox.concise,lang)]].map(([key,label]) => (
+            <Button key={key} variant={tone===key?'secondary':'ghost'} size="sm" onClick={()=>setTone(key)}>{label}</Button>
           ))}
         </div>
       }
     >
       <Tabs active={filter} onChange={setFilter} tabs={[
-        { id:'all',       label:'All',       count: reviews.length },
-        { id:'unanswered',label:'Unanswered',count: reviews.filter(r=>!r.responded).length },
-        { id:'negative',  label:'⚠ Negative',count: reviews.filter(r=>r.rating<=2).length },
-        { id:'neutral',   label:'Neutral',   count: reviews.filter(r=>r.rating===3).length },
-        { id:'positive',  label:'★ Positive', count: reviews.filter(r=>r.rating>=4).length },
+        { id:'all',        label:t(T.inbox.all,lang),                        count: reviews.length },
+        { id:'unanswered', label:t(T.inbox.pending,lang),                    count: reviews.filter(r=>!r.responded).length },
+        { id:'negative',   label:'⚠ '+t(T.inbox.urgent,lang),               count: reviews.filter(r=>r.rating<=2).length },
+        { id:'neutral',    label:t(T.common.noData,lang).split('.')[0],      count: reviews.filter(r=>r.rating===3).length },
+        { id:'positive',   label:'★ '+t(T.inbox.positive,lang),             count: reviews.filter(r=>r.rating>=4).length },
       ]} />
 
       {filtered.map(review => (
@@ -98,13 +100,13 @@ export function ReviewsPage() {
 
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             {!review.responded && loadingMap[review.id] !== 'respond' && (
-              <Button variant="secondary" size="sm" onClick={() => respond(review)}>✨ Draft AI Response</Button>
+              <Button variant="secondary" size="sm" onClick={() => respond(review)}>✨ {t(T.inbox.generateAI, lang)}</Button>
             )}
             {loadingMap[review.id] === 'respond' && <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:'12px', color:'var(--gold)' }}><Spinner size={12} /> Drafting...</div>}
             {review.response_text && (
               <>
-                <Button size="sm" onClick={() => { navigator.clipboard?.writeText(review.response_text); showToast('✓ Copied!', 'success') }}>📋 Copy Response</Button>
-                <Button variant="ghost" size="sm" onClick={() => respond(review)}>↻ Regenerate</Button>
+                <Button size="sm" onClick={() => { navigator.clipboard?.writeText(review.response_text); showToast('✓ '+t(T.common.copied,lang), 'success') }}>📋 {t(T.inbox.copyAgain, lang)}</Button>
+                <Button variant="ghost" size="sm" onClick={() => respond(review)}>↻</Button>
               </>
             )}
           </div>
@@ -222,6 +224,7 @@ function rC(s) { return s>=80?'#B85C38':s>=55?'#C9A96E':'#4A7C6F' }
 
 export function RiskPage() {
   const { reviews, showToast, consumeAIGeneration } = useApp()
+  const { lang } = useLang()
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
   const score = useRiskScore(reviews)
@@ -246,14 +249,14 @@ export function RiskPage() {
   }
 
   return (
-    <Layout title="Risk Index" subtitle="Reputation risk across 5 intelligence vectors"
-      topbarRight={<Button onClick={run} disabled={loading}>{loading?<><Spinner/>Calculating...</>:'⚡ AI Risk Analysis'}</Button>}
+    <Layout title={t(T.nav.risk, lang)} subtitle={t(T.risk.subtitle, lang)}
+      topbarRight={<Button onClick={run} disabled={loading}>{loading?<><Spinner/>{t(T.common.generating,lang)}</>:'⚡ '+t(T.risk.generate,lang)}</Button>}
     >
       <Grid cols={3} gap={16} style={{ marginBottom:20 }}>
         <Card style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 20px' }}>
-          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10 }}>Risk Score</div>
+          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10 }}>{t(T.report.riskScore, lang)}</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'5rem', color:rC(score), lineHeight:1 }}>{score}</div>
-          <div style={{ fontSize:'11px', fontWeight:700, color:rC(score), letterSpacing:'2px', marginTop:8 }}>{score>=80?'HIGH RISK':score>=55?'MODERATE':'STABLE'}</div>
+          <div style={{ fontSize:'11px', fontWeight:700, color:rC(score), letterSpacing:'2px', marginTop:8 }}>{score>=80?t(T.common.riskHigh,lang):score>=55?t(T.common.riskModerate,lang):t(T.common.riskStable,lang)}</div>
           <div style={{ width:'100%', height:8, background:'var(--surface)', borderRadius:4, margin:'18px 0 6px', overflow:'hidden' }}>
             <div style={{ height:'100%', width:`${score}%`, background:rC(score), borderRadius:4, transition:'width 1s ease' }} />
           </div>
@@ -316,6 +319,7 @@ const T2 = ({ active, payload, label }) => !active||!payload?.length?null:(
 
 export function RevenuePage() {
   const { property, reviews } = useApp()
+  const { lang } = useLang()
   const [appts, setAppts]   = useState(property?.monthly_appts || 300)
   const [rev, setRev]       = useState(property?.avg_revenue || 150000)
   const [target, setTarget] = useState(property?.target_rating || 4.7)
@@ -335,28 +339,28 @@ export function RevenuePage() {
   ] : []
 
   return (
-    <Layout title="ROI Impact" subtitle="Based on Harvard Business School rating elasticity research (Luca, 2016)"
-      topbarRight={<Button onClick={calculate}>◆ Calculate ROI</Button>}
+    <Layout title={t(T.nav.revenue, lang)} subtitle={t(T.revenue.subtitle, lang)}
+      topbarRight={<Button onClick={calculate}>◆ {t(T.revenue.calculate, lang)}</Button>}
     >
       <Card style={{ marginBottom:18 }}>
-        <SectionHeader title="Property Parameters" subtitle="Adjust to your actual numbers" />
+        <SectionHeader title={t(T.revenue.calculate, lang)} subtitle={t(T.revenue.calculate, lang)} />
         <Grid cols={4} gap={16}>
-          <Input label="Monthly Revenue" type="number" value={rev} onChange={e=>setRev(+e.target.value)} prefix="CHF" />
-          <Input label="Monthly Covers/Guests" type="number" value={appts} onChange={e=>setAppts(+e.target.value)} />
+          <Input label={t(T.revenue.monthlyRevenue, lang)} type="number" value={rev} onChange={e=>setRev(+e.target.value)} prefix="CHF" />
+          <Input label={t(T.revenue.guests, lang)} type="number" value={appts} onChange={e=>setAppts(+e.target.value)} />
           <div>
-            <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:7 }}>Current Rating</div>
+            <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:7 }}>{t(T.revenue.currentRating, lang)}</div>
             <div style={{ fontFamily:'var(--font-serif)', fontSize:'2.2rem', color:'var(--gold)' }}>{currentRating}★</div>
           </div>
-          <Input label="Target Rating" type="number" value={target} onChange={e=>setTarget(+e.target.value)} step="0.1" min="4" max="5" suffix="★" />
+          <Input label={t(T.revenue.targetRating, lang)} type="number" value={target} onChange={e=>setTarget(+e.target.value)} step="0.1" min="4" max="5" suffix="★" />
         </Grid>
       </Card>
 
-      {!result && <Card><EmptyState icon="◆" title="ROI calculator ready" description={`Set your parameters and calculate the revenue impact of improving from ${currentRating}★ to ${target}★`} action={<Button onClick={calculate}>Calculate Now</Button>} /></Card>}
+      {!result && <Card><EmptyState icon="◆" title={t(T.revenue.ready, lang)} description={`${t(T.revenue.calculate,lang)}: ${currentRating}★ → ${target}★`} action={<Button onClick={calculate}>{t(T.revenue.calculateNow, lang)}</Button>} /></Card>}
 
       {result && <>
         <Grid cols={4} gap={14} style={{ marginBottom:18 }}>
-          <KpiCard label="Monthly Revenue Gain" value={`+CHF ${result.monthlyGain.toLocaleString()}`} accent="gold" />
-          <KpiCard label="Annual Revenue Gain"  value={`+CHF ${result.annualGain.toLocaleString()}`}  accent="emerald" />
+          <KpiCard label={t(T.revenue.monthlyRevenue, lang)} value={`+CHF ${result.monthlyGain.toLocaleString()}`} accent="gold" />
+          <KpiCard label={t(T.revenue.monthlyRevenue, lang)+" ("+t(T.report.thisMonth,lang)+")"}  value={`+CHF ${result.annualGain.toLocaleString()}`}  accent="emerald" />
           <KpiCard label="ReplyIQ ROI"           value={`${result.roiX}×`} sub={`Payback in ${result.paybackDays} days`} accent="teal" />
           <KpiCard label="Rating Improvement"   value={`${result.ratingGap}★`} sub={`${result.upliftPct}% revenue uplift`} accent="violet" />
         </Grid>
@@ -394,7 +398,8 @@ export function RevenuePage() {
 
 // ── COMPETITORS PAGE ──────────────────────────────────────────────────────────
 export function CompetitorsPage() {
-  const { property, competitors, showToast, loadAll, consumeAIGeneration } = useApp()
+  const { property, reviews, competitors, showToast, loadAll, consumeAIGeneration } = useApp()
+  const { lang } = useLang()
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
   const [syncing, setSyncing]   = useState(false)
@@ -410,7 +415,15 @@ export function CompetitorsPage() {
     if (!placeId) { showToast('Connect Google Business first — go to Platforms', 'error'); return }
     setSyncing(true)
     try {
-      const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ placeId, clinicName:property.name }) })
+      // Detect property type from ai_profile or name keywords
+      const profile    = property?.ai_profile || {}
+      const nameL      = (property?.name || '').toLowerCase()
+      const descL      = (profile.responsePersonality || profile.brandTone || '').toLowerCase()
+      const isRestaurant = ['restaurant','ristorante','bistro','brasserie','trattoria','café','cafe','bar','grill','kitchen','dining','pizzeria','sushi','thai','indian','chinese','italian','mexican','french'].some(w => nameL.includes(w) || descL.includes(w))
+      const propertyType = isRestaurant ? 'restaurant' : 'hotel'
+      const starLevel    = property?.platform_connections?.google?.businessInfo?.rating || null
+
+      const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ placeId, clinicName:property.name, propertyType, starLevel, propertyFullName:profile.businessName || property.name }) })
       const data = await r.json()
       if (data.competitors?.length > 0) {
         const { supabase } = await import('../lib/supabase.js')
@@ -434,18 +447,18 @@ export function CompetitorsPage() {
   }
 
   return (
-    <Layout title="Competitor Intelligence" subtitle="Real-time market benchmarking — 2km radius"
+    <Layout title={t(T.nav.competitors, lang)} subtitle={t(T.competitors.subtitle, lang)}
       topbarRight={
         <div style={{ display:'flex', gap:8 }}>
-          <Button variant="secondary" onClick={sync} disabled={syncing}>{syncing?<><Spinner/>Syncing...</>:'⊡ Sync Real Competitors'}</Button>
-          <Button onClick={runAnalysis} disabled={loading}>{loading?<><Spinner/>Analysing...</>:'⊞ AI Benchmark'}</Button>
+          <Button variant="secondary" onClick={sync} disabled={syncing}>{syncing?<><Spinner/>{t(T.competitors.syncing,lang)}</>:'⊡ '+t(T.competitors.sync,lang)}</Button>
+          <Button onClick={runAnalysis} disabled={loading}>{loading?<><Spinner/>{t(T.common.generating,lang)}</>:'⊞ '+t(T.competitors.aiBenchmark,lang)}</Button>
         </div>
       }
     >
       <Card style={{ marginBottom:18 }}>
-        <SectionHeader title="Local Market Benchmark" subtitle="Sorted by rating" />
+        <SectionHeader title={t(T.competitors.benchmark, lang)} subtitle={t(T.competitors.sortedBy, lang)} />
         <div style={{ display:'grid', gridTemplateColumns:'1fr 80px 90px 90px', padding:'0 14px 10px', fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>
-          <span>Property</span><span>Rating</span><span>Reviews</span><span>Trend</span>
+          <span>{t(T.competitors.property,lang)}</span><span>{t(T.competitors.rating,lang)}</span><span>{t(T.competitors.reviews,lang)}</span><span>{t(T.competitors.trend,lang)}</span>
         </div>
         {allProps.map((p, i) => (
           <div key={p.name} style={{ display:'grid', gridTemplateColumns:'1fr 80px 90px 90px', alignItems:'center', padding:'12px 14px', borderRadius:8, marginBottom:3, background:p.isYou?'rgba(201,169,110,.06)':'rgba(255,255,255,.02)', border:p.isYou?'1px solid rgba(201,169,110,.2)':'1px solid transparent', fontSize:'13px' }}>
@@ -540,6 +553,7 @@ function buildReportEmail(r, property) {
 export function ReportPage() {
   const { property, reviews, showToast, consumeAIGeneration } = useApp()
   const isMobile = useIsMobile()
+  const { lang }  = useLang()
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
   const [emailing, setEmailing] = useState(false)
@@ -583,16 +597,16 @@ export function ReportPage() {
 
 
   return (
-    <Layout title="Weekly Report" subtitle={`Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
+    <Layout title={t(T.nav.report, lang)} subtitle={`${t(T.report.generate,lang)} ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
       topbarRight={
         <div style={{ display:'flex', gap:8 }}>
           {report && (
             <Button onClick={emailReport} disabled={emailing} variant="secondary" size="sm">
-              {emailing ? <><Spinner />Sending...</> : '✉ Email Report'}
+              {emailing ? <><Spinner />{t(T.report.sending,lang)}</> : '✉ '+t(T.report.email,lang)}
             </Button>
           )}
           <Button onClick={generate} disabled={loading} size="sm">
-            {loading?<><Spinner/>Generating...</>:'▤ Generate Report'}
+            {loading?<><Spinner/>{t(T.report.generating,lang)}:'▤ '+t(T.report.generate,lang)}
           </Button>
         </div>
       }
@@ -645,24 +659,25 @@ export function WidgetPage() {
   const { property } = useApp()
   const isMobile     = useIsMobile()
   const [copied, setCopied] = useState(null)
+  const { lang } = useLang()
   const pid = property?.id || ''
 
   const snippets = [
     {
-      label: 'Badge (recommended)',
-      desc:  'A compact pill showing your rating. Place it anywhere on your site.',
+      label: lang==='de'?'Badge (empfohlen)':lang==='fr'?'Badge (recommandé)':'Badge (recommended)',
+      desc:  lang==='de'?'Eine kompakte Pille mit Ihrer Bewertung. Überall auf Ihrer Website platzierbar.':lang==='fr'?'Une pastille compacte affichant votre note. À placer n\'importe où sur votre site.':'A compact pill showing your rating. Place it anywhere on your site.',
       style: 'badge',
       code: `<div id="replyiq-widget" data-property-id="${pid}" data-style="badge" data-theme="light"></div>\n<script src="https://app.replyiq.ch/widget.js" async></script>`,
     },
     {
       label: 'Card',
-      desc:  'A larger card showing your rating, stars and review count. Great for your homepage.',
+      desc:  lang==='de'?'Eine größere Karte mit Ihrer Bewertung, Sternen und Anzahl. Ideal für Ihre Homepage.':lang==='fr'?'Une grande carte affichant votre note, étoiles et nombre d\'avis. Idéale pour votre page d\'accueil.':'A larger card showing your rating, stars and review count. Great for your homepage.',
       style: 'card',
       code: `<div id="replyiq-widget" data-property-id="${pid}" data-style="card" data-theme="light"></div>\n<script src="https://app.replyiq.ch/widget.js" async></script>`,
     },
     {
-      label: 'Inline Text',
-      desc:  'Embed your rating inline within any text or paragraph.',
+      label: lang==='de'?'Inline Text':lang==='fr'?'Texte intégré':'Inline Text',
+      desc:  lang==='de'?'Betten Sie Ihre Bewertung inline in jeden Text oder Absatz ein.':lang==='fr'?'Intégrez votre note dans n\'importe quel texte ou paragraphe.':'Embed your rating inline within any text or paragraph.',
       style: 'inline',
       code: `<span id="replyiq-widget" data-property-id="${pid}" data-style="inline"></span>\n<script src="https://app.replyiq.ch/widget.js" async></script>`,
     },
@@ -675,7 +690,7 @@ export function WidgetPage() {
   }
 
   return (
-    <Layout title="Review Widget" subtitle="Embed your Google rating on your own website">
+    <Layout title={t(T.nav.widget, lang)} subtitle={t(T.nav.widget, lang)}>
       <Card style={{ marginBottom:16, borderLeft:'3px solid var(--gold)' }}>
         <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7 }}>
           <strong style={{ color:'var(--gold)' }}>Every widget is live.</strong> It automatically updates when your rating changes. Each embed includes a "Powered by ReplyIQ" backlink — free marketing for you, social proof for your site.
@@ -704,7 +719,7 @@ export function WidgetPage() {
           ))}
 
           <Card>
-            <div style={{ fontWeight:700, fontSize:'13px', color:'var(--text1)', marginBottom:8 }}>Preview</div>
+            <div style={{ fontWeight:700, fontSize:'13px', color:'var(--text1)', marginBottom:8 }}>{lang==='de'?'Vorschau':lang==='fr'?'Aperçu':'Preview'}</div>
             <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:12 }}>
               Live preview of how your badge looks — rating pulled from your real Google data.
             </div>

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
 import { Layout } from '../components/Layout.jsx'
 import { Button, Spinner, UpgradeModal } from '../components/UI.jsx'
-import { useApp, useIsMobile } from '../lib/store.jsx'
+import { useApp, useIsMobile, useLang } from '../lib/store.jsx'
+import { T, t } from '../lib/i18n.js'
 import { draftResponse } from '../lib/api.js'
 import { saveResponse } from '../lib/supabase.js'
 
@@ -34,6 +35,7 @@ function Stars({ n, size=12 }) {
 export default function Inbox() {
   const { reviews, property, updateReviewInState, consumeAIGeneration, showToast } = useApp()
   const isMobile = useIsMobile()
+  const { lang }  = useLang()
 
   const [filter,        setFilter]       = useState('pending')
   const [selected,      setSelected]     = useState(null)
@@ -133,10 +135,10 @@ export default function Inbox() {
   const isDone = selected?.responded
 
   const TABS = [
-    { id:'pending',  label:'Pending',    count:pending.length  },
-    { id:'urgent',   label:'⚠ Urgent',   count:urgent.length   },
-    { id:'positive', label:'★ Positive', count:positive.length },
-    { id:'all',      label:'All',        count:all.length      },
+    { id:'pending',  label:t(T.inbox.pending, lang),    count:pending.length  },
+    { id:'urgent',   label:'⚠ '+t(T.inbox.urgent, lang),   count:urgent.length   },
+    { id:'positive', label:'★ '+t(T.inbox.positive, lang), count:positive.length },
+    { id:'all',      label:t(T.inbox.all, lang),        count:all.length      },
   ]
 
   // ── Review List Panel ───────────────────────────────────────────────────────
@@ -170,7 +172,7 @@ export default function Inbox() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text3)', fontSize: '13px' }}>
-            {filter==='pending' ? '🎉 All caught up! Every review has been replied to.' : 'No reviews here yet.'}
+            {filter==='pending' ? t(T.inbox.allCaughtUp, lang) : t(T.common.noData, lang)}
           </div>
         ) : filtered.map(review => {
           const p = PLATFORM_META[review.platform?.toLowerCase()]||PLATFORM_META.google
@@ -269,7 +271,7 @@ export default function Inbox() {
             {/* Tabs */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
               <div style={{ display: 'flex', gap: 2 }}>
-                {[['ai','✨ AI suggested'],['manual','Write manually']].map(([id,label]) => (
+                {[['ai','✨ AI suggested'],['manual',t(T.inbox.writeManually, lang)]].map(([id,label]) => (
                   <button key={id} onClick={() => setEditMode(id==='manual')}
                     style={{ padding: '6px 12px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '12px', fontWeight: (!editMode&&id==='ai')||(editMode&&id==='manual')?600:400, background: (!editMode&&id==='ai')||(editMode&&id==='manual')?'var(--card)':'transparent', color: (!editMode&&id==='ai')||(editMode&&id==='manual')?'var(--text1)':'var(--text3)', transition: 'var(--ease)' }}>
                     {label}

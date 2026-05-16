@@ -145,6 +145,53 @@ Return ONLY the response text — no preamble, no explanation, no quotes around 
 
 
 
+
+// ── DRAFT 5-STAR AUTO-REPLY TEMPLATE ─────────────────────────────────────────
+// Generates the standing template for text-free 5-star reviews.
+// Uses full business context: brand voice, snippets, sign-off, industry.
+export async function draft5StarTemplate(property) {
+  const profile   = property?.ai_profile || {}
+  const name      = profile.businessName || property?.name || 'our property'
+  const lang      = profile.responseLanguage || 'de'
+  const industry  = profile.industry || 'hotel'
+
+  const signOff = profile.signOffStyle ||
+    profile.autoResponseConfig?.signOff ||
+    (lang === 'de' ? `Mit herzlichen Grüssen,\nDas Team von ${name}` :
+     lang === 'fr' ? `Cordialement,\nL\'équipe de ${name}` :
+     lang === 'it' ? `Cordiali saluti,\nIl team di ${name}` :
+                     `Warm regards,\nThe Team at ${name}`)
+
+  const keyStrengths = profile.keyStrengths?.length
+    ? `What makes ${name} special: ${profile.keyStrengths.join(', ')}`
+    : ''
+
+  const smartSnippets = profile.smartSnippets?.length
+    ? `\n\nFacts you can weave in naturally (choose 1-2 if relevant):\n${profile.smartSnippets.map(s => `- ${s}`).join('\n')}`
+    : ''
+
+  const systemPrompt = `You are the official AI response writer for ${name}, a ${industry} in ${profile.city || 'DACH region'}.
+
+Your role is to write a standing auto-reply template for 5-star reviews that have no review text — just a star rating.
+
+This template will be sent automatically to every text-free 5-star review. It must:
+- Sound genuine, warm and personal — not like a bot wrote it
+- Reflect the brand voice of ${name}: ${profile.responsePersonality || `A ${profile.brandTone || 'professional and warm'} ${industry} that genuinely cares about every guest`}
+- Be written in ${lang === 'de' ? 'German' : lang === 'fr' ? 'French' : lang === 'it' ? 'Italian' : 'English'}
+- Use "Wir" / "We" / "Nous" — always the team, never "ich" / "I"
+- Use {name} as a placeholder where you address the guest (e.g. "Guten Tag {name},")
+- Be 2-3 sentences only — short, warm and genuine
+- End with exactly: "${signOff}"
+
+${keyStrengths}${smartSnippets}
+
+Return ONLY the template text. Use {name} exactly as the placeholder. No preamble, no explanation.`
+
+  const userPrompt = `Write a warm, brand-aligned auto-reply template for ${name}. The guest gave 5 stars but left no text. Use {name} as the placeholder for their name. 2-3 sentences max.`
+
+  return ai(systemPrompt, userPrompt, 300)
+}
+
 // ── REVENUE IMPACT (synchronous — based on Luca 2016 Harvard research) ────────
 // ~9% revenue uplift per 1-star rating increase in hospitality
 export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {

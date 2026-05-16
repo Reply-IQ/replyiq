@@ -18,21 +18,51 @@ export default function Auth() {
   const [error, setError]     = useState('')
   const [info, setInfo]       = useState('')
 
+  // Request access state
+  const [reqName,    setReqName]    = useState('')
+  const [reqHotel,   setReqHotel]   = useState('')
+  const [reqSent,    setReqSent]    = useState(false)
+
   async function submit(e) {
     e.preventDefault()
     setError(''); setInfo('')
     if (!email || !password) { setError('Please enter your email and password.'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
-    if (mode === 'login') {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-      if (err) setError('Incorrect email or password. Please try again.')
-    } else {
-      const { data, error: err } = await supabase.auth.signUp({ email, password })
-      if (err) { setError(err.message); setLoading(false); return }
-      if (data?.session) { setLoading(false); return }
-      const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password })
-      if (loginErr) { setInfo('Account created! Check your email to confirm, then sign in.'); setMode('login') }
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    if (err) setError('Incorrect email or password. If you don\'t have an account yet, request access below.')
+    setLoading(false)
+  }
+
+  async function requestAccess(e) {
+    e.preventDefault()
+    setError(''); setInfo('')
+    if (!email || !reqName || !reqHotel) { setError('Please fill in all fields.'); return }
+    setLoading(true)
+    try {
+      // Send notification email to Alex
+      await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'alexriese410@gmail.com',
+          subject: `New ReplyIQ Access Request — ${reqHotel}`,
+          html: \`<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0A0A0F;color:#F0F0F5;padding:32px">
+            <div style="max-width:500px;margin:0 auto;background:#1A1A24;border-radius:12px;padding:28px;border:1px solid #2A2A3A">
+              <div style="font-size:22px;font-weight:700;color:#C9A96E;margin-bottom:20px">New Access Request</div>
+              <div style="margin-bottom:12px"><strong style="color:#C9A96E">Name:</strong> <span style="color:#A0A0B8">\${reqName}</span></div>
+              <div style="margin-bottom:12px"><strong style="color:#C9A96E">Hotel:</strong> <span style="color:#A0A0B8">\${reqHotel}</span></div>
+              <div style="margin-bottom:24px"><strong style="color:#C9A96E">Email:</strong> <span style="color:#A0A0B8">\${email}</span></div>
+              <div style="background:#0A0A0F;border-radius:8px;padding:16px;font-size:13px;color:#606080">
+                To approve: go to Supabase → Authentication → Users → Invite user with this email, then send them the login details.
+              </div>
+            </div>
+          </body></html>\`
+        })
+      })
+      setReqSent(true)
+    } catch(err) {
+      setError('Something went wrong. Please email us directly at info@replyiq.ch')
     }
     setLoading(false)
   }
@@ -123,26 +153,18 @@ export default function Auth() {
           <div style={{ width:460, background:'#1C2430', borderLeft:'1px solid #243044', padding:'48px 48px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
             <div style={{ marginBottom:28 }}>
               <div style={{ fontSize:'1.55rem', fontWeight:700, color:'#fff', letterSpacing:'-0.5px', marginBottom:7, fontFamily:'Georgia,serif' }}>
-                {mode === 'login' ? 'Welcome back' : 'Start free today'}
+                {'Welcome back'}
               </div>
               <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.28)' }}>
-                {mode === 'login' ? 'Sign in to your ReplyIQ account' : '14 days free · No credit card required'}
+                {'Sign in to your ReplyIQ account'}
               </div>
             </div>
 
-            <div style={{ display:'flex', background:'rgba(240,237,232,0.04)', borderRadius:11, padding:4, marginBottom:26, border:'1px solid #243044' }}>
-              {[['login','Sign In'],['signup','Create Account']].map(([m,label]) => (
-                <button key={m} onClick={()=>{setMode(m);setError('');setInfo('')}}
-                  style={{ flex:1, padding:'10px', border:'none', borderRadius:8, cursor:'pointer', fontFamily:'Inter,sans-serif', fontSize:'13px', fontWeight:mode===m?600:400, background:mode===m?'rgba(201,169,110,0.1)':'transparent', color:mode===m?'#C9A96E':'rgba(255,255,255,0.28)', transition:'all 0.15s' }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            {/* LOGIN FORM — always visible */}
+            <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:16, marginBottom:24 }}>
               {[
                 {label:'Email address',type:'email',val:email,set:e=>setEmail(e.target.value),ph:'gm@yourhotel.ch'},
-                {label:'Password',type:'password',val:password,set:e=>setPass(e.target.value),ph:mode==='signup'?'At least 6 characters':'••••••••'},
+                {label:'Password',type:'password',val:password,set:e=>setPass(e.target.value),ph:'••••••••'},
               ].map(f=>(
                 <div key={f.label}>
                   <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.28)', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:600, marginBottom:8 }}>{f.label}</div>
@@ -152,15 +174,53 @@ export default function Auth() {
                     onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.09)'} />
                 </div>
               ))}
-
               {error&&<div style={{ background:'rgba(244,63,94,0.08)', border:'1px solid rgba(244,63,94,0.2)', borderRadius:9, padding:'11px 14px', fontSize:'13px', color:'#d4714f' }}>{error}</div>}
-              {info &&<div style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:9, padding:'11px 14px', fontSize:'13px', color:'#34D399' }}>{info}</div>}
-
               <button type="submit" disabled={loading}
-                style={{ width:'100%', padding:'15px', background:'linear-gradient(135deg,#F5C842,#D4860E)', border:'none', borderRadius:11, color:'#141920', fontSize:'15px', fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:'Inter,sans-serif', marginTop:4, display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:'0 4px 32px rgba(201,169,110,0.22)', opacity:loading?0.7:1 }}>
-                {loading?<><Spinner size={14}/>{mode==='login'?'Signing in...':'Creating account...'}</>:mode==='login'?'Sign In →':'Start Free — 14 Days →'}
+                style={{ width:'100%', padding:'15px', background:'linear-gradient(135deg,#F5C842,#D4860E)', border:'none', borderRadius:11, color:'#141920', fontSize:'15px', fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:'Inter,sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:'0 4px 32px rgba(201,169,110,0.22)', opacity:loading?0.7:1 }}>
+                {loading?<><Spinner size={14}/>Signing in...</>:'Sign In →'}
               </button>
             </form>
+
+            {/* DIVIDER */}
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+              <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.06)' }} />
+              <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.18)', whiteSpace:'nowrap' }}>Don't have access yet?</span>
+              <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.06)' }} />
+            </div>
+
+            {/* REQUEST ACCESS */}
+            {reqSent ? (
+              <div style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.2)', borderRadius:12, padding:'20px', textAlign:'center' }}>
+                <div style={{ fontSize:'24px', marginBottom:8 }}>✓</div>
+                <div style={{ fontSize:'14px', fontWeight:600, color:'#34D399', marginBottom:6 }}>Request received!</div>
+                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.35)', lineHeight:1.6 }}>
+                  We'll review your request and send your login credentials within 24 hours. Check your inbox at <strong style={{ color:'rgba(255,255,255,0.5)' }}>{email}</strong>.
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={requestAccess} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <div style={{ padding:'14px 16px', background:'rgba(201,169,110,0.04)', border:'1px solid rgba(201,169,110,0.12)', borderRadius:10, fontSize:'12px', color:'rgba(255,255,255,0.35)', lineHeight:1.6 }}>
+                  ReplyIQ is invite-only during Early Access. We personally onboard every client in under 10 minutes.
+                </div>
+                {[
+                  {label:'Your name',type:'text',val:reqName,set:e=>setReqName(e.target.value),ph:'Maria Schneider'},
+                  {label:'Hotel or restaurant name',type:'text',val:reqHotel,set:e=>setReqHotel(e.target.value),ph:'Hotel Opera Zürich'},
+                  {label:'Work email',type:'email',val:email,set:e=>setEmail(e.target.value),ph:'maria@hotelopera.ch'},
+                ].map(f=>(
+                  <div key={f.label}>
+                    <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.22)', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:600, marginBottom:6 }}>{f.label}</div>
+                    <input type={f.type} value={f.val} onChange={f.set} placeholder={f.ph}
+                      style={{ width:'100%', background:'rgba(240,237,232,0.03)', border:'1px solid #243044', borderRadius:9, padding:'12px 14px', color:'#fff', fontSize:'13px', outline:'none', fontFamily:'Inter,sans-serif', transition:'border-color 0.18s', boxSizing:'border-box' }}
+                      onFocus={e=>e.target.style.borderColor='rgba(201,169,110,0.4)'}
+                      onBlur={e=>e.target.style.borderColor='#243044'} />
+                  </div>
+                ))}
+                <button type="submit" disabled={loading}
+                  style={{ width:'100%', padding:'13px', background:'rgba(201,169,110,0.1)', border:'1px solid rgba(201,169,110,0.3)', borderRadius:10, color:'#C9A96E', fontSize:'13px', fontWeight:600, cursor:loading?'not-allowed':'pointer', fontFamily:'Inter,sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:8, opacity:loading?0.7:1 }}>
+                  {loading?<><Spinner size={13}/>Sending request...</>:'Request Early Access →'}
+                </button>
+              </form>
+            )}
 
             <div style={{ display:'flex', gap:7, marginTop:18, flexWrap:'wrap' }}>
               {['GDPR Compliant','Swiss Data Privacy','Cancel anytime'].map(b=>(
