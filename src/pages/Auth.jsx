@@ -157,6 +157,180 @@ const SwissFlag = ({ size=11 }) => (
   </svg>
 )
 
+
+// ── Internal notification email to Alex ──────────────────────────────────────
+function buildInternalNotification(name, hotel, email) {
+  return '<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0A0A0F;color:#E8E4DC;padding:32px">' +
+    '<div style="max-width:520px;margin:0 auto;background:#1C2430;border-radius:14px;padding:32px;border:1px solid #2A3545">' +
+    '<div style="font-family:Georgia,serif;font-size:24px;font-weight:700;color:#C9A96E;margin-bottom:24px">New Access Request 🔔</div>' +
+    '<div style="margin-bottom:16px;padding:16px;background:#0A0A0F;border-radius:10px;border-left:3px solid #C9A96E">' +
+    '<div style="margin-bottom:10px"><span style="color:#C9A96E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px">Name</span><br/><span style="color:#E8E4DC;font-size:15px;font-weight:600">' + name + '</span></div>' +
+    '<div style="margin-bottom:10px"><span style="color:#C9A96E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px">Property</span><br/><span style="color:#E8E4DC;font-size:15px;font-weight:600">' + hotel + '</span></div>' +
+    '<div><span style="color:#C9A96E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px">Email</span><br/><a href="mailto:' + email + '" style="color:#60A5FA;font-size:15px">' + email + '</a></div>' +
+    '</div>' +
+    '<div style="padding:14px;background:rgba(201,169,110,0.06);border-radius:10px;font-size:13px;color:#A0A0B8;line-height:1.7">' +
+    '<strong style="color:#C9A96E">Next steps:</strong><br/>1. They will receive a booking link for a 30-min call<br/>2. After the call: Supabase &rarr; Authentication &rarr; Invite user<br/>3. Send credentials via <code style="background:#0A0A0F;padding:1px 5px;border-radius:3px">/api/send-invite</code>' +
+    '</div></div></body></html>'
+}
+
+// ── Beautiful prospect email ──────────────────────────────────────────────────
+function buildProspectEmail(name, hotel, lang) {
+  const firstName = name.split(' ')[0]
+
+  const copy = {
+    en: {
+      subject:   'You made the right call, ' + firstName,
+      hero:      'Your reputation is about to change.',
+      sub:       firstName + ', you just took the first step toward higher ratings, more bookings and zero wasted hours on review management.',
+      whyTitle:  'Here is what ReplyIQ will do for ' + hotel,
+      why1t: 'Respond to every review — automatically',
+      why1d: 'Your AI replies to every Google, TripAdvisor and Booking.com review in your exact brand voice. In seconds. While you sleep.',
+      why2t: 'Rank higher on Google',
+      why2d: 'Google rewards businesses that respond. Properties using ReplyIQ see measurable ranking improvements within 4–6 weeks.',
+      why3t: 'Save 2–3 hours every week',
+      why3d: 'The average GM spends 2–3 hours per week writing review replies manually. ReplyIQ gives that time back — permanently.',
+      why4t: 'Know exactly where you stand vs competitors',
+      why4d: 'Live competitor benchmarking shows every hotel or restaurant within 5km, their rating, their trend, and where you rank.',
+      ctaTitle: 'Book your 30-minute onboarding call',
+      ctaDesc:  'We will set everything up together. Import your reviews, build your AI brand voice, and show you the full dashboard. Takes 10 minutes — the rest of the call is yours to ask anything.',
+      ctaBtn:   'Choose a time that works for you →',
+      ps:       'P.S. We only work with properties we genuinely believe we can help. If ReplyIQ is not the right fit after our call, we will tell you honestly.',
+      footer:   'ReplyIQ · Zürich, Switzerland · Swiss data privacy',
+    },
+    de: {
+      subject:   'Sie haben die richtige Entscheidung getroffen, ' + firstName,
+      hero:      'Ihre Online-Reputation wird sich verändern.',
+      sub:       firstName + ', Sie haben soeben den ersten Schritt zu besseren Bewertungen, mehr Buchungen und null Zeitverschwendung bei der Bewertungsverwaltung gemacht.',
+      whyTitle:  'Was ReplyIQ für ' + hotel + ' tun wird',
+      why1t: 'Auf jede Bewertung antworten — automatisch',
+      why1d: 'Ihre KI antwortet auf jede Google-, TripAdvisor- und Booking.com-Bewertung in Ihrer exakten Markenstimme. In Sekunden. Auch nachts.',
+      why2t: 'Besser bei Google ranken',
+      why2d: 'Google belohnt Betriebe, die antworten. ReplyIQ-Nutzer sehen messbare Verbesserungen im Ranking innerhalb von 4–6 Wochen.',
+      why3t: '2–3 Stunden pro Woche einsparen',
+      why3d: 'Der durchschnittliche Hoteldirektor verbringt 2–3 Stunden pro Woche mit dem manuellen Schreiben von Bewertungsantworten. ReplyIQ gibt diese Zeit dauerhaft zurück.',
+      why4t: 'Genau wissen, wo Sie im Vergleich zur Konkurrenz stehen',
+      why4d: 'Live-Konkurrenzanalyse zeigt jeden Betrieb im Umkreis von 5 km, seine Bewertung, seinen Trend und wo Sie stehen.',
+      ctaTitle: 'Buchen Sie Ihr 30-minütiges Onboarding-Gespräch',
+      ctaDesc:  'Wir richten alles gemeinsam ein. Bewertungen importieren, KI-Markenstimme aufbauen, Dashboard zeigen. Dauert 10 Minuten — der Rest gehört Ihnen.',
+      ctaBtn:   'Wählen Sie einen passenden Termin →',
+      ps:       'P.S. Wir arbeiten nur mit Betrieben, bei denen wir wirklich überzeugt sind, helfen zu können. Falls ReplyIQ nach unserem Gespräch nicht passt, sagen wir das ehrlich.',
+      footer:   'ReplyIQ · Zürich, Schweiz · Schweizer Datenschutz',
+    },
+    fr: {
+      subject:   'Vous avez fait le bon choix, ' + firstName,
+      hero:      'Votre réputation va changer.',
+      sub:       firstName + ', vous venez de faire le premier pas vers de meilleures notes, plus de réservations et zéro temps perdu sur la gestion des avis.',
+      whyTitle:  'Ce que ReplyIQ fera pour ' + hotel,
+      why1t: 'Répondre à chaque avis — automatiquement',
+      why1d: 'Votre IA répond à chaque avis Google, TripAdvisor et Booking.com avec votre voix de marque exacte. En quelques secondes. Même la nuit.',
+      why2t: 'Mieux se classer sur Google',
+      why2d: 'Google récompense les établissements qui répondent. Les utilisateurs de ReplyIQ voient des améliorations mesurables en 4 à 6 semaines.',
+      why3t: 'Économiser 2 à 3 heures par semaine',
+      why3d: 'Le directeur moyen passe 2 à 3 heures par semaine à rédiger manuellement des réponses aux avis. ReplyIQ rend ce temps définitivement.',
+      why4t: 'Savoir exactement où vous en êtes face à la concurrence',
+      why4d: 'Le benchmark concurrentiel en direct montre chaque établissement dans un rayon de 5 km, sa note, sa tendance et votre classement.',
+      ctaTitle: 'Réservez votre appel d'intégration de 30 minutes',
+      ctaDesc:  'Nous configurerons tout ensemble. Importer vos avis, construire votre voix de marque IA, vous montrer le tableau de bord complet. 10 minutes — le reste vous appartient.',
+      ctaBtn:   'Choisissez un créneau qui vous convient →',
+      ps:       'P.S. Nous ne travaillons qu'avec des établissements que nous croyons vraiment pouvoir aider. Si ReplyIQ ne convient pas après notre appel, nous vous le dirons honnêtement.',
+      footer:   'ReplyIQ · Zurich, Suisse · Confidentialité suisse',
+    }
+  }
+
+  const c = copy[lang] || copy.en
+  const calendlyUrl = 'https://calendly.com/replyiq/30min'
+
+  // Calendly visual block — looks like a calendar widget
+  const calendlyBlock =
+    '<a href="' + calendlyUrl + '" target="_blank" rel="noopener" style="display:block;text-decoration:none;margin:24px 0">' +
+    '<div style="background:#1C2430;border:1px solid #2A3545;border-radius:14px;overflow:hidden;font-family:-apple-system,sans-serif">' +
+    // Header bar
+    '<div style="background:linear-gradient(135deg,#C9A96E,#F59E0B);padding:16px 24px;display:flex;align-items:center;justify-content:space-between">' +
+    '<div><div style="font-size:13px;font-weight:700;color:#141920;letter-spacing:0.5px">ReplyIQ · 30 min</div>' +
+    '<div style="font-size:11px;color:rgba(0,0,0,0.55);margin-top:2px">Onboarding &amp; Demo Call</div></div>' +
+    '<div style="background:rgba(0,0,0,0.15);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:#141920">FREE</div>' +
+    '</div>' +
+    // Calendar grid preview
+    '<div style="padding:20px 24px">' +
+    '<div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;font-weight:600">Available this week</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">' +
+    ['Mon','Tue','Wed','Thu','Fri'].map((day, i) => {
+      const isHighlight = i === 1 || i === 3
+      return '<div style="text-align:center">' +
+        '<div style="font-size:10px;color:#6B7280;margin-bottom:6px;font-weight:500">' + day + '</div>' +
+        '<div style="width:36px;height:36px;border-radius:8px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;' +
+        (isHighlight ? 'background:#C9A96E;color:#141920' : 'background:#1C2430;border:1px solid #2A3545;color:#A0A0B8') + '">' +
+        (13 + i) + '</div>' +
+        '</div>'
+    }).join('') +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(201,169,110,0.06);border-radius:10px;border:1px solid rgba(201,169,110,0.15)">' +
+    '<div style="width:8px;height:8px;border-radius:50%;background:#C9A96E;flex-shrink:0"></div>' +
+    '<div style="font-size:13px;font-weight:600;color:#C9A96E">' + c.ctaBtn + '</div>' +
+    '</div>' +
+    '</div></div></a>'
+
+  const why = [
+    [c.why1t, c.why1d, '#34D399'],
+    [c.why2t, c.why2d, '#C9A96E'],
+    [c.why3t, c.why3d, '#60A5FA'],
+    [c.why4t, c.why4d, '#A78BFA'],
+  ]
+
+  return '<!DOCTYPE html><html>' +
+    '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+    '<body style="margin:0;padding:0;background:#0A0A0F;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#E8E4DC">' +
+    '<div style="max-width:580px;margin:0 auto;padding:32px 20px">' +
+
+    // Logo
+    '<div style="text-align:center;margin-bottom:32px">' +
+    '<div style="font-family:Georgia,serif;font-size:30px;font-weight:700;color:#fff;letter-spacing:-1px">Reply<span style="color:#C9A96E">IQ</span></div>' +
+    '<div style="font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-top:5px">Reputation Intelligence</div>' +
+    '<div style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:3px 12px;background:rgba(255,0,0,0.05);border:1px solid rgba(255,0,0,0.12);border-radius:20px">' +
+    '<svg width="11" height="11" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="border-radius:2px"><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>' +
+    '<span style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase;font-weight:600">Swiss</span>' +
+    '</div></div>' +
+
+    // Hero
+    '<div style="background:#1C2430;border:1px solid #2A3545;border-radius:16px;padding:32px;margin-bottom:16px;text-align:center">' +
+    '<div style="font-family:Georgia,serif;font-size:26px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:12px">' + c.hero + '</div>' +
+    '<div style="font-size:14px;color:rgba(255,255,255,0.45);line-height:1.8">' + c.sub + '</div>' +
+    '</div>' +
+
+    // Why section
+    '<div style="background:#1C2430;border:1px solid #2A3545;border-radius:14px;padding:24px;margin-bottom:16px">' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#C9A96E;margin-bottom:18px;font-weight:700">' + c.whyTitle + '</div>' +
+    why.map(([title, desc, color]) =>
+      '<div style="display:flex;gap:14px;margin-bottom:18px">' +
+      '<div style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;margin-top:5px"></div>' +
+      '<div><div style="font-size:13px;font-weight:700;color:#E8E4DC;margin-bottom:3px">' + title + '</div>' +
+      '<div style="font-size:12px;color:#6B7280;line-height:1.65">' + desc + '</div></div>' +
+      '</div>'
+    ).join('') +
+    '</div>' +
+
+    // Calendly CTA section
+    '<div style="background:#1C2430;border:1px solid #2A3545;border-radius:14px;padding:24px;margin-bottom:16px">' +
+    '<div style="font-family:Georgia,serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">' + c.ctaTitle + '</div>' +
+    '<div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.7;margin-bottom:4px">' + c.ctaDesc + '</div>' +
+    calendlyBlock +
+    '</div>' +
+
+    // PS
+    '<div style="padding:16px 20px;background:rgba(201,169,110,0.04);border-radius:10px;border:1px solid rgba(201,169,110,0.1);margin-bottom:24px">' +
+    '<div style="font-size:12px;color:rgba(255,255,255,0.35);line-height:1.7;font-style:italic">' + c.ps + '</div>' +
+    '</div>' +
+
+    // Footer
+    '<div style="text-align:center;padding-top:16px;border-top:1px solid #2A3545;font-size:10px;color:rgba(255,255,255,0.18);line-height:2">' +
+    '<svg width="10" height="10" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px"><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>' +
+    c.footer + '<br>' +
+    '<a href="' + calendlyUrl + '" style="color:#C9A96E;text-decoration:none">calendly.com/replyiq/30min</a>' +
+    '</div>' +
+
+    '</div></body></html>'
+}
+
 const LANGS = [
   { code:'en', label:'EN' },
   { code:'de', label:'DE' },
@@ -214,16 +388,19 @@ export default function Auth() {
         body: JSON.stringify({
           to: 'alexriese410@gmail.com',
           subject: 'New ReplyIQ Access Request — ' + reqHotel,
-          html:
-            '<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0A0A0F;color:#F0F0F5;padding:32px">' +
-            '<div style="max-width:500px;margin:0 auto;background:#1A1A24;border-radius:12px;padding:28px;border:1px solid #2A2A3A">' +
-            '<div style="font-size:22px;font-weight:700;color:#C9A96E;margin-bottom:20px">New Access Request</div>' +
-            '<div style="margin-bottom:12px"><strong style="color:#C9A96E">Name:</strong> <span style="color:#A0A0B8">' + reqName + '</span></div>' +
-            '<div style="margin-bottom:12px"><strong style="color:#C9A96E">Property:</strong> <span style="color:#A0A0B8">' + reqHotel + '</span></div>' +
-            '<div style="margin-bottom:24px"><strong style="color:#C9A96E">Email:</strong> <span style="color:#A0A0B8">' + reqEmail + '</span></div>' +
-            '<div style="background:#0A0A0F;border-radius:8px;padding:16px;font-size:13px;color:#606080">' +
-            'To approve: Supabase &rarr; Authentication &rarr; Invite user with this email, then send credentials via /api/send-invite' +
-            '</div></div></body></html>'
+          html: buildInternalNotification(reqName, reqHotel, reqEmail)
+        })
+      })
+      // Send beautiful welcome email to the prospect
+      await fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: reqEmail,
+          subject: lang === 'de' ? 'Ihre ReplyIQ Early-Access-Anfrage — nächster Schritt' :
+                   lang === 'fr' ? 'Votre demande d'accès ReplyIQ — prochaine étape' :
+                   'Your ReplyIQ Early Access request — next step',
+          html: buildProspectEmail(reqName, reqHotel, lang),
         })
       })
       setReqSent(true)

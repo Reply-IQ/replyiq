@@ -16,6 +16,7 @@ const PLATFORMS = [
 
 export default function Platforms() {
   const { property, updatePropertyInState, showToast, loadAll } = useApp()
+  const { lang } = useLang()
   const [inputs,   setInputs]   = useState({})
   const [loading,  setLoading]  = useState({})
   const [progress, setProgress] = useState({})
@@ -141,9 +142,6 @@ export default function Platforms() {
   async function syncReviews(platform) {
     const conn = connections[platform.id]
     if (!conn?.identifier) return
-    setInput(platform.id, conn.identifier)
-    await connect({ ...platform })
-    // Trigger connect with existing identifier
     const identifier = conn.identifier
     setLoad(platform.id, true)
     setMsg(platform.id, 'Syncing latest reviews from Google...')
