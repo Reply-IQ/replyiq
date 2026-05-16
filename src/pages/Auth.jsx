@@ -229,10 +229,10 @@ function buildProspectEmail(name, hotel, lang) {
       why3d: 'Le directeur moyen passe 2 à 3 heures par semaine à rédiger manuellement des réponses aux avis. ReplyIQ rend ce temps définitivement.',
       why4t: 'Savoir exactement où vous en êtes face à la concurrence',
       why4d: 'Le benchmark concurrentiel en direct montre chaque établissement dans un rayon de 5 km, sa note, sa tendance et votre classement.',
-      ctaTitle: 'Réservez votre appel d'intégration de 30 minutes',
+      ctaTitle: 'Réservez votre appel d\'intégration de 30 minutes',
       ctaDesc:  'Nous configurerons tout ensemble. Importer vos avis, construire votre voix de marque IA, vous montrer le tableau de bord complet. 10 minutes — le reste vous appartient.',
       ctaBtn:   'Choisissez un créneau qui vous convient →',
-      ps:       'P.S. Nous ne travaillons qu'avec des établissements que nous croyons vraiment pouvoir aider. Si ReplyIQ ne convient pas après notre appel, nous vous le dirons honnêtement.',
+      ps:       'P.S. Nous ne travaillons qu\'avec des établissements que nous croyons vraiment pouvoir aider. Si ReplyIQ ne convient pas après notre appel, nous vous le dirons honnêtement.',
       footer:   'ReplyIQ · Zurich, Suisse · Confidentialité suisse',
     }
   }
@@ -398,7 +398,7 @@ export default function Auth() {
         body: JSON.stringify({
           to: reqEmail,
           subject: lang === 'de' ? 'Ihre ReplyIQ Early-Access-Anfrage — nächster Schritt' :
-                   lang === 'fr' ? 'Votre demande d'accès ReplyIQ — prochaine étape' :
+                   lang === 'fr' ? 'Votre demande d\'accès ReplyIQ — prochaine étape' :
                    'Your ReplyIQ Early Access request — next step',
           html: buildProspectEmail(reqName, reqHotel, lang),
         })
