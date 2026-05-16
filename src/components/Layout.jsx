@@ -64,14 +64,12 @@ export function Layout({ children, title, subtitle, topbarRight }) {
 
         <header style={{ height:52, background:'var(--surface)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px', flexShrink:0, zIndex:10 }}>
           {/* Logo */}
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ width:26, height:26, borderRadius:7, background:'linear-gradient(135deg,var(--gold),var(--amber))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px' }}>★</div>
-            <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
-              <span style={{ fontFamily:'var(--font-serif)', fontSize:'1.1rem', color:'var(--text1)' }}>Reply<span style={{ color:'var(--gold)' }}>IQ</span></span>
-              <span style={{ display:'flex', alignItems:'center', gap:3 }}>
-                <SwissFlag size={10} />
-                <span style={{ fontSize:'8px', color:'rgba(201,169,110,0.45)', letterSpacing:'1.5px' }}>SWISS</span>
-              </span>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.25rem', letterSpacing:'-0.5px', lineHeight:1, color:'#fff' }}>
+              Reply<span style={{ color:'#C9A96E' }}>IQ</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:3, marginTop:1 }}>
+              <SwissFlag size={9} />
             </div>
           </div>
 
@@ -119,16 +117,16 @@ export function Layout({ children, title, subtitle, topbarRight }) {
       <aside style={{ width:220, minWidth:220, height:'100vh', flexShrink:0, background:'var(--surface)', borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
         {/* Logo */}
-        <div style={{ padding:'18px 20px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:28, height:28, borderRadius:8, background:'linear-gradient(135deg,var(--gold),var(--amber))', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <span style={{ fontSize:'14px' }}>★</span>
+        <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid var(--border)' }}>
+          <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.55rem', letterSpacing:'-0.5px', lineHeight:1, color:'#fff' }}>
+            Reply<span style={{ color:'#C9A96E' }}>IQ</span>
           </div>
-          <div>
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.2rem', letterSpacing:'-0.5px', color:'var(--white)', lineHeight:1 }}>Reply<span style={{ color:'#C9A96E' }}>IQ</span></div>
-            <div style={{ fontSize:'9px', color:'var(--text3)', letterSpacing:'2px', textTransform:'uppercase', marginTop:2 }}>Reputation AI</div>
-            <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:4 }}>
-              <SwissFlag size={11} />
-              <span style={{ fontSize:'8px', color:'rgba(201,169,110,0.4)', letterSpacing:'1.5px', textTransform:'uppercase', fontWeight:600 }}>Swiss</span>
+          <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:5 }}>
+            <div style={{ fontSize:'9px', color:'var(--text3)', letterSpacing:'2px', textTransform:'uppercase' }}>Reputation AI</div>
+            <div style={{ width:1, height:10, background:'var(--border)' }} />
+            <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+              <SwissFlag size={9} />
+              <span style={{ fontSize:'8px', color:'rgba(201,169,110,0.4)', letterSpacing:'1px', textTransform:'uppercase' }}>Swiss</span>
             </div>
           </div>
         </div>

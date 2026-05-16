@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { placeId, clinicName, propertyType, starLevel, propertyFullName } = req.body
-  const googleKey = process.env.GOOGLE_PLACES_KEY || process.env.VITE_GOOGLE_PLACES_API_KEY
+  const googleKey = process.env.GOOGLE_PLACES_API_KEY || process.env.VITE_GOOGLE_PLACES_API_KEY || process.env.GOOGLE_PLACES_KEY
   if (!googleKey) return res.status(500).json({ error: 'GOOGLE_PLACES_KEY not configured' })
 
   try {
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const searchType = isRestaurant ? 'restaurant' : 'lodging'
 
     // ── Step 3: Nearby search — 5km radius ───────────────────────────────────
-    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=${searchType}&key=${googleKey}&language=de`
+    const nearbyUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=3000&type=${searchType}&key=${googleKey}&language=de`
     const nearbyRes  = await fetch(nearbyUrl)
     const nearbyData = await nearbyRes.json()
 
@@ -72,8 +72,8 @@ export default async function handler(req, res) {
     }
 
     // Rating band: ±0.5 stars from own rating (so 4.1★ hotel sees 3.6★–4.6★ competitors)
-    const ratingMin = Math.max(0, ownRating - 0.7)
-    const ratingMax = Math.min(5, ownRating + 0.7)
+    const ratingMin = Math.max(0, ownRating - 1.0)
+    const ratingMax = Math.min(5, ownRating + 1.0)
 
     const filtered = (nearbyData.results || [])
       .filter(p => {
@@ -112,8 +112,8 @@ export default async function handler(req, res) {
           p.place_id !== placeId &&
           p.name?.toLowerCase() !== clinicNameLower &&
           p.rating &&
-          p.rating >= Math.max(0, ownRating - 1.2) &&
-          p.rating <= Math.min(5, ownRating + 1.2)
+          p.rating >= Math.max(0, ownRating - 1.5) &&
+          p.rating <= Math.min(5, ownRating + 1.5)
         )
       : filtered
 
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
       propertyType: isRestaurant ? 'restaurant' : 'hotel',
       ownRating,
       ownCuisine,
-      radius: 5000,
+      radius: 3000,
     })
 
   } catch (e) {

@@ -5,7 +5,7 @@ import { Card, Grid, KpiCard, Button, Spinner, EmptyState, SectionHeader, Stars,
 import { useApp, useRiskScore, useIsMobile, useLang } from '../lib/store.jsx'
 import { T, t } from '../lib/i18n.js'
 import { draftResponse, generateRiskAnalysis, calcRevenue, analyseCompetitors, generateReport } from '../lib/api.js'
-import { saveAiClassification, saveResponse, saveReport } from '../lib/supabase.js'
+import { saveAiClassification, saveResponse, saveReport, supabase } from '../lib/supabase.js'
 
 // ── REVIEWS PAGE ──────────────────────────────────────────────────────────────
 export function ReviewsPage() {
@@ -418,11 +418,10 @@ export function CompetitorsPage() {
       const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ placeId, clinicName:property.name, propertyType, starLevel, propertyFullName:profile.businessName || property.name }) })
       const data = await r.json()
       if (data.competitors?.length > 0) {
-        const { supabase } = await import('../lib/supabase.js')
         await supabase.from('competitors').delete().eq('clinic_id', property.id)
         await supabase.from('competitors').insert(data.competitors.map(c=>({...c, clinic_id:property.id})))
         await loadAll()
-        showToast(`Found ${data.competitors.length} real nearby properties!`, 'success')
+        showToast(`Synced ${data.competitors.length} nearby competitors within 3km`, 'success')
       }
     } catch(e) { showToast('Sync failed: '+e.message, 'error') }
     setSyncing(false)
@@ -437,7 +436,7 @@ export function CompetitorsPage() {
   }
 
   return (
-    <Layout title={t(T.nav.competitors, lang)} subtitle={t(T.competitors.subtitle, lang)}
+    <Layout title={t(T.nav.competitors, lang)} subtitle={t(T.competitors.subtitle, lang).replace("5km","3km")}
       topbarRight={
         <div style={{ display:'flex', gap:8 }}>
           <Button variant="secondary" onClick={sync} disabled={syncing}>{syncing?<><Spinner/>{t(T.competitors.syncing,lang)}</>:'⊡ '+t(T.competitors.sync,lang)}</Button>
@@ -464,24 +463,38 @@ export function CompetitorsPage() {
       </Card>
 
       {analysis && (
-        <Grid cols={2} gap={16}>
-          <Card>
-            <div style={{ fontSize:'11px', color:'#4A7C6F', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:8, fontWeight:600 }}>Primary Opportunity</div>
-            <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.6, marginBottom:14 }}>{analysis.primaryOpportunity}</div>
-            <div style={{ fontSize:'11px', color:'#B85C38', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:8, fontWeight:600 }}>Main Threat</div>
-            <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.6, marginBottom:14 }}>{analysis.threat}</div>
-            <div style={{ background:'var(--surface)', borderRadius:8, padding:'12px 14px', fontSize:'13px', color:'var(--text2)', lineHeight:1.6, borderLeft:'3px solid var(--gold)' }}>{analysis.narrative}</div>
-          </Card>
-          <Card>
-            <SectionHeader title="Quick Wins" subtitle="Act on these this week" />
-            {(analysis.quickWins||[]).map((win,i)=>(
-              <div key={i} style={{ display:'flex', gap:12, padding:'10px 0', borderBottom:i<(analysis.quickWins.length-1)?'1px solid var(--border)':'none' }}>
-                <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(201,169,110,.1)', color:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, flexShrink:0 }}>{i+1}</div>
-                <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.5 }}>{win}</div>
-              </div>
-            ))}
-          </Card>
-        </Grid>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          {/* Position badge */}
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ padding:'6px 16px', borderRadius:20, fontSize:'12px', fontWeight:700, letterSpacing:'1px',
+              background: analysis.competitivePosition==='LEADING'?'rgba(74,124,111,.15)':analysis.competitivePosition==='STRONG'?'rgba(201,169,110,.12)':analysis.competitivePosition==='AVERAGE'?'rgba(90,90,130,.15)':'rgba(184,92,56,.12)',
+              color: analysis.competitivePosition==='LEADING'?'#4A7C6F':analysis.competitivePosition==='STRONG'?'var(--gold)':analysis.competitivePosition==='AVERAGE'?'#8888CC':'#B85C38',
+              border: '1px solid currentColor'
+            }}>
+              {analysis.competitivePosition || 'ANALYSED'}
+            </div>
+            {analysis.ratingGap && <span style={{ fontSize:'12px', color:'var(--text3)' }}>{analysis.ratingGap}</span>}
+          </div>
+
+          <Grid cols={isMobile?1:2} gap={14}>
+            <Card>
+              <div style={{ fontSize:'11px', color:'#4A7C6F', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:8, fontWeight:600 }}>Primary Opportunity</div>
+              <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7, marginBottom:16 }}>{analysis.primaryOpportunity}</div>
+              <div style={{ fontSize:'11px', color:'#B85C38', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:8, fontWeight:600 }}>Main Threat</div>
+              <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.7, marginBottom:16 }}>{analysis.threat}</div>
+              <div style={{ background:'var(--surface)', borderRadius:8, padding:'13px 15px', fontSize:'13px', color:'var(--text2)', lineHeight:1.7, borderLeft:'3px solid var(--gold)' }}>{analysis.narrative}</div>
+            </Card>
+            <Card>
+              <SectionHeader title="Quick Wins" subtitle="Act on these this week" />
+              {(analysis.quickWins||[]).map((win,i)=>(
+                <div key={i} style={{ display:'flex', gap:12, padding:'11px 0', borderBottom:i<(analysis.quickWins||[]).length-1?'1px solid var(--border)':'none' }}>
+                  <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(201,169,110,.1)', color:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, flexShrink:0 }}>{i+1}</div>
+                  <div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.5 }}>{win}</div>
+                </div>
+              ))}
+            </Card>
+          </Grid>
+        </div>
       )}
     </Layout>
   )

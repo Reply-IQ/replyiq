@@ -1,5 +1,6 @@
 // AI engine — calls /api/claude on Vercel
-async function ai(system, user, max = 800) {
+// textOnly=true skips JSON parsing (for review responses which are plain text)
+async function ai(system, user, max = 800, textOnly = false) {
   try {
     const res = await fetch('/api/claude', {
       method: 'POST',
@@ -14,6 +15,7 @@ async function ai(system, user, max = 800) {
     if (!res.ok) return { error: `API error ${res.status}` }
     const data = await res.json()
     const text = data.content?.map(b => b.text || '').join('') || ''
+    if (textOnly) return { raw: text.trim() }
     try {
       const c = text.replace(/```json\n?|\n?```/g, '').trim()
       const s = c.indexOf('{'), e = c.lastIndexOf('}')
@@ -47,18 +49,37 @@ export async function draftResponse(review, property, tone = 'professional') {
   const platform  = review?.platform || 'Google'
   const reviewText= review?.text || ''
 
-  // Detect review language from text (overrides profile language for response)
+  // Detect review language — checks characters AND word patterns
   function detectReviewLang(text) {
-    if (!text || text.length < 10) return lang
+    if (!text || text.length < 4) return lang
     const t = text.toLowerCase()
-    const de = ['und','die','der','das','nicht','haben','war','sehr','gut','aber'].filter(w => t.includes(' '+w+' ')||t.startsWith(w+' ')).length
-    const fr = ['est','les','des','pas','pour','avec','tres','nous','vous','mais'].filter(w => t.includes(' '+w+' ')||t.startsWith(w+' ')).length
-    const it = ['molto','sono','con','non','per','che','della','hotel','buono'].filter(w => t.includes(' '+w+' ')||t.startsWith(w+' ')).length
-    const max = Math.max(de, fr, it)
-    if (max === 0) return 'en'
-    if (de === max) return 'de'
-    if (fr === max) return 'fr'
-    if (it === max) return 'it'
+
+    // German-specific characters are a very strong signal
+    const hasUmlauts = /[äöüß]/.test(t)
+    // French-specific characters
+    const hasFrench = /[àâéèêëîïôùûüç]/.test(t)
+    // Italian-specific
+    const hasItalian = /[àèéìíîòóùú]/.test(t) && !hasFrench
+
+    if (hasUmlauts) return 'de'
+
+    // Word frequency scoring — broader word lists
+    const deWords = ['und','die','der','das','nicht','haben','war','sehr','gut','aber','mit','von','für','auf','ist','eine','einem','ich','wir','sie','hotel','zimmer','personal','frühstück','sauber','empfehlen','weiter','tolle','super','schön','leider','leider']
+    const frWords = ['est','les','des','pas','pour','avec','très','nous','vous','mais','une','hôtel','chambre','service','bien','merci','séjour','personnel','propre','recommend','excellent','parfait','agréable','magnifique','dommage']
+    const itWords = ['molto','sono','con','non','per','che','della','hotel','buono','bene','ottimo','camera','personale','colazione','pulito','consiglio','bellissimo','servizio','fantastico']
+    const enWords = ['the','and','was','great','good','hotel','room','staff','breakfast','clean','nice','recommend','loved','stay','amazing','excellent','service','friendly','beautiful','perfect','wonderful','terrible','disappointed']
+
+    const score = (words) => words.filter(w => t.includes(w)).length
+    const deScore = score(deWords) + (hasUmlauts ? 5 : 0)
+    const frScore = score(frWords) + (hasFrench ? 3 : 0)
+    const itScore = score(itWords) + (hasItalian ? 2 : 0)
+    const enScore = score(enWords)
+
+    const max = Math.max(deScore, frScore, itScore, enScore)
+    if (max === 0) return lang // fall back to profile language, not always 'en'
+    if (deScore === max) return 'de'
+    if (frScore === max) return 'fr'
+    if (itScore === max) return 'it'
     return 'en'
   }
   const reviewLang = detectReviewLang(reviewText)
@@ -76,11 +97,13 @@ export async function draftResponse(review, property, tone = 'professional') {
   }
   const greeting = profile.greetingStyle || greetingMap[reviewLang] || greetingMap.en
 
+  // Sign-off uses reviewLang (detected from review text) not profile lang
+  // This ensures German review gets German sign-off even if profile is EN
   const signOff = profile.signOffStyle ||
     profile.autoResponseConfig?.signOff ||
-    (lang === 'de' ? `Mit herzlichen Grüssen,\nDas Team von ${name}` :
-     lang === 'fr' ? `Cordialement,\nL'équipe de ${name}` :
-     lang === 'it' ? `Cordiali saluti,\nIl team di ${name}` :
+    (reviewLang === 'de' ? `Mit herzlichen Grüssen,\nDas Team von ${name}` :
+     reviewLang === 'fr' ? `Cordialement,\nL'équipe de ${name}` :
+     reviewLang === 'it' ? `Cordiali saluti,\nIl team di ${name}` :
                      `Warm regards,\nThe Team at ${name}`)
 
   const toneDesc = {
@@ -100,12 +123,18 @@ export async function draftResponse(review, property, tone = 'professional') {
     : `This is a ${rating}-star review requiring careful de-escalation. Start by acknowledging their disappointment sincerely, specifically address each concern they raised (never be dismissive or defensive), apologise for the experience not meeting expectations, explain what you will do or have done about it, and invite them to contact you directly to discuss further. 5-6 sentences. This response may make the difference between them returning or never coming back.`
 
   const keyStrengths = profile.keyStrengths?.length
-    ? `Property strengths to weave in naturally where relevant: ${profile.keyStrengths.join(', ')}`
+    ? `PROPERTY STRENGTHS (from website scan): These are genuine strengths of ${name} that guests consistently value. ` +
+      `Reference one naturally if it connects to what the guest praised or complained about: ${profile.keyStrengths.join(', ')}`
     : ''
 
-  // Smart Snippets — recurring facts to weave in where relevant
+  // Smart Snippets — facts about the property that personalise responses
+  // Logic: if the review mentions a topic that a snippet addresses, USE that snippet
   const smartSnippets = profile.smartSnippets?.length
-    ? `\n\nSMART SNIPPETS — weave these facts naturally into the response where relevant (do NOT force all of them in):\n${profile.smartSnippets.map(s => `- ${s}`).join('\n')}`
+    ? `\n\nPROPERTY FACTS (Smart Snippets): The following are true facts about ${name}. ` +
+      `If the guest's review mentions a related topic, weave the relevant fact naturally into your response. ` +
+      `Do not force them all in — only use the ones that genuinely connect to what the guest wrote. ` +
+      `Used well, these make responses feel informed and specific rather than generic:\n` +
+      profile.smartSnippets.map(s => `- ${s}`).join('\n')
     : ''
 
   const neverInclude = profile.autoResponseConfig?.neverInclude ||
@@ -123,15 +152,31 @@ Your role is to write review responses that:
 ${ratingStrategy}
 
 ALWAYS:
-- Address the reviewer by first name using this greeting: "${greeting}"
-- Sign off with: "${signOff}"
-- Reference something specific from their review — never write a response that could work for any review
-- Keep the response tightly focused — no padding
+- Start your response with EXACTLY this greeting on its own line: "${greeting}"
+- End your response with EXACTLY this sign-off: "${signOff}"
+- The VERY FIRST word of your response must be the greeting above — do not add any preamble
+- Reference at least one specific detail from their review that proves you actually read it
+- Write in flowing paragraphs — no bullet points, no dashes, no lists
+- Keep it human and focused — 3 to 6 sentences depending on the rating
 
 NEVER:
+- Use dashes or bullet points in the response — write in flowing paragraphs only
+- Use em dashes (—) anywhere in the response
+- Start sentences with "I", "ich", "je" — always "We", "Wir", "Nous"
 ${neverInclude}
 
 ${keyStrengths}${smartSnippets}
+
+REVIEW TOPIC AWARENESS:
+Read the guest's review carefully. Identify what they specifically praised or complained about. If they mention:
+- Parking → use the parking snippet if available
+- Breakfast → use the breakfast hours snippet if available
+- Staff → reference the team warmly
+- Cleanliness → address it specifically, mention your standards
+- Location → reference the city or landmark context if known
+- Price/value → acknowledge their perspective professionally
+- Noise → address it with your specific context
+Always connect your response to THEIR specific experience, not a generic version of it.
 
 Tone: ${toneDesc}
 
@@ -140,7 +185,7 @@ Return ONLY the response text — no preamble, no explanation, no quotes around 
   const reviewLangName = reviewLang === 'de' ? 'German' : reviewLang === 'fr' ? 'French' : reviewLang === 'it' ? 'Italian' : 'English'
   const userPrompt = 'Write a ' + reviewLangName + ' response for this ' + rating + '-star ' + platform + ' review' + (isRealName ? ' left by ' + firstName : '') + ':\n\n"' + reviewText + '"\n\nRules:\n- Respond in ' + reviewLangName + ' only\n- Use Wir/We/Nous (team), never ich/I/je\n- Start with exactly: "' + greeting + '"\n- End with exactly: "' + signOff + '"\n- Reference a specific detail from this review'
 
-  return ai(systemPrompt, userPrompt, 600)
+  return ai(systemPrompt, userPrompt, 600, true)
 }
 
 
@@ -189,7 +234,7 @@ Return ONLY the template text. Use {name} exactly as the placeholder. No preambl
 
   const userPrompt = `Write a warm, brand-aligned auto-reply template for ${name}. The guest gave 5 stars but left no text. Use {name} as the placeholder for their name. 2-3 sentences max.`
 
-  return ai(systemPrompt, userPrompt, 300)
+  return ai(systemPrompt, userPrompt, 300, true)
 }
 
 // ── REVENUE IMPACT (synchronous — based on Luca 2016 Harvard research) ────────
@@ -227,31 +272,43 @@ export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {
 
 // ── COMPETITOR ANALYSIS ───────────────────────────────────────────────────────
 export async function analyseCompetitors(property, competitors) {
-  const name = property?.name || 'your property'
-  const compList = competitors.map(c =>
-    `${c.name}: ${c.rating}★ (${c.reviews} reviews)`
+  const name     = property?.name || 'your property'
+  const ownRating  = property?.platform_connections?.google?.businessInfo?.rating || '?'
+  const ownReviews = property?.platform_connections?.google?.businessInfo?.totalReviews || '?'
+
+  // Sort so AI sees the full competitive landscape
+  const sorted = [...competitors].sort((a,b) => b.rating - a.rating)
+  const compList = sorted.map((c,i) =>
+    `#${i+1} ${c.name}: ${c.rating}★ (${(c.reviews||0).toLocaleString()} reviews)${c.distance ? ' — '+c.distance : ''}`
   ).join('\n')
 
+  const ownRank = sorted.findIndex(c => c.name?.includes('YOU') || false)
+
   return ai(
-    `You are a hospitality competitive intelligence analyst for the DACH market.`,
-    `Analyse competitive position for ${name}.
+    `You are a senior hospitality competitive intelligence analyst specialising in the DACH market. Be specific, direct and actionable.`,
+    `Analyse the competitive position of ${name} against nearby competitors.
 
-Your property stats from Google:
-- Rating: ${property?.platform_connections?.google?.businessInfo?.rating || 'unknown'}★
-- Reviews: ${property?.platform_connections?.google?.businessInfo?.totalReviews || 'unknown'}
+${name}:
+- Rating: ${ownRating}★
+- Reviews: ${ownReviews}
 
-Nearby competitors:
+Local competitors (sorted by rating):
 ${compList}
 
-Return JSON: {
-  "competitivePosition": "LEADING|STRONG|AVERAGE|LAGGING",
-  "summary": "2 sentence competitive summary",
-  "strengths": ["competitive advantage 1", "competitive advantage 2"],
-  "gaps": ["gap vs competitors 1", "gap 2"],
-  "recommendations": ["specific action to improve competitive position 1", "action 2", "action 3"],
-  "marketInsight": "1 insight about the local hospitality market"
+Return JSON with EXACTLY these fields:
+{
+  "primaryOpportunity": "The single biggest opportunity to gain competitive advantage — be specific about which competitor to target and how",
+  "threat": "The most urgent competitive threat right now — which property and why",
+  "narrative": "3-sentence strategic summary of the competitive landscape and where ${name} stands",
+  "quickWins": [
+    "Specific action #1 to improve competitive position this week",
+    "Specific action #2",
+    "Specific action #3"
+  ],
+  "competitivePosition": "LEADING or STRONG or AVERAGE or LAGGING",
+  "ratingGap": "e.g. +0.3 stars behind the leader"
 }`,
-    800
+    900
   )
 }
 
