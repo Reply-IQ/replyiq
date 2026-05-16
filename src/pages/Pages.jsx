@@ -606,7 +606,7 @@ export function ReportPage() {
             </Button>
           )}
           <Button onClick={generate} disabled={loading} size="sm">
-            {loading?<><Spinner/>{t(T.report.generating,lang)}:'▤ '+t(T.report.generate,lang)}
+            {loading?<><Spinner/>{t(T.report.generating,lang)}</>:'▤ '+t(T.report.generate,lang)}
           </Button>
         </div>
       }
