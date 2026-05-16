@@ -44,10 +44,32 @@ export async function draftResponse(review, property, tone = 'professional') {
   const lang      = profile.responseLanguage || 'de'
   const industry  = profile.industry || 'hotel'
   const reviewer  = review?.author || ''
-  const firstName = reviewer.split(' ')[0] || ''
   const rating    = review?.rating || 3
   const platform  = review?.platform || 'Google'
   const reviewText= review?.text || ''
+
+  // Extract best available name — author field, then try review text signature
+  function extractName(author, text) {
+    const genericWords = ['guest','user','anonymous','unknown','room','suite','villa','customer','client','visitor','reviewer']
+    const raw = (author || '').trim()
+    const first = raw.split(' ')[0] || ''
+
+    // If author looks like a real name (not a generic word, no digits, length ok)
+    if (first.length >= 2 && !/[0-9_@#]/.test(first) && !genericWords.includes(first.toLowerCase())) {
+      return raw // return full name e.g. "Maria Schneider"
+    }
+
+    // Try to find a name signed at the end of the review text
+    // Pattern: "Sincerely, Name" / "- Name" / "Regards, Name" at end
+    const signatureMatch = (text || '').match(/(?:sincerely|regards|cheers|best|yours|greetings|grusse|grüsse|amicalement|cordialement)[,\s]+([A-Z][a-z]{1,15}(?:\s[A-Z][a-z]{1,15})?)/i)
+    if (signatureMatch) return signatureMatch[1].trim()
+
+    return '' // No real name found — use formal fallback
+  }
+  const resolvedName = extractName(reviewer, reviewText)
+  const nameParts = resolvedName.trim().split(' ')
+  const firstName = nameParts[0] || ''
+  const lastName  = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
 
   // Detect review language — checks characters AND word patterns
   function detectReviewLang(text) {
@@ -84,27 +106,35 @@ export async function draftResponse(review, property, tone = 'professional') {
   }
   const reviewLang = detectReviewLang(reviewText)
 
-  // Build proper greeting based on reviewer name
-  const parts = reviewer.trim().split(' ')
-  const lastName = parts.length > 1 ? parts[parts.length - 1] : ''
-  const isRealName = firstName && firstName.length > 2 && !/[0-9_@]/.test(firstName) && firstName !== 'Guest'
+  // resolvedName is already cleaned — if it's non-empty it's a real name
+  const isRealName = firstName.length >= 2
 
+  const fullName = lastName ? firstName + ' ' + lastName : firstName
   const greetingMap = {
-    de: isRealName ? 'Guten Tag ' + firstName + (lastName && parts.length > 1 ? ' ' + lastName : '') + ',' : 'Sehr geehrte Damen und Herren,',
-    fr: isRealName ? 'Cher/Chere ' + firstName + ',' : 'Madame, Monsieur,',
+    de: isRealName ? 'Guten Tag ' + fullName + ',' : 'Sehr geehrte Damen und Herren,',
+    fr: isRealName ? 'Cher ' + firstName + ',' : 'Madame, Monsieur,',
     it: isRealName ? 'Gentile ' + firstName + ',' : 'Gentile ospite,',
     en: isRealName ? 'Dear ' + firstName + ',' : 'Dear Guest,',
   }
-  const greeting = profile.greetingStyle || greetingMap[reviewLang] || greetingMap.en
+  // Never use profile.greetingStyle — it's often marketing copy, compute from reviewer name instead
+  const greeting = greetingMap[reviewLang] || greetingMap.en
 
-  // Sign-off uses reviewLang (detected from review text) not profile lang
-  // This ensures German review gets German sign-off even if profile is EN
-  const signOff = profile.signOffStyle ||
-    profile.autoResponseConfig?.signOff ||
-    (reviewLang === 'de' ? `Mit herzlichen Grüssen,\nDas Team von ${name}` :
-     reviewLang === 'fr' ? `Cordialement,\nL'équipe de ${name}` :
-     reviewLang === 'it' ? `Cordiali saluti,\nIl team di ${name}` :
-                     `Warm regards,\nThe Team at ${name}`)
+  // Build a professional sign-off based on review language
+  // We deliberately do NOT use profile.signOffStyle — website scanners often pick up
+  // brand marketing copy (e.g. "Come Play soon") that sounds wrong in review responses.
+  // The sign-off must always be a clean, professional closing.
+  const standardSignOff = reviewLang === 'de'
+    ? `Mit herzlichen Grüssen,\nDas Team von ${name}`
+    : reviewLang === 'fr'
+    ? `Cordialement,\nL'équipe de ${name}`
+    : reviewLang === 'it'
+    ? `Cordiali saluti,\nIl team di ${name}`
+    : `Warm regards,\nThe ${name} Team`
+
+  // Only use profile sign-off if it was manually set AND looks like a proper sign-off
+  // (contains a newline separating the closing phrase from the team name)
+  const profileSignOff = profile.signOffStyle || profile.autoResponseConfig?.signOff || ''
+  const signOff = (profileSignOff && profileSignOff.includes('\n')) ? profileSignOff : standardSignOff
 
   const toneDesc = {
     professional: 'warm and professionally formal — sophisticated yet approachable',
