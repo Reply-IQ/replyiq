@@ -26,12 +26,6 @@ const BOTTOM_PATHS = [
   { path:'/settings',key:'settings',  icon:'⚙' },
 ]
 
-const LANG_OPTIONS = [
-  { code:'en', label:'EN', flag:'🇬🇧' },
-  { code:'de', label:'DE', flag:'🇩🇪' },
-  { code:'fr', label:'FR', flag:'🇫🇷' },
-]
-
 const SwissFlag = ({ size=11 }) => (
   <svg width={size} height={size} viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, flexShrink:0 }}>
     <rect width="20" height="20" fill="#FF0000"/>
@@ -39,32 +33,6 @@ const SwissFlag = ({ size=11 }) => (
     <rect x="7" y="3" width="6" height="14" fill="white"/>
   </svg>
 )
-
-function LangSwitcher({ lang, setLang, compact=false }) {
-  return (
-    <div style={{ display:'flex', gap:2, background:'rgba(255,255,255,.04)', borderRadius:8, padding:2 }}>
-      {LANG_OPTIONS.map(({ code, label }) => {
-        const active = lang === code
-        return (
-          <button key={code} onClick={() => setLang(code)} style={{
-            padding: compact ? '3px 7px' : '4px 10px',
-            border:'none', borderRadius:6, cursor:'pointer',
-            fontSize: compact ? '10px' : '11px',
-            fontWeight: active ? 700 : 400,
-            fontFamily:'var(--font-sans)',
-            background: active ? 'var(--gold)' : 'transparent',
-            color: active ? 'var(--bg)' : 'var(--text3)',
-            transition:'all .15s',
-          }}
-          onMouseEnter={e => { if (!active) e.currentTarget.style.color='var(--text1)' }}
-          onMouseLeave={e => { if (!active) e.currentTarget.style.color='var(--text3)' }}>
-            {label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 function getGreeting(lang) {
   const h = new Date().getHours()
@@ -76,7 +44,7 @@ function getGreeting(lang) {
 export function Layout({ children, title, subtitle, topbarRight }) {
   const { pathname } = useLocation()
   const { property, reviews, showToast, trialActive, trialExpired, aiUsed, aiLimit, aiRemaining, daysLeft } = useApp()
-  const { lang, setLang } = useLang()
+  const { lang } = useLang()
   const [showUpgrade, setShowUpgrade] = useState(false)
   const isMobile  = useIsMobile()
   const riskScore = useRiskScore(reviews)
@@ -123,8 +91,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
               </span>
             </div>
           </div>
-          {/* Language switcher on mobile */}
-          <LangSwitcher lang={lang} setLang={setLang} compact />
+
         </header>
 
         {!trialActive && !trialExpired && (
@@ -191,15 +158,7 @@ export function Layout({ children, title, subtitle, topbarRight }) {
           </div>
         </div>
 
-        {/* Language switcher */}
-        <div style={{ padding:'10px 12px 0', borderBottom:'1px solid var(--border)', paddingBottom:10 }}>
-          <div style={{ fontSize:'9px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1.5px', marginBottom:6, fontWeight:600 }}>
-            {t(T.settings.language, lang)}
-          </div>
-          <LangSwitcher lang={lang} setLang={setLang} />
-        </div>
-
-        {/* Nav */}
+{/* Nav */}
         <nav style={{ padding:'10px', flex:1, overflowY:'auto' }}>
           <div style={{ fontSize:'10px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1.5px', padding:'6px 10px 8px', fontWeight:600 }}>{t(T.nav.platform, lang)}</div>
           {SIDEBAR_PATHS.map(item => {

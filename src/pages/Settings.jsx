@@ -8,7 +8,7 @@ import { scanWebsite, draft5StarTemplate } from '../lib/api.js'
 
 export default function Settings() {
   const { property, updatePropertyInState, showToast } = useApp()
-  const { lang, setLang } = useLang()
+  const { lang } = useLang()
   const isMobile = useIsMobile()
   const [form,     setForm]     = useState(property || {})
   const [saving,   setSaving]   = useState(false)
@@ -50,7 +50,7 @@ export default function Settings() {
   const aiProfile = property?.ai_profile || {}
 
   return (
-    <Layout title="Settings" subtitle="Property profile and configuration">
+    <Layout title={t(T.nav.settings, lang)} subtitle={t(T.settings.subtitle, lang)}>
       <Grid cols={isMobile?1:2} gap={20} style={{ alignItems:'start' }}>
 
         {/* LEFT */}
@@ -198,36 +198,6 @@ export default function Settings() {
         </div>
       </Grid>
 
-      {/* Language selector — prominent card */}
-      <div style={{ marginTop:16 }}>
-        <Card>
-          <SectionHeader title={t(T.settings.language, lang)} subtitle={t(T.settings.langDesc, lang)} />
-          <div style={{ display:'flex', gap:10, marginTop:4 }}>
-            {[
-              { code:'en', label:'English', flag:'🇬🇧', native:'English' },
-              { code:'de', label:'German',  flag:'🇩🇪', native:'Deutsch' },
-              { code:'fr', label:'French',  flag:'🇫🇷', native:'Français' },
-            ].map(({ code, label, native }) => {
-              const active = lang === code
-              return (
-                <button key={code} onClick={() => setLang(code)} style={{
-                  display:'flex', alignItems:'center', gap:10, padding:'12px 18px',
-                  background: active ? 'rgba(201,169,110,.08)' : 'var(--surface)',
-                  border: active ? '1px solid rgba(201,169,110,.4)' : '1px solid var(--border)',
-                  borderRadius:10, cursor:'pointer', transition:'var(--ease)',
-                  fontFamily:'var(--font-sans)',
-                }}>
-                  <div style={{ textAlign:'left' }}>
-                    <div style={{ fontSize:'13px', fontWeight:700, color:active?'var(--gold)':'var(--text1)' }}>{native}</div>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:2 }}>{label}</div>
-                  </div>
-                  {active && <span style={{ color:'var(--gold)', fontSize:'16px', marginLeft:'auto' }}>✓</span>}
-                </button>
-              )
-            })}
-          </div>
-        </Card>
-      </div>
     </Layout>
   )
 }
