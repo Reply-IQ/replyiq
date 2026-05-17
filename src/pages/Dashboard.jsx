@@ -269,10 +269,10 @@ export default function Dashboard() {
       </div>
 
       {/* ── Platform Health + Needs Reply ── */}
-      <Grid cols={isMobile?1:2} gap={14} style={{ marginBottom:16 }}>
+      <Grid cols={isMobile?1:2} gap={14} style={{ marginBottom:16, minWidth:0 }}>
 
         {/* Platform health cards */}
-        <Card>
+        <Card style={{ minWidth:0, overflow:'hidden' }}>
           <SectionHeader title="Platform Health" subtitle="Live status across all connected platforms" />
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {ALL_PLATFORMS.map(pid => {
@@ -317,26 +317,26 @@ export default function Dashboard() {
         </Card>
 
         {/* AI Brief + Needs Reply */}
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0, overflow:'hidden' }}>
           {/* AI brief */}
-          <Card style={{ flex: brief ? 1 : 'none' }}>
+          <Card style={{ flex:'none' }}>
             <SectionHeader title="AI Intelligence Brief" subtitle="Weekly analysis" />
             {!brief && !loading && (
               <EmptyState icon="🤖" title="Generate your weekly brief" description="AI analyses all reviews and surfaces your top issue, strength, and priority action." action={<Button variant="secondary" size="sm" onClick={getIntelligenceBrief}>Generate Now</Button>} />
             )}
             {loading && <div style={{ padding:'20px 0', display:'flex', alignItems:'center', gap:10, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Analysing {reviews.length.toLocaleString()} reviews...</div>}
             {brief && !brief.error && <>
-              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||'Top Issue'}    body={brief.topIssueDetail||brief.insight} />
-              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={brief.topStrengthDetail||brief.opportunity} />
-              <InsightItem iconBg="rgba(201,169,110,.1)" iconColor="var(--gold)" icon="→" title="This Week" body={brief.urgentAction} last />
+              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||'Top Issue'}    body={(brief.topIssueDetail||brief.insight||'').slice(0,140)} />
+              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={(brief.topStrengthDetail||brief.opportunity||'').slice(0,140)} />
+              <InsightItem iconBg="rgba(201,169,110,.1)" iconColor="var(--gold)" icon="→" title="This Week" body={(brief.urgentAction||'').slice(0,140)} last />
               <Divider />
-              <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)' }}>{brief.executiveSummary||brief.insight}</div>
+              <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)', overflow:'hidden' }}>{(brief.executiveSummary||brief.insight||'').slice(0,200)}</div>
             </>}
           </Card>
 
           {/* Needs reply quick list */}
           <Card>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
               <div style={{ fontWeight:700, fontSize:'13px' }}>Needs Reply</div>
               {unans > 0 && <span style={{ background:'rgba(184,92,56,.1)', color:'#B85C38', fontSize:'11px', fontWeight:700, padding:'2px 8px', borderRadius:20, border:'1px solid rgba(184,92,56,.2)' }}>{unans}</span>}
             </div>
@@ -347,7 +347,7 @@ export default function Dashboard() {
                 {reviews.filter(r=>!r.responded).slice(0,3).map(r => {
                   const meta = PLATFORM_META[r.platform?.toLowerCase()]||PLATFORM_META.google
                   return (
-                    <div key={r.id} onClick={() => navigate('/inbox')} style={{ display:'flex', gap:10, padding:'8px 0', borderBottom:'1px solid var(--border)', cursor:'pointer', alignItems:'flex-start', transition:'var(--ease)' }}
+                    <div key={r.id} onClick={() => navigate('/inbox')} style={{ display:'flex', gap:8, padding:'6px 0', borderBottom:'1px solid var(--border)', cursor:'pointer', alignItems:'flex-start', transition:'var(--ease)' }}
                       onMouseEnter={e=>e.currentTarget.style.opacity='0.7'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
                       <div style={{ width:24, height:24, borderRadius:6, background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', flexShrink:0 }}>{meta.icon}</div>
                       <div style={{ flex:1, minWidth:0 }}>
