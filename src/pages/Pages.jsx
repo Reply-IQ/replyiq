@@ -312,8 +312,8 @@ const T2 = ({ active, payload, label }) => !active||!payload?.length?null:(
 export function RevenuePage() {
   const { property, reviews } = useApp()
   const { lang } = useLang()
-  const [appts, setAppts]   = useState(property?.monthly_appts || 300)
-  const [rev, setRev]       = useState(property?.avg_revenue || 150000)
+  const [appts, setAppts]   = useState(property?.monthly_covers || 300)
+  const [rev, setRev]       = useState(property?.monthly_revenue || 50000)
   const [target, setTarget] = useState(property?.target_rating || 4.7)
   const [result, setResult] = useState(null)
   // Use real average from imported reviews, fall back to Google business info
@@ -351,10 +351,10 @@ export function RevenuePage() {
 
       {result && <>
         <Grid cols={4} gap={14} style={{ marginBottom:18 }}>
-          <KpiCard label={t(T.revenue.monthlyRevenue, lang)} value={`+CHF ${result.monthlyGain.toLocaleString()}`} accent="gold" />
-          <KpiCard label={t(T.revenue.monthlyRevenue, lang)+" ("+t(T.report.thisMonth,lang)+")"}  value={`+CHF ${result.annualGain.toLocaleString()}`}  accent="emerald" />
-          <KpiCard label="ReplyIQ ROI"           value={`${result.roiX}×`} sub={`Payback in ${result.paybackDays} days`} accent="teal" />
-          <KpiCard label="Rating Improvement"   value={`${result.ratingGap}★`} sub={`${result.upliftPct}% revenue uplift`} accent="violet" />
+          <KpiCard label="Monthly Revenue Gain" value={`+CHF ${result.monthlyGain.toLocaleString()}`} sub="extra per month at target rating" accent="gold" />
+          <KpiCard label="Annual Revenue Gain"  value={`+CHF ${result.annualGain.toLocaleString()}`}  sub="extra per year at target rating"  accent="emerald" />
+          <KpiCard label="ReplyIQ ROI"          value={`${result.roiX}×`}                            sub={`Payback in ${result.paybackDays} days`} accent="teal" />
+          <KpiCard label="Rating to Close"      value={`${result.ratingGap}★`}                         sub={`${result.upliftPct}% projected uplift`} accent="violet" />
         </Grid>
         <Grid cols={2} gap={16}>
           <Card>
@@ -372,12 +372,21 @@ export function RevenuePage() {
           <Card>
             <SectionHeader title="Model Breakdown" />
             <div style={{ background:'var(--surface)', borderRadius:8, padding:'12px 14px', fontSize:'13px', color:'var(--text2)', lineHeight:1.7, borderLeft:'3px solid var(--gold)', marginBottom:14 }}>
-              A {result.ratingGap}★ improvement = {result.upliftPct}% projected revenue uplift based on HBS restaurant/hotel data.
+              Improving from {currentRating}★ to {target}★ ({result.ratingGap}★ gap) = {result.upliftPct}% revenue uplift. Based on HBS research: each full star improvement drives ~9% more revenue.
             </div>
-            {[['Current monthly revenue',`CHF ${result.currentMonthlyRevenue.toLocaleString()}`],['Projected monthly revenue',`CHF ${result.projectedMonthlyRevenue.toLocaleString()}`],['Monthly gain',`CHF ${result.monthlyGain.toLocaleString()}`],['Annual gain',`CHF ${result.annualGain.toLocaleString()}`],['ReplyIQ subscription','CHF 149/month'],['ROI',`${result.roiX}× return`],['Confidence',result.confidence]].map(([l,v],i,arr)=>(
+            {[
+              ['Current monthly revenue',   `CHF ${result.currentMonthlyRevenue.toLocaleString()}`],
+              ['Projected monthly revenue',  `CHF ${result.projectedMonthlyRevenue.toLocaleString()}`],
+              ['Monthly gain',               `+CHF ${result.monthlyGain.toLocaleString()}`],
+              ['Annual gain',                `+CHF ${result.annualGain.toLocaleString()}`],
+              ['ReplyIQ subscription',       'CHF 149/month'],
+              ['Net monthly gain after sub', `+CHF ${(result.monthlyGain - 149).toLocaleString()}`],
+              ['ROI',                        `${result.roiX}× return on CHF 149`],
+              ['Confidence',                 result.confidence],
+            ].map(([l,v],i,arr)=>(
               <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
                 <span style={{ color:'var(--text3)' }}>{l}</span>
-                <span style={{ fontFamily:'var(--font-mono)', fontWeight:600, color:i>=2&&i<=4?'var(--gold)':'var(--text1)' }}>{v}</span>
+                <span style={{ fontFamily:'var(--font-mono)', fontWeight:600, color:i>=2&&i<=5?'var(--gold)':'var(--text1)' }}>{v}</span>
               </div>
             ))}
             <div style={{ marginTop:12, fontSize:'11px', color:'var(--text3)' }}>Luca, M. (2016). Reviews, Reputation, and Revenue. HBS Working Paper 12-016.</div>
