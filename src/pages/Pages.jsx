@@ -467,7 +467,7 @@ export function CompetitorsPage() {
       const rows = list.map(c => {
         const prev = oldRatings[c.place_id]
         const trendVal = prev !== undefined ? +(c.rating - prev).toFixed(1) : null
-        const trend = trendVal === null ? null : trendVal > 0 ? '+' + trendVal : trendVal < 0 ? String(trendVal) : '0'
+        const trend = trendVal === null ? '0' : trendVal > 0 ? '+' + trendVal : trendVal < 0 ? String(trendVal) : '0'
         return { clinic_id: property.id, name: c.name, rating: c.rating, reviews: c.reviews, place_id: c.place_id, trend }
       })
 
