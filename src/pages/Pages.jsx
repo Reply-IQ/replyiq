@@ -320,7 +320,7 @@ export function RespondPage() {
 function rC(s) { return s>=80?'#B85C38':s>=55?'#C9A96E':'#4A7C6F' }
 
 export function RiskPage() {
-  const { reviews, showToast } = useApp()
+  const { reviews, property, showToast } = useApp()
   const { lang } = useLang()
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
@@ -337,7 +337,7 @@ export function RiskPage() {
 
   async function run() {
     setLoading(true)
-    const r = await generateRiskAnalysis(reviews)
+    const r = await generateRiskAnalysis(reviews, property)
     if (r.error) showToast('AI error', 'error')
     else setAnalysis(r)
     setLoading(false)
