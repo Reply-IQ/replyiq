@@ -397,154 +397,253 @@ export function RevenuePage() {
   )
 }
 
-// ── COMPETITORS PAGE ──────────────────────────────────────────────────────────
+// ── COMPETITORS PAGE ─────────────────────────────────────────────────────────
 export function CompetitorsPage() {
   const { property, reviews, competitors, showToast, loadAll } = useApp()
   const { lang } = useLang()
   const [analysis, setAnalysis] = useState(null)
   const [loading, setLoading]   = useState(false)
   const [syncing, setSyncing]   = useState(false)
-  // Use real average from imported reviews, fall back to Google businessInfo
+  const isMobile = useIsMobile()
+
+  // Your real rating from imported reviews
   const yourRating = reviews?.length
     ? +(reviews.reduce((s,r) => s + Number(r.rating), 0) / reviews.length).toFixed(1)
     : property?.platform_connections?.google?.businessInfo?.rating || 0
   const yourReviews = property?.platform_connections?.google?.businessInfo?.totalReviews || reviews?.length || 0
-  const allProps = [{ name:`${property?.name||'Your Property'} (YOU)`, rating: yourRating, reviews: yourReviews, trend:'—', isYou:true }, ...competitors].sort((a,b)=>b.rating-a.rating)
+  const yourUnanswered = reviews?.filter(r => !r.responded).length || 0
+  const yourResponseRate = reviews?.length ? Math.round(((reviews.length - yourUnanswered) / reviews.length) * 100) : 0
+
+  // Build full list including self, sorted by rating
+  const you = { name: property?.name || 'Your Property', rating: yourRating, reviews: yourReviews, isYou: true }
+  const allProps = [you, ...competitors].sort((a,b) => b.rating - a.rating)
+  const yourRank = allProps.findIndex(p => p.isYou) + 1
+  const leader   = allProps[0]
+  const ratingGapToLeader = yourRank === 1 ? 0 : +(leader.rating - yourRating).toFixed(1)
+  const aboveYou = allProps.filter(p => !p.isYou && p.rating > yourRating).length
+  const belowYou = allProps.filter(p => !p.isYou && p.rating < yourRating).length
 
   async function sync() {
     const placeId = property?.platform_connections?.google?.identifier || property?.google_place_id
-    if (!placeId) { showToast('Connect Google Business first — go to Platforms', 'error'); return }
+    if (!placeId) { showToast('Connect Google Business first on the Platforms page', 'error'); return }
     setSyncing(true)
     try {
-      const profile   = property?.ai_profile || {}
-      const nameL     = (property?.name || '').toLowerCase()
-      const descL     = (profile.responsePersonality || profile.brandTone || '').toLowerCase()
+      const profile      = property?.ai_profile || {}
+      const nameL        = (property?.name || '').toLowerCase()
+      const descL        = (profile.responsePersonality || profile.brandTone || '').toLowerCase()
       const isRestaurant = ['restaurant','ristorante','bistro','brasserie','trattoria','café','cafe','bar','grill','kitchen','dining','pizzeria','sushi','thai','indian','chinese','italian','mexican','french'].some(w => nameL.includes(w) || descL.includes(w))
-      const propertyType = isRestaurant ? 'restaurant' : 'hotel'
-      const starLevel    = property?.platform_connections?.google?.businessInfo?.rating || null
+
+      // Before deleting, save current ratings so we can calculate trend
+      const { data: oldComps } = await supabase.from('competitors').select('place_id,rating').eq('clinic_id', property.id)
+      const oldRatings = {}
+      ;(oldComps || []).forEach(c => { oldRatings[c.place_id] = c.rating })
 
       const r = await fetch('/api/competitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId, clinicName: property.name, propertyType, starLevel, propertyFullName: profile.businessName || property.name })
+        body: JSON.stringify({ placeId, clinicName: property.name, propertyType: isRestaurant ? 'restaurant' : 'hotel', starLevel: property?.platform_connections?.google?.businessInfo?.rating || null })
       })
 
       if (!r.ok) {
         const err = await r.json().catch(() => ({}))
-        showToast('Competitor sync error: ' + (err.error || r.status), 'error')
-        setSyncing(false)
-        return
+        showToast('Sync error: ' + (err.error || r.status), 'error')
+        setSyncing(false); return
       }
 
       const data = await r.json()
-
-      if (data.error) {
-        showToast('API error: ' + data.error, 'error')
-        setSyncing(false)
-        return
-      }
-
+      if (data.error) { showToast('API error: ' + data.error, 'error'); setSyncing(false); return }
       const list = data.competitors || []
+      if (list.length === 0) { showToast('No competitors found — check your Google Places API key in Vercel', 'error'); setSyncing(false); return }
 
-      if (list.length === 0) {
-        showToast('No competitors found in 3km — check your Google Places API key in Vercel', 'error')
-        setSyncing(false)
-        return
-      }
+      // Calculate real trend vs previous sync
+      const rows = list.map(c => {
+        const prev = oldRatings[c.place_id]
+        const trendVal = prev !== undefined ? +(c.rating - prev).toFixed(1) : null
+        const trend = trendVal === null ? null : trendVal > 0 ? '+' + trendVal : trendVal < 0 ? String(trendVal) : '0'
+        return { clinic_id: property.id, name: c.name, rating: c.rating, reviews: c.reviews, place_id: c.place_id, trend }
+      })
 
-      // Delete old + insert new — only store columns that exist in the table
       await supabase.from('competitors').delete().eq('clinic_id', property.id)
-      const rows = list.map(c => ({
-        clinic_id: property.id,
-        name:      c.name,
-        rating:    c.rating,
-        reviews:   c.reviews,
-        place_id:  c.place_id,
-      }))
       const { error: insertErr } = await supabase.from('competitors').insert(rows)
-      if (insertErr) {
-        showToast('Save failed: ' + insertErr.message, 'error')
-        setSyncing(false)
-        return
-      }
+      if (insertErr) { showToast('Save failed: ' + insertErr.message, 'error'); setSyncing(false); return }
 
-      // Reload competitors directly without triggering full loadAll guard
-      const { data: fresh } = await supabase.from('competitors').select('*').eq('clinic_id', property.id).order('rating', { ascending: false })
-      if (fresh) {
-        // Update state via loadAll (guard is now clear)
-        await loadAll(true)
-      }
-      showToast(`Found ${list.length} nearby competitors`, 'success')
-
-    } catch(e) {
-      showToast('Sync failed: ' + e.message, 'error')
-    }
+      await loadAll(true)
+      showToast(`Synced ${list.length} nearby competitors`, 'success')
+    } catch(e) { showToast('Sync failed: ' + e.message, 'error') }
     setSyncing(false)
   }
 
   async function runAnalysis() {
-    if (!competitors?.length) {
-      showToast('Sync competitors first before running the AI benchmark', 'error')
-      return
-    }
+    if (!competitors?.length) { showToast('Sync competitors first', 'error'); return }
     setLoading(true)
-    const r = await analyseCompetitors(property, competitors)
-    if (!r || r.error) {
-      showToast('AI benchmark failed — try again', 'error')
-    } else if (!r.primaryOpportunity && !r.narrative) {
-      // JSON parsing issue — r might be { raw: '...' }
-      showToast('AI returned unexpected format — try again', 'error')
-    } else {
-      setAnalysis(r)
-    }
+    try {
+      const r = await analyseCompetitors(property, competitors, yourRating, yourReviews, yourResponseRate)
+      if (!r) { showToast('No response from AI', 'error') }
+      else if (r.error) { showToast('AI error: ' + r.error, 'error') }
+      else if (r.raw) {
+        try {
+          const clean = r.raw.replace(/```json\n?|```/g, '').trim()
+          const parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1))
+          setAnalysis(parsed)
+        } catch { showToast('Could not parse AI response — try again', 'error') }
+      }
+      else if (r.primaryOpportunity || r.narrative || r.quickWins) { setAnalysis(r) }
+      else { showToast('Unexpected AI format — try again', 'error') }
+    } catch(e) { showToast('AI benchmark failed: ' + e.message, 'error') }
     setLoading(false)
   }
 
+  const maxRating = 5
+  const ratingBarW = (rating) => `${Math.round((rating / maxRating) * 100)}%`
+  const ratingColor = (p) => {
+    if (p.isYou) return 'var(--gold)'
+    if (p.rating > yourRating) return '#B85C38'
+    if (p.rating < yourRating) return '#4A7C6F'
+    return 'var(--text3)'
+  }
+
   return (
-    <Layout title={t(T.nav.competitors, lang)} subtitle={t(T.competitors.subtitle, lang).replace("5km","3km")}
+    <Layout
+      title={t(T.nav.competitors, lang)}
+      subtitle={t(T.competitors.subtitle, lang).replace('5km','3km')}
       topbarRight={
         <div style={{ display:'flex', gap:8 }}>
-          <Button variant="secondary" onClick={sync} disabled={syncing}>{syncing?<><Spinner/>{t(T.competitors.syncing,lang)}</>:'⊡ '+t(T.competitors.sync,lang)}</Button>
-          <Button onClick={runAnalysis} disabled={loading}>{loading?<><Spinner/>{t(T.common.generating,lang)}</>:'⊞ '+t(T.competitors.aiBenchmark,lang)}</Button>
+          <Button variant="secondary" onClick={sync} disabled={syncing}>
+            {syncing ? <><Spinner/>Syncing...</> : '⟳ Sync'}
+          </Button>
+          <Button onClick={runAnalysis} disabled={loading || !competitors?.length}>
+            {loading ? <><Spinner/>Analysing...</> : '⊞ AI Benchmark'}
+          </Button>
         </div>
       }
     >
-      <Card style={{ marginBottom:18 }}>
-        <SectionHeader title={t(T.competitors.benchmark, lang)} subtitle={t(T.competitors.sortedBy, lang)} />
-        {competitors.length === 0 && (
-          <div style={{ padding:'24px 14px', textAlign:'center' }}>
-            <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:8 }}>No competitors synced yet.</div>
-            <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:16 }}>Click "Sync Competitors" above to find nearby properties on Google.</div>
-            <div style={{ fontSize:'11px', color:'var(--text3)', opacity:0.6 }}>Make sure GOOGLE_PLACES_API_KEY is set in your Vercel environment variables.</div>
+
+      {/* ── Market Position Summary ── */}
+      {competitors.length > 0 && (
+        <Grid cols={isMobile?2:4} gap={12} style={{ marginBottom:16 }}>
+          <KpiCard
+            label="Your Rank"
+            value={`#${yourRank} of ${allProps.length}`}
+            sub={yourRank === 1 ? 'Market leader' : `${aboveYou} above you`}
+            accent={yourRank === 1 ? 'teal' : yourRank <= 3 ? 'gold' : 'red'}
+          />
+          <KpiCard
+            label="Rating Gap to Leader"
+            value={ratingGapToLeader === 0 ? 'Leading' : `-${ratingGapToLeader}★`}
+            sub={ratingGapToLeader === 0 ? 'You are #1' : `vs ${leader.name?.split(' ')[0]}`}
+            accent={ratingGapToLeader === 0 ? 'teal' : ratingGapToLeader <= 0.2 ? 'gold' : 'red'}
+          />
+          <KpiCard
+            label="Your Rating"
+            value={`${yourRating}★`}
+            sub={`${yourResponseRate}% response rate`}
+            accent="gold"
+          />
+          <KpiCard
+            label="Review Count"
+            value={yourReviews.toLocaleString()}
+            sub={`vs avg ${Math.round(competitors.reduce((s,c)=>s+(c.reviews||0),0)/Math.max(competitors.length,1)).toLocaleString()} competitors`}
+            accent="teal"
+          />
+        </Grid>
+      )}
+
+      {/* ── Competitor List ── */}
+      <Card style={{ marginBottom:16 }}>
+        <SectionHeader title="Local Market" subtitle={`${allProps.length} properties within 3km · sorted by rating`} />
+
+        {competitors.length === 0 ? (
+          <div style={{ padding:'28px 14px', textAlign:'center' }}>
+            <div style={{ fontSize:'32px', marginBottom:12 }}>⊞</div>
+            <div style={{ fontSize:'14px', fontWeight:600, color:'var(--text1)', marginBottom:6 }}>No competitors synced yet</div>
+            <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:4 }}>Click "Sync" to find nearby hotels and restaurants on Google.</div>
+            <div style={{ fontSize:'11px', color:'var(--text3)', opacity:0.6 }}>Requires GOOGLE_PLACES_KEY in Vercel environment variables.</div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+            {allProps.map((p, i) => {
+              const reviewDelta = p.isYou ? null : p.reviews - yourReviews
+              const trendNum = p.trend ? parseFloat(p.trend) : null
+              const isAbove = !p.isYou && p.rating > yourRating
+              const isBelow = !p.isYou && p.rating < yourRating
+              return (
+                <div key={p.name + i} style={{
+                  padding:'12px 14px',
+                  borderBottom: i < allProps.length - 1 ? '1px solid var(--border)' : 'none',
+                  background: p.isYou ? 'rgba(201,169,110,0.04)' : 'transparent',
+                  borderLeft: p.isYou ? '3px solid var(--gold)' : '3px solid transparent',
+                }}>
+                  {/* Row 1: rank + name + rating number */}
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
+                    <div style={{
+                      width:22, height:22, borderRadius:'50%', flexShrink:0,
+                      background: i===0 ? 'rgba(201,169,110,0.15)' : 'var(--surface)',
+                      border: i===0 ? '1px solid var(--gold)' : '1px solid var(--border)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:'10px', fontWeight:700,
+                      color: i===0 ? 'var(--gold)' : 'var(--text3)',
+                    }}>
+                      {i+1}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ fontSize:'13px', fontWeight: p.isYou ? 700 : 500, color: p.isYou ? 'var(--gold)' : 'var(--text1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {p.name}{p.isYou ? ' (You)' : ''}
+                        </span>
+                        {isAbove && <span style={{ fontSize:'9px', background:'rgba(184,92,56,0.1)', color:'#B85C38', borderRadius:4, padding:'1px 5px', fontWeight:700 }}>ABOVE YOU</span>}
+                        {isBelow && <span style={{ fontSize:'9px', background:'rgba(74,124,111,0.1)', color:'#4A7C6F', borderRadius:4, padding:'1px 5px', fontWeight:700 }}>BELOW YOU</span>}
+                        {i===0 && !p.isYou && <span style={{ fontSize:'9px', background:'rgba(201,169,110,0.1)', color:'var(--gold)', borderRadius:4, padding:'1px 5px', fontWeight:700 }}>LEADER</span>}
+                      </div>
+                    </div>
+                    {/* Rating number */}
+                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'15px', fontWeight:700, color: ratingColor(p), flexShrink:0 }}>
+                      {p.rating}★
+                    </div>
+                    {/* Trend */}
+                    {trendNum !== null && trendNum !== 0 && (
+                      <div style={{ fontSize:'11px', fontWeight:700, color: trendNum > 0 ? '#B85C38' : '#4A7C6F', flexShrink:0, minWidth:32, textAlign:'right' }}>
+                        {trendNum > 0 ? '▲' : '▼'}{Math.abs(trendNum)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 2: rating bar */}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, paddingLeft:32 }}>
+                    <div style={{ flex:1, height:4, background:'var(--border)', borderRadius:2, overflow:'hidden' }}>
+                      <div style={{ width: ratingBarW(p.rating), height:'100%', background: ratingColor(p), borderRadius:2, transition:'width 0.6s ease' }} />
+                    </div>
+                    <div style={{ fontSize:'11px', color:'var(--text3)', flexShrink:0, minWidth:60, textAlign:'right' }}>
+                      {(p.reviews||0).toLocaleString()} reviews
+                      {reviewDelta !== null && (
+                        <span style={{ color: reviewDelta > 0 ? '#B85C38' : '#4A7C6F', marginLeft:4 }}>
+                          ({reviewDelta > 0 ? '+' : ''}{reviewDelta.toLocaleString()})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
-        {competitors.length > 0 && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 80px 90px 90px', padding:'0 14px 10px', fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>
-          <span>{t(T.competitors.property,lang)}</span><span>{t(T.competitors.rating,lang)}</span><span>{t(T.competitors.reviews,lang)}</span><span>{t(T.competitors.trend,lang)}</span>
-        </div>
-        )}
-        {competitors.length > 0 && allProps.map((p, i) => (
-          <div key={p.name} style={{ display:'grid', gridTemplateColumns:'1fr 80px 90px 90px', alignItems:'center', padding:'12px 14px', borderRadius:8, marginBottom:3, background:p.isYou?'rgba(201,169,110,.06)':'rgba(255,255,255,.02)', border:p.isYou?'1px solid rgba(201,169,110,.2)':'1px solid transparent', fontSize:'13px' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span style={{ color:'var(--text3)', fontSize:'11px', width:20 }}>#{i+1}</span>
-              <span style={{ fontWeight:p.isYou?700:400 }}>{p.name}</span>
-            </div>
-            <div style={{ fontFamily:'var(--font-serif)', color:'var(--gold)' }}>{p.rating}★</div>
-            <div style={{ color:'var(--text3)' }}>{p.reviews?.toLocaleString()}</div>
-            <div style={{ fontFamily:'var(--font-mono)', fontSize:'12px', fontWeight:600, color:p.trend?.startsWith?.('+')?'#4A7C6F':p.trend==='-'||p.trend==='—'?'var(--text3)':'#B85C38' }}>{p.trend}</div>
-          </div>
-        ))}
-        }
       </Card>
 
+      {/* ── Trend note ── */}
+      {competitors.length > 0 && competitors.every(c => !c.trend || c.trend === '0') && (
+        <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:16, padding:'0 4px', fontStyle:'italic' }}>
+          Rating trend will appear after your second sync. Sync again next week to see who is moving up or down.
+        </div>
+      )}
+
+      {/* ── AI Benchmark Results ── */}
       {analysis && (
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          {/* Position badge */}
-          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ padding:'6px 16px', borderRadius:20, fontSize:'12px', fontWeight:700, letterSpacing:'1px',
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{
+              padding:'5px 14px', borderRadius:20, fontSize:'11px', fontWeight:700, letterSpacing:'1px',
               background: analysis.competitivePosition==='LEADING'?'rgba(74,124,111,.15)':analysis.competitivePosition==='STRONG'?'rgba(201,169,110,.12)':analysis.competitivePosition==='AVERAGE'?'rgba(90,90,130,.15)':'rgba(184,92,56,.12)',
               color: analysis.competitivePosition==='LEADING'?'#4A7C6F':analysis.competitivePosition==='STRONG'?'var(--gold)':analysis.competitivePosition==='AVERAGE'?'#8888CC':'#B85C38',
-              border: '1px solid currentColor'
+              border:'1px solid currentColor',
             }}>
               {analysis.competitivePosition || 'ANALYSED'}
             </div>
@@ -560,7 +659,7 @@ export function CompetitorsPage() {
               <div style={{ background:'var(--surface)', borderRadius:8, padding:'13px 15px', fontSize:'13px', color:'var(--text2)', lineHeight:1.7, borderLeft:'3px solid var(--gold)' }}>{analysis.narrative}</div>
             </Card>
             <Card>
-              <SectionHeader title="Quick Wins" subtitle="Act on these this week" />
+              <SectionHeader title="This Week" subtitle="3 actions to close the gap" />
               {(analysis.quickWins||[]).map((win,i)=>(
                 <div key={i} style={{ display:'flex', gap:12, padding:'11px 0', borderBottom:i<(analysis.quickWins||[]).length-1?'1px solid var(--border)':'none' }}>
                   <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(201,169,110,.1)', color:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, flexShrink:0 }}>{i+1}</div>

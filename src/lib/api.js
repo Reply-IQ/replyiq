@@ -301,10 +301,11 @@ export function calcRevenue({ currentRating, targetRating, monthlyRevenue }) {
 }
 
 // ── COMPETITOR ANALYSIS ───────────────────────────────────────────────────────
-export async function analyseCompetitors(property, competitors) {
+export async function analyseCompetitors(property, competitors, yourRating, yourReviews, yourResponseRate) {
   const name     = property?.name || 'your property'
-  const ownRating  = property?.platform_connections?.google?.businessInfo?.rating || '?'
-  const ownReviews = property?.platform_connections?.google?.businessInfo?.totalReviews || '?'
+  const ownRating  = yourRating  || property?.platform_connections?.google?.businessInfo?.rating || '?'
+  const ownReviews = yourReviews || property?.platform_connections?.google?.businessInfo?.totalReviews || '?'
+  const ownRespRate= yourResponseRate !== undefined ? yourResponseRate + '%' : 'unknown'
 
   // Sort so AI sees the full competitive landscape
   const sorted = [...competitors].sort((a,b) => b.rating - a.rating)
@@ -321,23 +322,21 @@ export async function analyseCompetitors(property, competitors) {
 ${name}:
 - Rating: ${ownRating}★
 - Reviews: ${ownReviews}
+- Response rate: ${ownRespRate}
 
 Local competitors (sorted by rating):
 ${compList}
 
-Return JSON with EXACTLY these fields:
+Return ONLY raw JSON — no markdown, no backticks, no explanation. Exactly this:
 {
-  "primaryOpportunity": "The single biggest opportunity to gain competitive advantage — be specific about which competitor to target and how",
-  "threat": "The most urgent competitive threat right now — which property and why",
-  "narrative": "3-sentence strategic summary of the competitive landscape and where ${name} stands",
-  "quickWins": [
-    "Specific action #1 to improve competitive position this week",
-    "Specific action #2",
-    "Specific action #3"
-  ],
-  "competitivePosition": "LEADING or STRONG or AVERAGE or LAGGING",
-  "ratingGap": "e.g. +0.3 stars behind the leader"
-}`,
+  "primaryOpportunity": "Specific opportunity naming a competitor and how to act",
+  "threat": "Specific threat naming a competitor and why it matters",
+  "narrative": "3 sentences on competitive landscape and position",
+  "quickWins": ["Concrete action 1 this week", "Concrete action 2", "Concrete action 3"],
+  "competitivePosition": "LEADING",
+  "ratingGap": "0.2 stars behind the leader"
+}`
+,
     900
   )
 }
