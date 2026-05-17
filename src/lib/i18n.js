@@ -8,7 +8,7 @@ export const T = {
   nav: {
     dashboard:   { en:'Dashboard',   de:'Dashboard',   fr:'Tableau de bord' },
     inbox:       { en:'Inbox',       de:'Posteingang', fr:'Boîte de réception' },
-    reviews:     { en:'Reviews',     de:'Bewertungen', fr:'Avis' },
+    reviews:     { en:'Review History', de:'Bewertungen', fr:'Historique' },
     risk:        { en:'Risk Index',  de:'Risikoindex', fr:'Indice de risque' },
     revenue:     { en:'ROI Impact',  de:'ROI-Analyse', fr:'Impact ROI' },
     competitors: { en:'Competitors', de:'Mitbewerber', fr:'Concurrents' },

@@ -7,107 +7,210 @@ import { T, t } from '../lib/i18n.js'
 import { draftResponse, generateRiskAnalysis, calcRevenue, analyseCompetitors, generateReport } from '../lib/api.js'
 import { saveAiClassification, saveResponse, saveReport, supabase } from '../lib/supabase.js'
 
-// ── REVIEWS PAGE ──────────────────────────────────────────────────────────────
+// ── REVIEWS PAGE ─────────────────────────────────────────────────────────────
 export function ReviewsPage() {
   const { reviews, property, showToast, updateReviewInState } = useApp()
   const { lang } = useLang()
-  const [filter, setFilter] = useState('all')
-  const [loadingMap, setLM] = useState({})
-  const [tone, setTone]     = useState('professional')
+  const [filter, setFilter]     = useState('all')
+  const [loadingMap, setLM]     = useState({})
+  const [search, setSearch]     = useState('')
 
-  const filtered = {
-    all:      reviews,
-    negative: reviews.filter(r => r.rating <= 2),
-    neutral:  reviews.filter(r => r.rating === 3),
-    positive: reviews.filter(r => r.rating >= 4),
-    unanswered: reviews.filter(r => !r.responded),
-  }[filter] || reviews
+  const byFilter = {
+    all:       reviews,
+    unanswered:reviews.filter(r => !r.responded),
+    negative:  reviews.filter(r => r.rating <= 2),
+    neutral:   reviews.filter(r => r.rating === 3),
+    positive:  reviews.filter(r => r.rating >= 4),
+    flagged:   reviews.filter(r => r.ai_risk_flag),
+  }
+
+  const filtered = (byFilter[filter] || reviews).filter(r => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (r.author||'').toLowerCase().includes(q) || (r.text||'').toLowerCase().includes(q)
+  })
+
+  const stats = {
+    total:      reviews.length,
+    unanswered: reviews.filter(r => !r.responded).length,
+    negative:   reviews.filter(r => r.rating <= 2).length,
+    flagged:    reviews.filter(r => r.ai_risk_flag).length,
+    avgRating:  reviews.length ? (reviews.reduce((s,r)=>s+Number(r.rating),0)/reviews.length).toFixed(1) : '—',
+  }
 
   function setLoading(id, v) { setLM(p => ({ ...p, [id]: v })) }
 
   async function classify(review) {
     setLoading(review.id, 'classify')
     const { classifyReview } = await import('../lib/api.js')
-    const result = await classifyReview?.(review) || {}
-    if (result.error) { showToast('AI error', 'error'); setLoading(review.id, null); return }
+    const result = await classifyReview(review)
+    if (!result || result.error) { showToast('Classification failed', 'error'); setLoading(review.id, null); return }
     const { data: updated } = await saveAiClassification(review.id, result)
-    if (updated) updateReviewInState(updated)
+    if (updated) { updateReviewInState(updated); showToast('Review classified', 'success') }
     setLoading(review.id, null)
   }
 
-  async function respond(review) {
-    setLoading(review.id, 'respond')
-    const result = await draftResponse(review, property, tone)
-    if (result.error) { showToast('AI error', 'error'); setLoading(review.id, null); return }
-    const { data: updated } = await saveResponse(review.id, result.response || result.raw || '')
-    if (updated) updateReviewInState(updated)
-    setLoading(review.id, null)
+  async function classifyAll() {
+    const unclassified = reviews.filter(r => !r.ai_analysed_at)
+    if (!unclassified.length) { showToast('All reviews already classified', 'info'); return }
+    showToast(`Classifying ${unclassified.length} reviews...`, 'info')
+    const { classifyReview } = await import('../lib/api.js')
+    let done = 0
+    for (const r of unclassified.slice(0, 20)) {
+      const result = await classifyReview(r)
+      if (result && !result.error) {
+        const { data: updated } = await saveAiClassification(r.id, result)
+        if (updated) updateReviewInState(updated)
+        done++
+      }
+    }
+    showToast(`Classified ${done} reviews`, 'success')
   }
+
+  const TABS = [
+    { id:'all',        label:'All',         count: stats.total },
+    { id:'unanswered', label:'Unanswered',   count: stats.unanswered },
+    { id:'negative',   label:'⚠ Negative',  count: stats.negative },
+    { id:'neutral',    label:'Neutral',      count: reviews.filter(r=>r.rating===3).length },
+    { id:'positive',   label:'★ Positive',  count: reviews.filter(r=>r.rating>=4).length },
+    { id:'flagged',    label:'🚩 Flagged',   count: stats.flagged },
+  ]
 
   return (
-    <Layout title={t(T.nav.reviews, lang)} subtitle={`${reviews.length} total · ${reviews.filter(r=>!r.responded).length} ${t(T.competitors.reviews, lang).toLowerCase()}`}
+    <Layout
+      title="Review History"
+      subtitle={`${stats.total} reviews · ${stats.avgRating}★ average · ${stats.unanswered} unanswered`}
       topbarRight={
-        <div style={{ display: 'flex', gap: 8 }}>
-          {[['professional',t(T.inbox.professional,lang)],['empathetic',t(T.inbox.empathetic,lang)],['concise',t(T.inbox.concise,lang)]].map(([key,label]) => (
-            <Button key={key} variant={tone===key?'secondary':'ghost'} size="sm" onClick={()=>setTone(key)}>{label}</Button>
-          ))}
+        <div style={{ display:'flex', gap:8 }}>
+          <Button variant="secondary" size="sm" onClick={classifyAll}>
+            ⚡ Classify Unanalysed
+          </Button>
         </div>
       }
     >
-      <Tabs active={filter} onChange={setFilter} tabs={[
-        { id:'all',        label:t(T.inbox.all,lang),                        count: reviews.length },
-        { id:'unanswered', label:t(T.inbox.pending,lang),                    count: reviews.filter(r=>!r.responded).length },
-        { id:'negative',   label:'⚠ '+t(T.inbox.urgent,lang),               count: reviews.filter(r=>r.rating<=2).length },
-        { id:'neutral',    label:t(T.common.noData,lang).split('.')[0],      count: reviews.filter(r=>r.rating===3).length },
-        { id:'positive',   label:'★ '+t(T.inbox.positive,lang),             count: reviews.filter(r=>r.rating>=4).length },
-      ]} />
+      {/* KPI strip */}
+      <Grid cols={4} gap={12} style={{ marginBottom:16 }}>
+        <KpiCard label="Total Reviews"  value={stats.total}      accent="gold" />
+        <KpiCard label="Unanswered"     value={stats.unanswered} sub="open in Inbox" accent={stats.unanswered>0?"red":"teal"} />
+        <KpiCard label="Negative (1-2★)"value={stats.negative}   accent={stats.negative>0?"red":"teal"} />
+        <KpiCard label="Risk Flagged"   value={stats.flagged}    sub="AI identified" accent={stats.flagged>0?"red":"teal"} />
+      </Grid>
 
-      {filtered.map(review => (
-        <div key={review.id} style={{ background:'var(--card)', border:`1px solid ${review.ai_risk_flag?'rgba(184,92,56,.25)':'var(--border)'}`, borderRadius:'var(--r-lg)', padding:16, marginBottom:10 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
-            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-              <div style={{ width:36, height:36, borderRadius:10, background:'var(--surface)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:'13px', color:'var(--text3)', flexShrink:0 }}>
-                {review.author.slice(0,2).toUpperCase()}
-              </div>
-              <div>
-                <div style={{ fontWeight:600, fontSize:'13px', marginBottom:2 }}>{review.author}</div>
-                <div style={{ fontSize:'11px', color:'var(--text3)', display:'flex', gap:8, alignItems:'center' }}>
-                  {review.review_date} <PlatformBadge platform={review.platform} />
-                  {review.responded && <span style={{ color:'#4A7C6F', fontWeight:600 }}>✓ Replied</span>}
+      {/* Search + tabs */}
+      <Card style={{ marginBottom:12 }}>
+        <div style={{ display:'flex', gap:12, marginBottom:12, alignItems:'center', flexWrap:'wrap' }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search reviews or guest names..."
+            style={{ flex:1, minWidth:200, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
+            onFocus={e => e.target.style.borderColor='var(--gold)'}
+            onBlur={e => e.target.style.borderColor='var(--border)'}
+          />
+          {search && <Button size="sm" variant="ghost" onClick={()=>setSearch('')}>✕ Clear</Button>}
+        </div>
+        <div style={{ display:'flex', gap:2, overflowX:'auto' }}>
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => setFilter(tab.id)}
+              style={{ padding:'6px 12px', border:'none', borderRadius:8, cursor:'pointer', fontSize:'11px', whiteSpace:'nowrap',
+                fontWeight: filter===tab.id?700:400,
+                background: filter===tab.id?'var(--gold)':'transparent',
+                color: filter===tab.id?'var(--bg)':'var(--text3)',
+                transition:'var(--ease)' }}>
+              {tab.label} {tab.count > 0 ? `(${tab.count})` : ''}
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Review list */}
+      {filtered.length === 0 ? (
+        <Card><EmptyState icon="✦" title="No reviews here" description={search ? `No reviews match "${search}"` : "No reviews in this category yet."} /></Card>
+      ) : (
+        filtered.map(review => {
+          const isClassified = !!review.ai_analysed_at
+          const sentimentColor = review.ai_sentiment==='positive'?'#4A7C6F':review.ai_sentiment==='negative'?'#B85C38':'var(--text3)'
+          return (
+            <div key={review.id} style={{ background:'var(--card)', border:`1px solid ${review.ai_risk_flag?'rgba(184,92,56,.3)':'var(--border)'}`, borderRadius:'var(--r-lg)', padding:16, marginBottom:8 }}>
+
+              {/* Header row */}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10, gap:10 }}>
+                <div style={{ display:'flex', gap:10, alignItems:'center', minWidth:0 }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:'var(--surface)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:'13px', color:'var(--text3)', flexShrink:0 }}>
+                    {(review.author||'?').slice(0,2).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontWeight:600, fontSize:'13px', marginBottom:2 }}>{review.author}</div>
+                    <div style={{ fontSize:'11px', color:'var(--text3)', display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                      <span>{review.review_date}</span>
+                      <PlatformBadge platform={review.platform} />
+                      {review.responded && <span style={{ color:'#4A7C6F', fontWeight:600 }}>✓ Replied</span>}
+                      {review.ai_risk_flag && <span style={{ color:'#B85C38', fontWeight:700 }}>🚩 Risk</span>}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                  <Stars n={review.rating} />
+                  {!isClassified && (
+                    <button onClick={() => classify(review)} disabled={!!loadingMap[review.id]}
+                      style={{ padding:'4px 10px', background:'rgba(201,169,110,.08)', border:'1px solid rgba(201,169,110,.2)', borderRadius:8, color:'var(--gold)', fontSize:'11px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>
+                      {loadingMap[review.id]==='classify' ? <Spinner size={10}/> : '⚡ Classify'}
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {/* Review text */}
+              <p style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65, marginBottom:isClassified||review.response_text?10:0 }}>
+                {review.text || <em style={{ color:'var(--text3)' }}>(No text — star rating only)</em>}
+              </p>
+
+              {/* AI Classification result */}
+              {isClassified && (
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:review.response_text?10:0 }}>
+                  {review.ai_sentiment && (
+                    <span style={{ fontSize:'11px', padding:'3px 9px', borderRadius:12, background:`${sentimentColor}15`, color:sentimentColor, fontWeight:600, border:`1px solid ${sentimentColor}30` }}>
+                      {review.ai_sentiment}
+                    </span>
+                  )}
+                  {review.ai_severity && (
+                    <span style={{ fontSize:'11px', padding:'3px 9px', borderRadius:12, background:'var(--surface)', color:'var(--text3)', border:'1px solid var(--border)' }}>
+                      {review.ai_severity} severity
+                    </span>
+                  )}
+                  {(review.ai_categories||[]).map(c => (
+                    <span key={c} style={{ fontSize:'11px', padding:'3px 9px', borderRadius:12, background:'var(--surface)', color:'var(--text3)', border:'1px solid var(--border)' }}>{c}</span>
+                  ))}
+                  {review.ai_summary && (
+                    <span style={{ fontSize:'11px', color:'var(--text3)', fontStyle:'italic', alignSelf:'center', marginLeft:4 }}>{review.ai_summary}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Existing response */}
+              {review.response_text && (
+                <div style={{ background:'var(--surface)', border:'1px solid rgba(201,169,110,.15)', borderRadius:8, padding:'10px 12px', fontSize:'13px', color:'var(--text2)', lineHeight:1.6, fontStyle:'italic', borderLeft:'3px solid var(--gold)', marginBottom:8 }}>
+                  "{review.response_text}"
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop: (isClassified || review.response_text) ? 8 : 0 }}>
+                {!review.responded && (
+                  <Button size="sm" variant="secondary" onClick={() => window.location.href='/inbox'}>
+                    ✍ Reply in Inbox →
+                  </Button>
+                )}
+                {review.response_text && (
+                  <Button size="sm" variant="ghost" onClick={() => navigator.clipboard?.writeText(review.response_text).then(()=>showToast('Copied!','success'))}>
+                    📋 Copy Response
+                  </Button>
+                )}
+              </div>
             </div>
-            <Stars n={review.rating} />
-          </div>
-
-          <p style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65, marginBottom:10 }}>{review.text}</p>
-
-          {review.ai_summary && (
-            <div style={{ fontSize:'12px', color:'var(--text3)', background:'var(--surface)', borderRadius:6, padding:'6px 10px', marginBottom:8 }}>
-              AI: {review.ai_summary} {review.ai_risk_flag && <span style={{ color:'#B85C38', fontWeight:700 }}>⚠ Risk flag</span>}
-            </div>
-          )}
-
-          {review.response_text && (
-            <div style={{ background:'var(--surface)', border:'1px solid rgba(201,169,110,.15)', borderRadius:8, padding:'10px 12px', fontSize:'13px', color:'var(--text2)', lineHeight:1.6, fontStyle:'italic', marginBottom:8, borderLeft:'3px solid var(--gold)' }}>
-              "{review.response_text}"
-            </div>
-          )}
-
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {!review.responded && loadingMap[review.id] !== 'respond' && (
-              <Button variant="secondary" size="sm" onClick={() => respond(review)}>✨ {t(T.inbox.generateAI, lang)}</Button>
-            )}
-            {loadingMap[review.id] === 'respond' && <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:'12px', color:'var(--gold)' }}><Spinner size={12} /> Drafting...</div>}
-            {review.response_text && (
-              <>
-                <Button size="sm" onClick={() => { navigator.clipboard?.writeText(review.response_text); showToast('✓ '+t(T.common.copied,lang), 'success') }}>📋 {t(T.inbox.copyAgain, lang)}</Button>
-                <Button variant="ghost" size="sm" onClick={() => respond(review)}>↻</Button>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
+          )
+        })
+      )}
     </Layout>
   )
 }
