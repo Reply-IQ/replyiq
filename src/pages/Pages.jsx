@@ -441,7 +441,15 @@ export function CompetitorsPage() {
       const r = await fetch('/api/competitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId, clinicName: property.name, propertyType: isRestaurant ? 'restaurant' : 'hotel', starLevel: property?.platform_connections?.google?.businessInfo?.rating || null })
+        body: JSON.stringify({
+          placeId,
+          clinicName:   property.name,
+          propertyType: isRestaurant ? 'restaurant' : 'hotel',
+          starLevel:    property?.platform_connections?.google?.businessInfo?.rating || null,
+          city:         profile.city || property?.platform_connections?.google?.businessInfo?.address?.split(',').pop()?.trim() || '',
+          brandTone:    profile.brandTone || '',
+          industry:     profile.industry  || '',
+        })
       })
 
       if (!r.ok) {
