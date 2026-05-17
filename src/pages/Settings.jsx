@@ -13,11 +13,7 @@ export default function Settings() {
   const [form,     setForm]     = useState(property || {})
   const [saving,   setSaving]   = useState(false)
   const [scanning, setScanning] = useState(false)
-  const [upgrading, setUpgrading] = useState(null)
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
-
-  const isSubscribed  = property?.subscription_status === 'active'
-  const isEarlyAccess = property?.plan === 'early_access' || isSubscribed
 
   async function save() {
     setSaving(true)
@@ -37,14 +33,6 @@ export default function Settings() {
     updatePropertyInState({ ...property, ai_profile: data.profile })
     showToast('AI profile updated!', 'success')
     setScanning(false)
-  }
-
-  async function checkout(plan) {
-    setUpgrading(plan)
-    const r = await fetch('/api/create-checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ plan, clinicId:property?.id, email:property?.owner_email }) })
-    const d = await r.json()
-    if (d.url) window.location.href = d.url
-    else { showToast('Checkout error — try again', 'error'); setUpgrading(null) }
   }
 
   const aiProfile = property?.ai_profile || {}
@@ -115,78 +103,36 @@ export default function Settings() {
           {/* Subscription */}
           <Card>
             <SectionHeader title="Subscription" />
-
-            {isSubscribed ? (
-              <div style={{ background:'rgba(74,124,111,.06)', border:'1px solid rgba(74,124,111,.2)', borderRadius:'var(--r-md)', padding:16, marginBottom:14 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                  <div>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.1rem', marginBottom:3 }}>Early Access</div>
-                    <div style={{ fontSize:'12px', color:'var(--text3)' }}>You keep CHF 149/mo forever · {Object.keys(property?.platform_connections||{}).length} platforms connected</div>
-                  </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', color:'var(--gold)' }}>CHF 149<span style={{ fontSize:'11px', color:'var(--text3)' }}>/mo</span></div>
-                    <span style={{ color:'#4A7C6F', fontWeight:700, fontSize:'12px' }}>✓ Active</span>
-                  </div>
-                </div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px', background:'rgba(74,124,111,.05)', border:'1px solid rgba(74,124,111,.2)', borderRadius:'var(--r-md)', marginBottom:14 }}>
+              <div>
+                <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.1rem', marginBottom:3 }}>Early Access</div>
+                <div style={{ fontSize:'12px', color:'var(--text3)' }}>{Object.keys(property?.platform_connections||{}).length} platforms connected</div>
               </div>
-            ) : (
-              <>
-                {/* Plan comparison */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-                  {/* Early Access */}
-                  <div style={{ padding:'16px', background:'rgba(201,169,110,.06)', border:'2px solid rgba(201,169,110,.3)', borderRadius:'var(--r-md)', position:'relative' }}>
-                    <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', background:'var(--gold)', color:'var(--bg)', fontSize:'10px', fontWeight:700, padding:'2px 10px', borderRadius:20, whiteSpace:'nowrap' }}>LIMITED SPOTS</div>
-                    <div style={{ fontSize:'11px', color:'var(--gold)', fontWeight:700, letterSpacing:'1px', marginBottom:6 }}>EARLY ACCESS</div>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', color:'var(--gold)', marginBottom:2 }}>CHF 149<span style={{ fontSize:'11px', color:'var(--text3)', fontFamily:'inherit' }}>/mo</span></div>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10 }}>or CHF 1,490/yr · 2 months free</div>
-                    <div style={{ fontSize:'11px', color:'var(--text2)', lineHeight:1.7 }}>
-                      Lock in forever · 1 booking covers your cost
-                    </div>
-                  </div>
-                  {/* Professional */}
-                  <div style={{ padding:'16px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:'var(--r-md)', opacity:0.6 }}>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', fontWeight:700, letterSpacing:'1px', marginBottom:6 }}>PROFESSIONAL</div>
-                    <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.5rem', color:'var(--text2)', marginBottom:2 }}>CHF 199<span style={{ fontSize:'11px', color:'var(--text3)', fontFamily:'inherit' }}>/mo</span></div>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', marginBottom:10 }}>or CHF 1,990/yr</div>
-                    <div style={{ fontSize:'11px', color:'var(--text3)', lineHeight:1.7 }}>Future pricing · After early access closes</div>
-                  </div>
-                </div>
-
-                {/* Features */}
-                {[
-                  'All review platforms',
-                  'Unlimited AI responses — no per-reply fees, ever',
-                  'Daily automatic sync',
-                  'Competitor benchmarking',
-                  'Revenue ROI model',
-                  'Weekly email reports',
-                  'Review widget for your website',
-                  'Smart Snippets for personalised replies',
-                ].map((f,i,arr) => (
-                  <div key={f} style={{ display:'flex', gap:10, padding:'7px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
-                    <span style={{ color:'var(--gold)' }}>✓</span><span style={{ color:'var(--text2)' }}>{f}</span>
-                  </div>
-                ))}
-
-                {/* DACH Data Privacy Notice */}
-                <div style={{ marginTop:14, padding:'12px 14px', background:'rgba(201,169,110,.04)', border:'1px solid rgba(201,169,110,.15)', borderRadius:10, fontSize:'11px', color:'var(--text3)', lineHeight:1.7 }}>
-                  🇨🇭 <strong style={{ color:'var(--gold)' }}>Swiss company.</strong> Your data is stored in Switzerland and governed by Swiss data protection law (DSG/nDSG). We never sell your data. No US cloud providers process your guest information.
-                </div>
-
-                {/* Upgrade buttons */}
-                <div style={{ display:'flex', gap:8, marginTop:16 }}>
-                  <Button variant="secondary" fullWidth disabled={!!upgrading} onClick={() => checkout('monthly')}>
-                    {upgrading==='monthly' ? <><Spinner /> Loading...</> : 'Monthly — CHF 149'}
-                  </Button>
-                  <Button fullWidth disabled={!!upgrading} style={{ background:'linear-gradient(135deg,var(--gold),var(--amber))', color:'var(--bg)' }} onClick={() => checkout('annual')}>
-                    {upgrading==='annual' ? <><Spinner /> Loading...</> : 'Yearly — CHF 1,490'}
-                  </Button>
-                </div>
-                <div style={{ textAlign:'center', marginTop:10, fontSize:'11px', color:'var(--text3)' }}>
-                  Cancel anytime · Early adopters keep CHF 149 forever
-                </div>
-              </>
-            )}
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.3rem', color:'var(--gold)' }}>CHF 149<span style={{ fontSize:'11px', color:'var(--text3)' }}>/mo</span></div>
+                <span style={{ color:'#4A7C6F', fontWeight:700, fontSize:'12px' }}>✓ Active</span>
+              </div>
+            </div>
+            {[
+              'Unlimited AI responses — no per-reply fees, ever',
+              'All review platforms',
+              'Daily automatic sync',
+              'Competitor benchmarking',
+              'Weekly email reports',
+              'Review widget for your website',
+              'Smart Snippets for personalised replies',
+            ].map((f,i,arr) => (
+              <div key={f} style={{ display:'flex', gap:10, padding:'7px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
+                <span style={{ color:'var(--gold)' }}>✓</span><span style={{ color:'var(--text2)' }}>{f}</span>
+              </div>
+            ))}
+            <div style={{ marginTop:14, padding:'12px 14px', background:'rgba(201,169,110,.04)', border:'1px solid rgba(201,169,110,.15)', borderRadius:10, fontSize:'11px', color:'var(--text3)', lineHeight:1.7 }}>
+              <svg width="11" height="11" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius:2, display:'inline-block', verticalAlign:'middle', marginRight:5 }}><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>
+              <strong style={{ color:'var(--gold)' }}>Swiss company.</strong> Your data is stored in Switzerland and governed by Swiss data protection law (DSG/nDSG). We never sell your data.
+            </div>
+            <div style={{ marginTop:10, fontSize:'11px', color:'var(--text3)', textAlign:'center' }}>
+              Questions about your subscription? Contact <a href="mailto:info@replyiq.ch" style={{ color:'var(--gold)', textDecoration:'none' }}>info@replyiq.ch</a>
+            </div>
           </Card>
 
           {/* SMART SNIPPETS */}
