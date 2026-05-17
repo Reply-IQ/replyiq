@@ -504,9 +504,13 @@ export function RevenuePage() {
 export function CompetitorsPage() {
   const { property, reviews, competitors, showToast, loadAll } = useApp()
   const { lang } = useLang()
-  const [analysis, setAnalysis] = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [syncing, setSyncing]   = useState(false)
+  const [analysis,  setAnalysis]  = useState(null)
+  const [loading,   setLoading]   = useState(false)
+  const [syncing,   setSyncing]   = useState(false)
+  const [searchQ,   setSearchQ]   = useState('')
+  const [searching, setSearching] = useState(false)
+  const [searchRes, setSearchRes] = useState([])
+  const [adding,    setAdding]    = useState(null) // place_id being added
   const isMobile = useIsMobile()
 
   // Your real rating from imported reviews
@@ -604,6 +608,47 @@ export function CompetitorsPage() {
     setLoading(false)
   }
 
+  async function searchCompetitor() {
+    if (!searchQ.trim()) return
+    const placeId = property?.platform_connections?.google?.identifier
+    if (!placeId) { showToast('Connect Google Business first', 'error'); return }
+    setSearching(true)
+    setSearchRes([])
+    try {
+      const r = await fetch('/api/competitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          placeId,
+          clinicName:  property.name,
+          propertyType: 'search',
+          searchQuery:  searchQ.trim(),
+        })
+      })
+      const data = await r.json()
+      if (data.error) { showToast('Search error: ' + data.error, 'error'); setSearching(false); return }
+      // Filter out ones already in the list
+      const existingIds = new Set(competitors.map(c => c.place_id).filter(Boolean))
+      const fresh = (data.competitors || []).filter(c => !existingIds.has(c.place_id) && c.name?.toLowerCase() !== property.name?.toLowerCase())
+      setSearchRes(fresh.slice(0, 8))
+      if (fresh.length === 0) showToast('No new results — try a different search term', 'info')
+    } catch(e) { showToast('Search failed: ' + e.message, 'error') }
+    setSearching(false)
+  }
+
+  async function addCompetitor(comp) {
+    setAdding(comp.place_id)
+    const row = { clinic_id: property.id, name: comp.name, rating: comp.rating, reviews: comp.reviews, place_id: comp.place_id, trend: '0' }
+    const { error } = await supabase.from('competitors').insert([row])
+    if (error) { showToast('Could not add: ' + error.message, 'error') }
+    else {
+      await loadAll(true)
+      setSearchRes(prev => prev.filter(c => c.place_id !== comp.place_id))
+      showToast(`Added ${comp.name}`, 'success')
+    }
+    setAdding(null)
+  }
+
   const maxRating = 5
   const ratingBarW = (rating) => `${Math.round((rating / maxRating) * 100)}%`
   const ratingColor = (p) => {
@@ -661,7 +706,45 @@ export function CompetitorsPage() {
 
       {/* ── Competitor List ── */}
       <Card style={{ marginBottom:16 }}>
-        <SectionHeader title="Local Market" subtitle={`${allProps.length} properties within 3km · sorted by rating`} />
+        <SectionHeader title="Local Market" subtitle={`${allProps.length} properties · sorted by rating`} />
+
+        {/* Manual search */}
+        <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+          <input
+            value={searchQ}
+            onChange={e => setSearchQ(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && searchCompetitor()}
+            placeholder="Search for a competitor by name, e.g. Park Hyatt Zurich..."
+            style={{ flex:1, minWidth:180, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
+            onFocus={e => e.target.style.borderColor = 'var(--gold)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+          />
+          <Button variant="secondary" size="sm" onClick={searchCompetitor} disabled={searching || !searchQ.trim()}>
+            {searching ? <><Spinner size={12}/>Searching...</> : '🔍 Search'}
+          </Button>
+          {searchQ && <Button variant="ghost" size="sm" onClick={() => { setSearchQ(''); setSearchRes([]) }}>✕</Button>}
+        </div>
+
+        {/* Search results */}
+        {searchRes.length > 0 && (
+          <div style={{ marginBottom:14, background:'var(--surface)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ padding:'8px 14px', fontSize:'11px', color:'var(--text3)', fontWeight:600, textTransform:'uppercase', letterSpacing:'1px', borderBottom:'1px solid var(--border)' }}>
+              Search results — click + to add
+            </div>
+            {searchRes.map(r => (
+              <div key={r.place_id} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:'13px', fontWeight:500, color:'var(--text1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</div>
+                  <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:2 }}>{r.rating}★ · {(r.reviews||0).toLocaleString()} reviews · {r.address}</div>
+                </div>
+                <button onClick={() => addCompetitor(r)} disabled={adding === r.place_id}
+                  style={{ width:28, height:28, borderRadius:'50%', background:'rgba(201,169,110,.1)', border:'1px solid rgba(201,169,110,.3)', color:'var(--gold)', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontWeight:700 }}>
+                  {adding === r.place_id ? <Spinner size={11}/> : '+'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {competitors.length === 0 ? (
           <div style={{ padding:'28px 14px', textAlign:'center' }}>
@@ -684,7 +767,7 @@ export function CompetitorsPage() {
                   background: p.isYou ? 'rgba(201,169,110,0.04)' : 'transparent',
                   borderLeft: p.isYou ? '3px solid var(--gold)' : '3px solid transparent',
                 }}>
-                  {/* Row 1: rank + name + rating number */}
+                  {/* Row 1: rank + name + rating number + delete */}
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
                     <div style={{
                       width:22, height:22, borderRadius:'50%', flexShrink:0,
@@ -715,6 +798,16 @@ export function CompetitorsPage() {
                       <div style={{ fontSize:'11px', fontWeight:700, color: trendNum > 0 ? '#B85C38' : '#4A7C6F', flexShrink:0, minWidth:32, textAlign:'right' }}>
                         {trendNum > 0 ? '▲' : '▼'}{Math.abs(trendNum)}
                       </div>
+                    )}
+                    {/* Delete button — only for synced competitors, not self */}
+                    {!p.isYou && (
+                      <button onClick={async(e)=>{e.stopPropagation();await supabase.from('competitors').delete().eq('clinic_id',property.id).eq('name',p.name);await loadAll(true);showToast('Competitor removed','info')}}
+                        style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:'14px', padding:'2px 4px', flexShrink:0, lineHeight:1 }}
+                        title="Remove this competitor"
+                        onMouseEnter={e=>e.currentTarget.style.color='#B85C38'}
+                        onMouseLeave={e=>e.currentTarget.style.color='var(--text3)'}>
+                        ×
+                      </button>
                     )}
                   </div>
 
@@ -1029,6 +1122,171 @@ export function WidgetPage() {
           </Card>
         </div>
       )}
+    </Layout>
+  )
+}
+// ── ADMIN PAGE ─────────────────────────────────────────────────────────────
+// Only accessible to the owner — hidden from normal nav
+// Route: /admin — protected by ADMIN_SECRET fetched client-side
+
+export function AdminPage() {
+  const { property } = useApp()
+  const [clients, setClients]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [secret,  setSecret]    = useState(() => localStorage.getItem('admin_secret') || '')
+  const [authed,  setAuthed]    = useState(false)
+  const [error,   setError]     = useState('')
+  const [sortBy,  setSortBy]    = useState('health')
+
+  async function load(s) {
+    setLoading(true)
+    setError('')
+    try {
+      const r = await fetch('/api/admin-stats', { headers: { 'x-admin-secret': s } })
+      if (r.status === 401) { setError('Wrong admin secret'); setLoading(false); return }
+      const data = await r.json()
+      if (data.error) { setError(data.error); setLoading(false); return }
+      setClients(data.clients || [])
+      setAuthed(true)
+      localStorage.setItem('admin_secret', s)
+    } catch(e) { setError(e.message) }
+    setLoading(false)
+  }
+
+  function sorted() {
+    return [...clients].sort((a,b) => {
+      if (sortBy === 'health')      return a.health - b.health           // worst first
+      if (sortBy === 'lastLogin')   return (b.daysSinceLogin||999) - (a.daysSinceLogin||999)
+      if (sortBy === 'reviews')     return b.reviewTotal - a.reviewTotal
+      if (sortBy === 'rate')        return a.responseRate - b.responseRate
+      return a.name.localeCompare(b.name)
+    })
+  }
+
+  if (!authed) return (
+    <Layout title="Admin" subtitle="Client dashboard">
+      <Card style={{ maxWidth:400, margin:'60px auto' }}>
+        <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.2rem', marginBottom:16 }}>Admin Access</div>
+        <input
+          type="password" value={secret} onChange={e=>setSecret(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&load(secret)}
+          placeholder="Admin secret"
+          style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', color:'var(--text1)', fontSize:'14px', outline:'none', boxSizing:'border-box', marginBottom:12 }}
+        />
+        {error && <div style={{ color:'#B85C38', fontSize:'13px', marginBottom:10 }}>{error}</div>}
+        <Button fullWidth onClick={() => load(secret)} disabled={loading}>
+          {loading ? <><Spinner />Loading...</> : 'Access Dashboard'}
+        </Button>
+      </Card>
+    </Layout>
+  )
+
+  const total       = clients.length
+  const atRisk      = clients.filter(c => c.daysSinceLogin > 7 || c.responseRate < 50).length
+  const healthy     = clients.filter(c => c.health >= 70).length
+  const avgRate     = total ? Math.round(clients.reduce((s,c)=>s+c.responseRate,0)/total) : 0
+  const totalReviews= clients.reduce((s,c)=>s+c.reviewTotal,0)
+
+  return (
+    <Layout title="Admin" subtitle={`${total} clients · as of ${new Date().toLocaleTimeString()}`}
+      topbarRight={<Button variant="secondary" size="sm" onClick={()=>load(secret)}>⟳ Refresh</Button>}>
+
+      {/* Summary KPIs */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:20 }}>
+        {[
+          { label:'Total Clients',    value:total,         color:'var(--gold)' },
+          { label:'Healthy (≥70)',    value:healthy,       color:'#4A7C6F' },
+          { label:'At Risk',          value:atRisk,        color:atRisk>0?'#B85C38':'#4A7C6F' },
+          { label:'Avg Response Rate',value:avgRate+'%',   color:avgRate>=70?'#4A7C6F':'#B85C38' },
+        ].map(k => (
+          <div key={k.label} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:'16px 18px' }}>
+            <div style={{ fontSize:'10px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:8 }}>{k.label}</div>
+            <div style={{ fontFamily:'var(--font-serif)', fontSize:'2rem', color:k.color }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Sort bar */}
+      <div style={{ display:'flex', gap:6, marginBottom:12, alignItems:'center' }}>
+        <span style={{ fontSize:'11px', color:'var(--text3)' }}>Sort by:</span>
+        {[['health','Health ↑'],['lastLogin','Last Login'],['reviews','Reviews'],['rate','Response Rate'],['name','Name']].map(([key,label]) => (
+          <button key={key} onClick={()=>setSortBy(key)} style={{
+            padding:'4px 10px', border:'none', borderRadius:6, cursor:'pointer', fontSize:'11px',
+            background:sortBy===key?'var(--gold)':'var(--surface)',
+            color:sortBy===key?'var(--bg)':'var(--text3)',
+            fontFamily:'var(--font-sans)'
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Client table */}
+      <Card style={{ padding:0, overflow:'hidden' }}>
+        {/* Header */}
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 80px 80px 80px 80px 70px', gap:0, padding:'10px 16px', background:'var(--surface)', borderBottom:'1px solid var(--border)', fontSize:'10px', textTransform:'uppercase', letterSpacing:'1px', color:'var(--text3)', fontWeight:600 }}>
+          <span>Client</span><span>Last Login</span><span>Reviews</span><span>Replied</span><span>Rate</span><span>Snippets</span><span>Health</span>
+        </div>
+
+        {sorted().map((c, i) => {
+          const loginColor  = !c.daysSinceLogin ? '#4A7C6F' : c.daysSinceLogin <= 7 ? '#4A7C6F' : c.daysSinceLogin <= 14 ? '#C9A96E' : '#B85C38'
+          const rateColor   = c.responseRate >= 80 ? '#4A7C6F' : c.responseRate >= 50 ? '#C9A96E' : '#B85C38'
+          const healthColor = c.health >= 70 ? '#4A7C6F' : c.health >= 40 ? '#C9A96E' : '#B85C38'
+
+          return (
+            <div key={c.id} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 80px 80px 80px 80px 70px', gap:0, padding:'12px 16px', borderBottom:i<sorted().length-1?'1px solid var(--border)':'none', background:i%2===0?'transparent':'rgba(255,255,255,.01)', alignItems:'center' }}>
+              {/* Client info */}
+              <div>
+                <div style={{ fontWeight:600, fontSize:'13px', marginBottom:2 }}>{c.name}</div>
+                <div style={{ fontSize:'11px', color:'var(--text3)', display:'flex', gap:8, flexWrap:'wrap' }}>
+                  <span>{c.email}</span>
+                  {c.platforms.length > 0 && <span style={{ color:'var(--gold)' }}>{c.platforms.join(', ')}</span>}
+                  {c.city !== '—' && <span>{c.city}</span>}
+                  {c.hasAutoReply && <span style={{ color:'#4A7C6F' }}>⚡ auto-reply</span>}
+                </div>
+              </div>
+
+              {/* Last login */}
+              <div style={{ fontSize:'12px', color:loginColor }}>
+                {c.daysSinceLogin === null ? '—' :
+                 c.daysSinceLogin === 0    ? 'Today' :
+                 c.daysSinceLogin === 1    ? 'Yesterday' :
+                 `${c.daysSinceLogin}d ago`}
+              </div>
+
+              {/* Reviews */}
+              <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text1)' }}>
+                {c.reviewTotal.toLocaleString()}
+              </div>
+
+              {/* Responded */}
+              <div style={{ fontSize:'13px', color:'var(--text2)' }}>
+                {c.reviewResponded.toLocaleString()}
+              </div>
+
+              {/* Response rate */}
+              <div style={{ fontSize:'13px', fontWeight:700, color:rateColor }}>
+                {c.reviewTotal > 0 ? c.responseRate + '%' : '—'}
+              </div>
+
+              {/* Snippets */}
+              <div style={{ fontSize:'13px', color:c.snippetCount>0?'var(--gold)':'var(--text3)' }}>
+                {c.snippetCount > 0 ? `${c.snippetCount} set` : '—'}
+              </div>
+
+              {/* Health score */}
+              <div>
+                <div style={{ fontSize:'13px', fontWeight:700, color:healthColor, marginBottom:3 }}>{c.health}</div>
+                <div style={{ height:3, background:'var(--border)', borderRadius:2, overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${c.health}%`, background:healthColor, borderRadius:2 }} />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </Card>
+
+      <div style={{ marginTop:12, fontSize:'11px', color:'var(--text3)', textAlign:'center' }}>
+        Health score: platforms connected (20) + reviews imported (20) + response rate ≥80% (30) + snippets set (15) + logged in last 7 days (15)
+      </div>
     </Layout>
   )
 }

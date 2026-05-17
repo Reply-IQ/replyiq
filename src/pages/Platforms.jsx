@@ -45,7 +45,7 @@ export default function Platforms() {
     const identifier = inputs[platform.id]?.trim()
     if (!identifier) { showToast('Please enter the ' + platform.fieldLabel, 'error'); return }
     setLoad(platform.id, true)
-    setMsg(platform.id, 'Starting import — fetching all reviews from Google...')
+    setMsg(platform.id, `Starting import — fetching all reviews from ${platform.name}...`)
 
     try {
       const r = await fetch('/api/fetch-reviews', {
@@ -126,7 +126,7 @@ export default function Platforms() {
 
         // Still pending — update elapsed time
         const elapsed = attempts * 10
-        setMsg(platform.id, `Fetching reviews from Google... ${elapsed}s elapsed. You can navigate away — import runs in the background.`)
+        setMsg(platform.id, `Fetching reviews from ${platform.name}... ${elapsed}s elapsed. You can navigate away.`)
 
         if (attempts >= maxAttempts) {
           clearInterval(pollRef.current)
@@ -144,7 +144,7 @@ export default function Platforms() {
     if (!conn?.identifier) return
     const identifier = conn.identifier
     setLoad(platform.id, true)
-    setMsg(platform.id, 'Syncing latest reviews from Google...')
+    setMsg(platform.id, `Syncing latest reviews from ${platform.name}...`)
     try {
       const r = await fetch('/api/fetch-reviews', {
         method: 'POST',

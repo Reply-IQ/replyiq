@@ -11,7 +11,12 @@
     "api/create-checkout.js":     { "maxDuration": 15 },
     "api/stripe-webhook.js":      { "maxDuration": 15 },
     "api/widget.js":              { "maxDuration": 10 },
-    "api/send-invite.js":         { "maxDuration": 15 }
+    "api/send-invite.js":         { "maxDuration": 15 },
+    "api/weekly-report-cron.js":  { "maxDuration": 60 },
+    "api/admin-stats.js":         { "maxDuration": 30 }
   },
-  "crons": [{ "path": "/api/sync-all-reviews", "schedule": "0 3 * * *" }]
+  "crons": [
+    { "path": "/api/sync-all-reviews",    "schedule": "0 3 * * *" },
+    { "path": "/api/weekly-report-cron",  "schedule": "0 7 * * 1" }
+  ]
 }

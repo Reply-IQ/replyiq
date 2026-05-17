@@ -15,6 +15,46 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ── Search mode: find a specific competitor by name ───────────────────────
+    if (req.body.searchQuery) {
+      const { searchQuery, placeId: refPlaceId } = req.body
+
+      // Get lat/lng of the property first for distance calculation
+      let refLat = 0, refLng = 0
+      if (refPlaceId) {
+        const dr = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(refPlaceId)}&fields=geometry&key=${googleKey}`)
+        const dd = await dr.json()
+        if (dd.status === 'OK') {
+          refLat = dd.result.geometry.location.lat
+          refLng = dd.result.geometry.location.lng
+        }
+      }
+
+      // Text search for the query
+      const tsUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${googleKey}${refLat ? `&location=${refLat},${refLng}&radius=50000` : ''}`
+      const tsRes  = await fetch(tsUrl)
+      const tsData = await tsRes.json()
+
+      if (tsData.status !== 'OK' && tsData.status !== 'ZERO_RESULTS') {
+        return res.status(400).json({ error: `Google Text Search: ${tsData.status}` })
+      }
+
+      const results = (tsData.results || []).slice(0, 8).map(p => {
+        const dLat = refLat ? (p.geometry.location.lat - refLat) * 111000 : 0
+        const dLng = refLng ? (p.geometry.location.lng - refLng) * 111000 * Math.cos(refLat * Math.PI / 180) : 0
+        const distM = refLat ? Math.round(Math.sqrt(dLat*dLat + dLng*dLng)) : null
+        return {
+          name:     p.name,
+          rating:   p.rating || 0,
+          reviews:  p.user_ratings_total || 0,
+          place_id: p.place_id,
+          address:  distM !== null ? (distM < 1000 ? `${distM}m away` : `${(distM/1000).toFixed(1)}km away`) : (p.formatted_address || ''),
+        }
+      })
+
+      return res.status(200).json({ competitors: results })
+    }
+
     // ── Step 1: Get lat/lng + details from Place ID ───────────────────────────
     const detailRes  = await fetch(
       `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=geometry,name,rating,types,price_level,vicinity&key=${googleKey}`

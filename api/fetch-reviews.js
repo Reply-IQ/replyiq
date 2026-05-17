@@ -17,15 +17,28 @@ export default async function handler(req, res) {
   if (!outscraperKey) return res.status(500).json({ error: 'OUTSCRAPER_API_KEY not configured' })
 
   try {
-    // Format query: Place IDs need Google Maps URL format for reliable Outscraper results
-    const query = (identifier.startsWith('ChIJ') || identifier.startsWith('Ei'))
-      ? `https://www.google.com/maps/place/?q=place_id:${identifier}`
-      : identifier
-
-    console.log('[fetch-reviews] Starting import — identifier:', identifier, '| clinicId:', clinicId)
-    console.log('[fetch-reviews] Formatted query:', query)
-
-    const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=500&language=en&async=true&reviewsSort=newest`
+    // Format query based on platform
+    let url
+    if (platform === 'tripadvisor') {
+      // Outscraper TripAdvisor reviews endpoint
+      console.log('[fetch-reviews] TripAdvisor import — URL:', identifier)
+      url = `https://api.app.outscraper.com/tripadvisor/reviews?query=${encodeURIComponent(identifier)}&limit=500&async=true`
+    } else if (platform === 'holidaycheck') {
+      // Outscraper HolidayCheck reviews endpoint
+      console.log('[fetch-reviews] HolidayCheck import — URL:', identifier)
+      url = `https://api.app.outscraper.com/holidaycheck/reviews?query=${encodeURIComponent(identifier)}&limit=300&async=true`
+    } else if (platform === 'booking') {
+      // Booking.com — use Outscraper's booking reviews endpoint
+      console.log('[fetch-reviews] Booking.com import — URL:', identifier)
+      url = `https://api.app.outscraper.com/booking/reviews?query=${encodeURIComponent(identifier)}&limit=300&async=true`
+    } else {
+      // Google — Place IDs need Google Maps URL format
+      const query = (identifier.startsWith('ChIJ') || identifier.startsWith('Ei'))
+        ? `https://www.google.com/maps/place/?q=place_id:${identifier}`
+        : identifier
+      console.log('[fetch-reviews] Google import — query:', query)
+      url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=500&language=en&async=true&reviewsSort=newest`
+    }
     const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey } })
 
     console.log('[fetch-reviews] Outscraper HTTP status:', r.status)
