@@ -1142,7 +1142,7 @@ export function AdminPage() {
     setLoading(true)
     setError('')
     try {
-      const r = await fetch('/api/admin-stats', { headers: { 'x-admin-secret': s } })
+      const r = await fetch('/api/widget?admin=1', { headers: { 'x-admin-secret': s } })
       if (r.status === 401) { setError('Wrong admin secret'); setLoading(false); return }
       const data = await r.json()
       if (data.error) { setError(data.error); setLoading(false); return }
