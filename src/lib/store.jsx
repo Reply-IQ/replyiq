@@ -41,8 +41,8 @@ export function AppProvider({ children }) {
     }
   }, [user?.id])
 
-  const loadAll = useCallback(async () => {
-    if (loadingRef.current) return
+  const loadAll = useCallback(async (force = false) => {
+    if (loadingRef.current && !force) return
     loadingRef.current = true
     setLoading(true)
     try {

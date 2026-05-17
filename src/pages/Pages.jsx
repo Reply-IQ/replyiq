@@ -407,31 +407,88 @@ export function CompetitorsPage() {
     if (!placeId) { showToast('Connect Google Business first — go to Platforms', 'error'); return }
     setSyncing(true)
     try {
-      // Detect property type from ai_profile or name keywords
-      const profile    = property?.ai_profile || {}
-      const nameL      = (property?.name || '').toLowerCase()
-      const descL      = (profile.responsePersonality || profile.brandTone || '').toLowerCase()
+      const profile   = property?.ai_profile || {}
+      const nameL     = (property?.name || '').toLowerCase()
+      const descL     = (profile.responsePersonality || profile.brandTone || '').toLowerCase()
       const isRestaurant = ['restaurant','ristorante','bistro','brasserie','trattoria','café','cafe','bar','grill','kitchen','dining','pizzeria','sushi','thai','indian','chinese','italian','mexican','french'].some(w => nameL.includes(w) || descL.includes(w))
       const propertyType = isRestaurant ? 'restaurant' : 'hotel'
       const starLevel    = property?.platform_connections?.google?.businessInfo?.rating || null
 
-      const r = await fetch('/api/competitors', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ placeId, clinicName:property.name, propertyType, starLevel, propertyFullName:profile.businessName || property.name }) })
-      const data = await r.json()
-      if (data.competitors?.length > 0) {
-        await supabase.from('competitors').delete().eq('clinic_id', property.id)
-        await supabase.from('competitors').insert(data.competitors.map(c=>({...c, clinic_id:property.id})))
-        await loadAll()
-        showToast(`Synced ${data.competitors.length} nearby competitors within 3km`, 'success')
+      const r = await fetch('/api/competitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId, clinicName: property.name, propertyType, starLevel, propertyFullName: profile.businessName || property.name })
+      })
+
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}))
+        showToast('Competitor sync error: ' + (err.error || r.status), 'error')
+        setSyncing(false)
+        return
       }
-    } catch(e) { showToast('Sync failed: '+e.message, 'error') }
+
+      const data = await r.json()
+
+      if (data.error) {
+        showToast('API error: ' + data.error, 'error')
+        setSyncing(false)
+        return
+      }
+
+      const list = data.competitors || []
+
+      if (list.length === 0) {
+        showToast('No competitors found in 3km — check your Google Places API key in Vercel', 'error')
+        setSyncing(false)
+        return
+      }
+
+      // Delete old + insert new — only store columns that exist in the table
+      await supabase.from('competitors').delete().eq('clinic_id', property.id)
+      const rows = list.map(c => ({
+        clinic_id: property.id,
+        name:      c.name,
+        rating:    c.rating,
+        reviews:   c.reviews,
+        place_id:  c.place_id,
+        address:   c.distance || '',
+      }))
+      const { error: insertErr } = await supabase.from('competitors').insert(rows)
+      if (insertErr) {
+        showToast('Save failed: ' + insertErr.message, 'error')
+        setSyncing(false)
+        return
+      }
+
+      // Reload competitors directly without triggering full loadAll guard
+      const { data: fresh } = await supabase.from('competitors').select('*').eq('clinic_id', property.id).order('rating', { ascending: false })
+      if (fresh) {
+        // Update state via loadAll (guard is now clear)
+        await loadAll(true)
+      }
+      showToast(`Found ${list.length} nearby competitors`, 'success')
+
+    } catch(e) {
+      showToast('Sync failed: ' + e.message, 'error')
+    }
     setSyncing(false)
   }
 
   async function runAnalysis() {
+    if (!competitors?.length) {
+      showToast('Sync competitors first before running the AI benchmark', 'error')
+      return
+    }
     setLoading(true)
     const r = await analyseCompetitors(property, competitors)
-    if (r.error) showToast('AI error', 'error')
-    else setAnalysis(r)
+    if (!r || r.error) {
+      showToast('AI benchmark failed — try again', 'error')
+    } else if (!r.primaryOpportunity && !r.narrative) {
+      // JSON parsing issue — r might be { raw: '...' }
+      showToast('AI returned unexpected format — try again', 'error')
+    } else {
+      setAnalysis(r)
+    }
     setLoading(false)
   }
 
@@ -446,10 +503,19 @@ export function CompetitorsPage() {
     >
       <Card style={{ marginBottom:18 }}>
         <SectionHeader title={t(T.competitors.benchmark, lang)} subtitle={t(T.competitors.sortedBy, lang)} />
+        {competitors.length === 0 && (
+          <div style={{ padding:'24px 14px', textAlign:'center' }}>
+            <div style={{ fontSize:'13px', color:'var(--text3)', marginBottom:8 }}>No competitors synced yet.</div>
+            <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:16 }}>Click "Sync Competitors" above to find nearby properties on Google.</div>
+            <div style={{ fontSize:'11px', color:'var(--text3)', opacity:0.6 }}>Make sure GOOGLE_PLACES_API_KEY is set in your Vercel environment variables.</div>
+          </div>
+        )}
+        {competitors.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 80px 90px 90px', padding:'0 14px 10px', fontSize:'11px', color:'var(--text3)', textTransform:'uppercase', letterSpacing:'1px', fontWeight:600 }}>
           <span>{t(T.competitors.property,lang)}</span><span>{t(T.competitors.rating,lang)}</span><span>{t(T.competitors.reviews,lang)}</span><span>{t(T.competitors.trend,lang)}</span>
         </div>
-        {allProps.map((p, i) => (
+        )}
+        {competitors.length > 0 && allProps.map((p, i) => (
           <div key={p.name} style={{ display:'grid', gridTemplateColumns:'1fr 80px 90px 90px', alignItems:'center', padding:'12px 14px', borderRadius:8, marginBottom:3, background:p.isYou?'rgba(201,169,110,.06)':'rgba(255,255,255,.02)', border:p.isYou?'1px solid rgba(201,169,110,.2)':'1px solid transparent', fontSize:'13px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <span style={{ color:'var(--text3)', fontSize:'11px', width:20 }}>#{i+1}</span>
@@ -460,6 +526,7 @@ export function CompetitorsPage() {
             <div style={{ fontFamily:'var(--font-mono)', fontSize:'12px', fontWeight:600, color:p.trend?.startsWith?.('+')?'#4A7C6F':p.trend==='-'||p.trend==='—'?'var(--text3)':'#B85C38' }}>{p.trend}</div>
           </div>
         ))}
+        }
       </Card>
 
       {analysis && (
