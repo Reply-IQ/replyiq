@@ -460,7 +460,6 @@ export function CompetitorsPage() {
         rating:    c.rating,
         reviews:   c.reviews,
         place_id:  c.place_id,
-        address:   c.distance || '',
       }))
       const { error: insertErr } = await supabase.from('competitors').insert(rows)
       if (insertErr) {
