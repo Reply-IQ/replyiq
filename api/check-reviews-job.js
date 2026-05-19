@@ -36,23 +36,38 @@ export default async function handler(req, res) {
     }
 
     // ── Parse Outscraper response ────────────────────────────────────────────
-    let placeInfo   = null
+    // Google: data = [[{name, reviews_data:[...]}]]  — place object with nested reviews
+    // TripAdvisor/HolidayCheck/Booking: data = [[review1, review2, ...]] — flat review array
     const raw       = data?.data
+    const isGoogle  = !platform || platform === 'google'
+    let placeInfo   = null
+    let reviewsData = []
 
-    if (Array.isArray(raw) && raw.length > 0) {
-      const first = raw[0]
-      placeInfo   = Array.isArray(first) ? first[0] : first
-    } else if (raw && typeof raw === 'object') {
-      placeInfo = raw
+    if (isGoogle) {
+      // Google structure: unwrap to place object, then get reviews_data
+      if (Array.isArray(raw) && raw.length > 0) {
+        const first = raw[0]
+        placeInfo   = Array.isArray(first) ? first[0] : first
+      } else if (raw && typeof raw === 'object') {
+        placeInfo = raw
+      }
+      reviewsData =
+        placeInfo?.reviews_data ||
+        placeInfo?.reviewsData  ||
+        placeInfo?.data         ||
+        []
+    } else {
+      // Non-Google: data is a flat array of review objects
+      // Each item has: author_title, review_text, review_rating, review_date etc.
+      if (Array.isArray(raw) && raw.length > 0) {
+        const first = raw[0]
+        // Could be [[r1,r2,...]] or [r1,r2,...]
+        reviewsData = Array.isArray(first) ? first : raw
+        // Filter out any items that look like metadata not reviews
+        reviewsData = reviewsData.filter(r => r.review_text || r.review_rating || r.author_title)
+      }
+      console.log('[crj] non-Google platform:', platform, '— flat reviews:', reviewsData.length)
     }
-
-    // Try every possible field name Outscraper might use
-    const reviewsData =
-      placeInfo?.reviews_data    ||
-      placeInfo?.reviews         ||
-      placeInfo?.reviewsData     ||
-      placeInfo?.data            ||
-      []
 
     console.log('[crj] final reviewsData count:', reviewsData?.length)
 
@@ -90,31 +105,44 @@ export default async function handler(req, res) {
     }
 
     if (!reviewsData?.length) {
-      console.log('[crj] 0 reviews — place found:', placeInfo?.name, '| total on Google:', placeInfo?.reviews)
+      console.log('[crj] 0 reviews — platform:', platform, '| place found:', placeInfo?.name)
       await clearJob()
-      return res.status(200).json({
-        status:     'done',
-        count:      0,
-        placeFound: placeInfo?.name || null,
-        totalOnGoogle: placeInfo?.reviews || 0,
-        warning:    placeInfo?.name
-          ? `Found "${placeInfo.name}" but 0 reviews returned. Place has ${placeInfo?.reviews || '?'} reviews on Google.`
-          : 'Place not found. Double-check your Google Place ID.',
-      })
+      const warning = isGoogle
+        ? (placeInfo?.name
+            ? `Found "${placeInfo.name}" but 0 reviews returned. The property may have no public reviews yet.`
+            : 'Place not found. Double-check your Google Place ID.')
+        : `No reviews returned from ${platform}. The URL may be incorrect or the property has no public reviews yet.`
+      return res.status(200).json({ status: 'done', count: 0, warning })
     }
 
     // ── Build review rows ────────────────────────────────────────────────────
-    const reviews = reviewsData.map((rv, i) => ({
-      clinic_id:        clinicId,
-      author:           rv.author_title   || rv.name                  || 'Guest',
-      rating:           Math.round(rv.review_rating  || rv.stars || 3),
-      platform:         platform          || 'google',
-      review_date:      (rv.review_datetime_utc || rv.publishedAtDate || '').split(' ')[0] || new Date().toISOString().split('T')[0],
-      text:             rv.review_text    || rv.text                  || '(No text)',
-      responded:        !!(rv.owner_answer || rv.responseFromOwnerText),
-      response_text:    rv.owner_answer   || rv.responseFromOwnerText || null,
-      google_review_id: rv.review_id      || rv.reviewId              || `out_${(rv.author_title||rv.name||'').replace(/\s/g,'_')}_${(rv.review_datetime_utc||rv.publishedAtDate||'').slice(0,10)}`,
-    }))
+    const reviews = reviewsData.map((rv, i) => {
+      // TripAdvisor specific fields (from logs):
+      // author_title, review_text, review_rating, review_date, review_timestamp
+      // owner_response, owner_response_date, owner_title, review_link
+      const author    = rv.author_title  || rv.name    || rv.reviewer_name || 'Guest'
+      const ratingRaw = rv.review_rating || rv.rating  || rv.stars         || 3
+      const rating    = Math.round(Number(ratingRaw)) || 3
+      const text      = rv.review_text   || rv.text    || rv.review_body   || ''
+      const dateRaw   = rv.review_date   || rv.review_datetime_utc || rv.publishedAtDate || rv.date || ''
+      const date      = dateRaw.toString().split('T')[0].split(' ')[0] || new Date().toISOString().split('T')[0]
+      const responded = !!(rv.owner_response || rv.owner_answer || rv.responseFromOwnerText)
+      const response  = rv.owner_response || rv.owner_answer || rv.responseFromOwnerText || null
+      // Build a stable unique ID
+      const uid = rv.review_id || rv.reviewId || rv.review_link ||
+        `${platform}_${(author).replace(/\s/g,'_')}_${date}`
+      return {
+        clinic_id:        clinicId,
+        author,
+        rating,
+        platform:         platform || 'google',
+        review_date:      date,
+        text,
+        responded,
+        response_text:    response,
+        google_review_id: uid,
+      }
+    })
 
     console.log('[crj] built', reviews.length, 'review rows')
 
