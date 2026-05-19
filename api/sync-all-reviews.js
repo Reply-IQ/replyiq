@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     const clinicsRes = await fetch(
-      `${supabaseUrl}/rest/v1/clinics?select=id,name,platform_connections,last_synced_at`,
+      `${supabaseUrl}/rest/v1/clinics?select=id,name,owner_email,platform_connections,last_synced_at`,
       { headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
     )
     const clinics = await clinicsRes.json()
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
           ? `https://www.google.com/maps/place/?q=place_id:${identifier}`
           : identifier
 
-        const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=100&language=en&async=false&reviewsSort=newest`
+        const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=20&language=en&async=false&reviewsSort=newest`
         const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey }, signal: AbortSignal.timeout(25000) })
         const data = await r.json()
 
@@ -63,16 +63,18 @@ export default async function handler(req, res) {
           text:             rv.review_text   || '(No text)',
           responded:        !!(rv.owner_answer),
           response_text:    rv.owner_answer  || null,
-          google_review_id: rv.review_id     || `sync_${clinic.id}_${i}`,
+          google_review_id: rv.review_id     || `sync_${clinic.id}_${(rv.author_title||'').replace(/\s/g,'_')}_${(rv.review_datetime_utc||'').slice(0,10)}`,
         }))
 
+        let upserted = []
         const upsertRes = await fetch(`${supabaseUrl}/rest/v1/reviews`, {
           method:  'POST',
           headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
           body:    JSON.stringify(reviews)
         })
-        const upserted = await upsertRes.json()
-        const newCount = Array.isArray(upserted) ? upserted.length : 0
+        upserted = await upsertRes.json()
+        if (!Array.isArray(upserted)) upserted = []
+        const newCount = upserted.length
 
         await fetch(`${supabaseUrl}/rest/v1/clinics?id=eq.${clinic.id}`, {
           method:  'PATCH',
@@ -88,6 +90,44 @@ export default async function handler(req, res) {
 
         console.log('[sync-all]', clinic.name, '— saved', newCount, 'new reviews')
         results.push({ clinic: clinic.name, fetched: reviewsData.length, newReviews: newCount })
+
+        // Send email notification if there are new reviews and clinic has an email
+        if (newCount > 0 && clinic.owner_email) {
+          const newReviews = upserted.slice(0, 3) // show up to 3 in email
+          const negCount   = newReviews.filter(r => r.rating <= 2).length
+          const subject    = negCount > 0
+            ? `⚠ ${newCount} new review${newCount>1?'s':''} — ${negCount} need${negCount===1?'s':''} attention · ${clinic.name}`
+            : `${newCount} new review${newCount>1?'s':''} imported · ${clinic.name}`
+
+          const previewRows = newReviews.map(r =>
+            '<div style="padding:12px;background:#1C2430;border-radius:8px;margin-bottom:8px;border-left:3px solid ' +
+            (r.rating<=2?'#B85C38':r.rating>=4?'#4A7C6F':'#C9A96E') + '">' +
+            '<div style="font-size:11px;color:#6B7280;margin-bottom:4px">' + '★'.repeat(r.rating||3) + '  ' + (r.author||'Guest') + '</div>' +
+            '<div style="font-size:12px;color:#A0A0B8;line-height:1.5">' + (r.text||'(No text)').slice(0,120) + (r.text?.length>120?'…':'') + '</div></div>'
+          ).join('')
+
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
+            body: JSON.stringify({
+              from: 'ReplyIQ <info@replyiq.ch>',
+              to: [clinic.owner_email],
+              subject,
+              html: '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0A0A0F;font-family:-apple-system,sans-serif;color:#E8E4DC">' +
+                '<div style="max-width:520px;margin:0 auto;padding:28px 20px">' +
+                '<div style="font-family:Georgia,serif;font-size:22px;color:#fff;margin-bottom:4px">Reply<span style="color:#C9A96E">IQ</span></div>' +
+                '<div style="font-size:10px;color:#6B7280;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">New Reviews Detected</div>' +
+                '<div style="background:#1C2430;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid #2A3545">' +
+                '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">' + newCount + ' new review' + (newCount>1?'s':'') + ' for ' + clinic.name + '</div>' +
+                '<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Imported overnight · ' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long'}) + '</div>' +
+                previewRows +
+                '</div>' +
+                '<a href="https://app.replyiq.ch/inbox" style="display:block;padding:14px;background:linear-gradient(135deg,#F5C842,#D4860E);border-radius:10px;color:#141920;font-size:14px;font-weight:700;text-decoration:none;text-align:center;margin-bottom:16px">Open Inbox and Reply →</a>' +
+                '<div style="font-size:10px;color:#2A3545;text-align:center">ReplyIQ · app.replyiq.ch</div>' +
+                '</div></body></html>'
+            })
+          }).catch(e => console.log('[sync-all] email notify failed:', e.message))
+        }
 
       } catch (e) {
         console.error('[sync-all] Error for', clinic.name, ':', e.message)

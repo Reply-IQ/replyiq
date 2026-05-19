@@ -340,7 +340,7 @@ setGenerating(true)
               <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={approve} disabled={approving}
                   style={{ flex: 1, minWidth: 140, padding: '12px 16px', background: 'linear-gradient(135deg,var(--gold),var(--amber))', border: 'none', borderRadius: 'var(--r-md)', color: 'var(--bg)', fontSize: '13px', fontWeight: 700, cursor: approving?'not-allowed':'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: approving?0.7:1 }}>
-                  {approving ? <><Spinner /> Posting...</> : <>✓ Approve & Post</>}
+                  {approving ? <><Spinner /> Copying...</> : <>✓ Copy & Open {selectedMeta?.label || 'Platform'}</>}
                 </button>
                 <button onClick={() => setEditMode(true)}
                   style={{ padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', color: 'var(--text2)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
@@ -363,7 +363,7 @@ setGenerating(true)
 
             {!isDone && draft && !generating && !aiError && (
               <div style={{ padding: '8px 16px 12px', fontSize: '11px', color: 'var(--text3)', textAlign: 'center' }}>
-                "Approve & Post" copies your response and opens {selectedMeta?.label} — paste and publish.
+                "Copy & Open" copies the response to your clipboard and opens {selectedMeta?.label} in a new tab — just paste and click Submit. Takes 10 seconds.
               </div>
             )}
 

@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       text:             rv.review_text    || rv.text                  || '(No text)',
       responded:        !!(rv.owner_answer || rv.responseFromOwnerText),
       response_text:    rv.owner_answer   || rv.responseFromOwnerText || null,
-      google_review_id: rv.review_id      || rv.reviewId              || `out_${jobId}_${i}`,
+      google_review_id: rv.review_id      || rv.reviewId              || `out_${(rv.author_title||rv.name||'').replace(/\s/g,'_')}_${(rv.review_datetime_utc||rv.publishedAtDate||'').slice(0,10)}`,
     }))
 
     console.log('[crj] built', reviews.length, 'review rows')
