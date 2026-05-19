@@ -50,7 +50,23 @@ export default async function handler(req, res) {
       console.log('[fetch-reviews] Google import — query:', query)
       url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=500&language=en&async=true&reviewsSort=newest`
     }
-    const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey } })
+    // Add 25s timeout so we get a clear error instead of "fetch failed"
+    const controller = new AbortController()
+    const timeout    = setTimeout(() => controller.abort(), 25000)
+    let r
+    try {
+      r = await fetch(url, { headers: { 'X-API-KEY': outscraperKey }, signal: controller.signal })
+    } catch (fetchErr) {
+      clearTimeout(timeout)
+      const isTimeout = fetchErr.name === 'AbortError'
+      console.error('[fetch-reviews] fetch threw:', fetchErr.name, fetchErr.message)
+      return res.status(500).json({
+        error: isTimeout
+          ? 'Outscraper took too long to respond (>25s). Try again — their servers may be busy.'
+          : 'Could not reach Outscraper API: ' + fetchErr.message + '. Check your OUTSCRAPER_API_KEY in Vercel environment variables.',
+      })
+    }
+    clearTimeout(timeout)
 
     console.log('[fetch-reviews] Outscraper HTTP status:', r.status)
     const rawText = await r.text()
