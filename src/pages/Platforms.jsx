@@ -6,12 +6,59 @@ import { T, t } from '../lib/i18n.js'
 import { supabase } from '../lib/supabase.js'
 
 const PLATFORMS = [
-  { id: 'google',       icon: '🔍', color: '#4285F4', name: 'Google Business',  desc: 'Your most important platform. All guest reviews imported automatically.',         fieldLabel: 'Google Place ID',    fieldPH: 'ChIJN1t_tDeuEmsRUsoyG83frY4',       hint: 'Find yours at: developers.google.com/maps/documentation/javascript/examples/places-placeid-finder' },
-  { id: 'tripadvisor',  icon: '🦉', color: '#00AF87', name: 'TripAdvisor',      desc: 'Critical for hotels. Millions of travellers check TripAdvisor before booking.',   fieldLabel: 'TripAdvisor URL',    fieldPH: 'https://www.tripadvisor.com/Hotel_Review-...', hint: 'Copy the full URL of your TripAdvisor property page' },
-  { id: 'booking',      icon: '🏨', color: '#003580', name: 'Booking.com',      desc: 'Essential for hotels. Guests trust Booking reviews heavily.',                    fieldLabel: 'Booking.com URL',    fieldPH: 'https://www.booking.com/hotel/ch/...',  hint: 'Copy the full URL of your Booking.com property page' },
-  { id: 'holidaycheck', icon: '🌞', color: '#FF6600', name: 'HolidayCheck',     desc: '9.4M German-speaking users. A must-have for the DACH market — German guests trust HolidayCheck more than TripAdvisor.', fieldLabel: 'HolidayCheck URL', fieldPH: 'https://www.holidaycheck.de/h/...', hint: 'Copy the full URL of your HolidayCheck property page' },
-  { id: 'instagram',    icon: '📸', color: '#E1306C', name: 'Instagram',        desc: 'Monitor comments and DMs. Requires the ReplyIQ Chrome extension.',              fieldLabel: 'Instagram Handle',   fieldPH: '@yourhotel',                           hint: 'Use the ReplyIQ Chrome extension for Instagram comments' },
-  { id: 'facebook',     icon: '📘', color: '#1877F2', name: 'Facebook Reviews', desc: 'Many guests still leave reviews on Facebook.',                                  fieldLabel: 'Facebook Page URL',  fieldPH: 'https://www.facebook.com/YourHotel',   hint: 'Copy the URL of your Facebook business page' },
+  {
+    id: 'google', icon: '🔍', color: '#4285F4', name: 'Google Business',
+    desc: 'Your most important platform. All guest reviews imported automatically.',
+    fieldLabel: 'Google Place ID',
+    fieldPH: 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+    steps: [
+      'Go to Google Maps and search for your property',
+      'Click on your property in the results',
+      'Copy the Place ID from the URL or use the Place ID Finder tool',
+    ],
+    hint: '🔗 Find your Place ID: maps.google.com → search your property → share link → copy the ChIJ… code',
+    hintLink: 'https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder',
+    hintLinkLabel: 'Open Place ID Finder',
+  },
+  {
+    id: 'tripadvisor', icon: '🦉', color: '#00AF87', name: 'TripAdvisor',
+    desc: 'Critical for hotels. Millions of travellers check TripAdvisor before booking.',
+    fieldLabel: 'TripAdvisor Property URL',
+    fieldPH: 'https://www.tripadvisor.com/Hotel_Review-g188113-d123456-Reviews-Hotel_Name-Zurich.html',
+    steps: [
+      'Go to tripadvisor.com and search for your hotel or restaurant',
+      'Click on your property page',
+      'Copy the full URL from your browser address bar',
+      'Paste it below — it must start with tripadvisor.com/Hotel_Review or /Restaurant_Review',
+    ],
+    hint: '⚠ The URL must be the full property page URL, not a search result. Example: tripadvisor.com/Hotel_Review-g188113-d123456-...',
+  },
+  {
+    id: 'booking', icon: '🏨', color: '#003580', name: 'Booking.com',
+    desc: 'Essential for hotels. Guests trust Booking.com reviews heavily.',
+    fieldLabel: 'Booking.com Property URL',
+    fieldPH: 'https://www.booking.com/hotel/ch/hotel-name-zurich.en-gb.html',
+    steps: [
+      'Go to booking.com and search for your property',
+      'Click on your property listing',
+      'Copy the full URL from the address bar',
+      'Paste it below — it must contain booking.com/hotel/',
+    ],
+    hint: '⚠ Copy the URL directly from your property page on Booking.com, not from search results.',
+  },
+  {
+    id: 'holidaycheck', icon: '🌞', color: '#FF6600', name: 'HolidayCheck',
+    desc: '9.4M German-speaking users. The #1 review platform for German-speaking guests.',
+    fieldLabel: 'HolidayCheck Property URL',
+    fieldPH: 'https://www.holidaycheck.de/h/hotel-name/uuid',
+    steps: [
+      'Go to holidaycheck.de and search for your hotel',
+      'Click on your property page',
+      'Copy the full URL from the address bar',
+      'Paste it below — it must start with holidaycheck.de/h/',
+    ],
+    hint: '⚠ Copy the URL from your property page on HolidayCheck, not from search results.',
+  },
 ]
 
 export default function Platforms() {
@@ -233,25 +280,56 @@ export default function Platforms() {
                     </div>
                   )}
 
-                  {/* Not connected — show input (locked for Google once ever connected) */}
+                  {/* Not connected — show step-by-step guide + input */}
                   {!isConn && !isLoad && (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text3)', fontWeight: 600, marginBottom: 5 }}>{platform.fieldLabel}</div>
-                        <input
-                          value={inputs[platform.id] || ''}
-                          onChange={e => setInput(platform.id, e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && connect(platform)}
-                          placeholder={platform.fieldPH}
-                          style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', color: 'var(--text1)', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                          onFocus={e => e.target.style.borderColor = platform.color}
-                          onBlur={e => e.target.style.borderColor = 'var(--border)'}
-                        />
-                        <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: 4 }}>{platform.hint}</div>
+                    <div>
+                      {/* Step-by-step instructions */}
+                      {platform.steps && (
+                        <div style={{ background: 'var(--surface)', borderRadius: 10, padding: '14px 16px', marginBottom: 14, border: '1px solid var(--border)' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+                            How to find your {platform.name} URL
+                          </div>
+                          {platform.steps.map((step, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 10, marginBottom: i < platform.steps.length - 1 ? 8 : 0, alignItems: 'flex-start' }}>
+                              <div style={{ width: 20, height: 20, borderRadius: '50%', background: `${platform.color}20`, color: platform.color, fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.5 }}>{step}</div>
+                            </div>
+                          ))}
+                          {platform.hintLink && (
+                            <a href={platform.hintLink} target="_blank" rel="noopener noreferrer"
+                              style={{ display: 'inline-block', marginTop: 10, fontSize: '12px', color: platform.color, fontWeight: 600 }}>
+                              → {platform.hintLinkLabel || 'Open tool'}
+                            </a>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Input + connect */}
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                          <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text3)', fontWeight: 600, marginBottom: 5 }}>
+                            {platform.fieldLabel}
+                          </div>
+                          <input
+                            value={inputs[platform.id] || ''}
+                            onChange={e => setInput(platform.id, e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && connect(platform)}
+                            placeholder={platform.fieldPH}
+                            style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', color: 'var(--text1)', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                            onFocus={e => e.target.style.borderColor = platform.color}
+                            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                          />
+                          {platform.hint && (
+                            <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: 5, lineHeight: 1.5 }}>{platform.hint}</div>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => connect(platform)}
+                          disabled={!inputs[platform.id]?.trim()}
+                          style={{ background: platform.color, color: 'white', flexShrink: 0 }}>
+                          Connect {platform.name}
+                        </Button>
                       </div>
-                      <Button onClick={() => connect(platform)} disabled={!inputs[platform.id]} style={{ background: platform.color, flexShrink: 0 }}>
-                        Connect {platform.name}
-                      </Button>
                     </div>
                   )}
 

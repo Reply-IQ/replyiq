@@ -20,17 +20,28 @@ export default async function handler(req, res) {
     // Format query based on platform
     let url
     if (platform === 'tripadvisor') {
-      // Outscraper TripAdvisor reviews endpoint
-      console.log('[fetch-reviews] TripAdvisor import — URL:', identifier)
-      url = `https://api.app.outscraper.com/tripadvisor/reviews?query=${encodeURIComponent(identifier)}&limit=500&async=true`
+      // Validate URL format
+      if (!identifier.includes('tripadvisor.')) {
+        return res.status(400).json({ error: 'Invalid TripAdvisor URL. Must be a full URL like: https://www.tripadvisor.com/Hotel_Review-g188113-d123456-...' })
+      }
+      // Clean URL — remove query params and language suffixes
+      const cleanUrl = identifier.split('?')[0].split('#')[0]
+      console.log('[fetch-reviews] TripAdvisor import — URL:', cleanUrl)
+      url = `https://api.app.outscraper.com/tripadvisor-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=200&async=true`
     } else if (platform === 'holidaycheck') {
-      // Outscraper HolidayCheck reviews endpoint
-      console.log('[fetch-reviews] HolidayCheck import — URL:', identifier)
-      url = `https://api.app.outscraper.com/holidaycheck/reviews?query=${encodeURIComponent(identifier)}&limit=300&async=true`
+      if (!identifier.includes('holidaycheck.')) {
+        return res.status(400).json({ error: 'Invalid HolidayCheck URL. Must be a full URL like: https://www.holidaycheck.de/h/hotel-name/...' })
+      }
+      const cleanUrl = identifier.split('?')[0].split('#')[0]
+      console.log('[fetch-reviews] HolidayCheck import — URL:', cleanUrl)
+      url = `https://api.app.outscraper.com/holidaycheck-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=200&async=true`
     } else if (platform === 'booking') {
-      // Booking.com — use Outscraper's booking reviews endpoint
-      console.log('[fetch-reviews] Booking.com import — URL:', identifier)
-      url = `https://api.app.outscraper.com/booking/reviews?query=${encodeURIComponent(identifier)}&limit=300&async=true`
+      if (!identifier.includes('booking.com')) {
+        return res.status(400).json({ error: 'Invalid Booking.com URL. Must be a full URL like: https://www.booking.com/hotel/ch/...' })
+      }
+      const cleanUrl = identifier.split('?')[0].split('#')[0]
+      console.log('[fetch-reviews] Booking.com import — URL:', cleanUrl)
+      url = `https://api.app.outscraper.com/booking-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=200&async=true`
     } else {
       // Google — Place IDs need Google Maps URL format
       const query = (identifier.startsWith('ChIJ') || identifier.startsWith('Ei'))
@@ -50,12 +61,14 @@ export default async function handler(req, res) {
 
     const jobId = data?.id
     if (!jobId) {
-      console.error('[fetch-reviews] No jobId:', JSON.stringify(data))
-      return res.status(500).json({
-        error:  'Outscraper did not start the job.',
-        reason: data?.message || data?.error || 'Check credits at app.outscraper.com/billing',
-        httpStatus: r.status,
-      })
+      console.error('[fetch-reviews] No jobId — HTTP', r.status, '— Response:', JSON.stringify(data).slice(0, 300))
+      const reason = data?.message || data?.error || data?.detail || 'Unknown error'
+      let friendlyError = 'Could not start the import.'
+      if (r.status === 401 || r.status === 403) friendlyError = 'Outscraper API key is invalid or has no credits. Check app.outscraper.com/billing'
+      else if (r.status === 422) friendlyError = 'The URL you entered was not recognised by Outscraper. Make sure it is the full property page URL.'
+      else if (r.status === 404) friendlyError = 'Property not found on this platform. Check the URL is correct and the property exists.'
+      else if (reason) friendlyError = reason
+      return res.status(500).json({ error: friendlyError, detail: reason, httpStatus: r.status })
     }
 
     console.log('[fetch-reviews] Job started:', jobId)
