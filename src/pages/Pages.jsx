@@ -125,7 +125,15 @@ export function ReviewsPage() {
 
       {/* Review list */}
       {filtered.length === 0 ? (
-        <Card><EmptyState icon="✦" title="No reviews here" description={search ? `No reviews match "${search}"` : "No reviews in this category yet."} /></Card>
+        <Card><EmptyState icon={filter==='flagged'?'🚩':'✦'}
+          title={filter==='flagged' ? 'No flagged reviews' : 'No reviews here'}
+          description={
+            filter==='flagged'
+              ? 'Negative reviews are automatically classified overnight. Click "⚡ Classify Unanalysed" to run AI analysis on all existing reviews right now.'
+              : search ? `No reviews match "${search}"` : "No reviews in this category yet."
+          }
+          action={filter==='flagged' ? <Button onClick={classifyAll}>⚡ Classify Unanalysed Reviews</Button> : null}
+        /></Card>
       ) : (
         filtered.map(review => {
           const isClassified = !!review.ai_analysed_at

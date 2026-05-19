@@ -8,7 +8,7 @@ import { T, t } from '../lib/i18n.js'
 const SIDEBAR_PATHS = [
   { path:'/',            key:'dashboard',   icon:'▦' },
   { path:'/inbox',       key:'inbox',       icon:'◎', badge:true },
-  { path:'/reviews',     key:'reviews',     icon:'✦' },
+  { path:'/reviews',     key:'reviews',     icon:'✦' },  // label set in i18n
   { path:'/risk',        key:'risk',        icon:'◈' },
   { path:'/revenue',     key:'revenue',     icon:'◆' },
   { path:'/competitors', key:'competitors', icon:'⊞' },
@@ -72,6 +72,15 @@ export function Layout({ children, title, subtitle, topbarRight }) {
               <SwissFlag size={9} />
             </div>
           </div>
+          {/* Mobile bell */}
+          <Link to="/inbox" style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center', width:32, height:32, borderRadius:9, background:'var(--surface)', border:'1px solid var(--border)', textDecoration:'none' }}>
+            <span style={{ fontSize:'14px' }}>🔔</span>
+            {unans > 0 && (
+              <div style={{ position:'absolute', top:-4, right:-4, background:'#B85C38', color:'white', fontSize:'9px', fontWeight:700, borderRadius:'50%', minWidth:15, height:15, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 2px', border:'2px solid var(--bg)' }}>
+                {unans > 99 ? '99+' : unans}
+              </div>
+            )}
+          </Link>
 
         </header>
 
@@ -187,6 +196,17 @@ export function Layout({ children, title, subtitle, topbarRight }) {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
             <RiskBadge score={riskScore} lang={lang} />
+            {/* Bell notification */}
+            <Link to="/inbox" style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center', width:34, height:34, borderRadius:10, background:'var(--surface)', border:'1px solid var(--border)', textDecoration:'none', transition:'var(--ease)' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor='var(--gold)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor='var(--border)'}>
+              <span style={{ fontSize:'15px', lineHeight:1 }}>🔔</span>
+              {unans > 0 && (
+                <div style={{ position:'absolute', top:-5, right:-5, background:'#B85C38', color:'white', fontSize:'9px', fontWeight:700, borderRadius:'50%', minWidth:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 3px', border:'2px solid var(--bg)' }}>
+                  {unans > 99 ? '99+' : unans}
+                </div>
+              )}
+            </Link>
             {topbarRight}
           </div>
         </header>
