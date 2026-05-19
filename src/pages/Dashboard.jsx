@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [loading, setLoading]           = useState(false)
   const [importProgress, setImportProgress] = useState(null) // { elapsed, platform }
   const importPollRef = useRef(null)
+  const [newReviews, setNewReviews]     = useState([]) // reviews since last visit
 
   // ── Auto-resume any in-progress review import ──────────────────────────────
   useEffect(() => {
@@ -84,6 +85,23 @@ export default function Dashboard() {
   }, [property?.id, property?.pending_review_job])
   const riskScore   = useRiskScore(reviews)
   const unans       = useUnanswered(reviews)
+
+  // ── Detect new reviews since last visit ─────────────────────────────────
+  useEffect(() => {
+    if (!reviews?.length || !property?.id) return
+    const key = `replyiq_last_visit_${property.id}`
+    const lastVisit = localStorage.getItem(key)
+    if (lastVisit) {
+      const since = new Date(lastVisit)
+      const fresh = reviews.filter(r => {
+        if (!r.review_date) return false
+        return new Date(r.review_date) > since && !r.responded
+      })
+      setNewReviews(fresh)
+    }
+    // Update last visit timestamp
+    localStorage.setItem(key, new Date().toISOString())
+  }, [reviews?.length, property?.id])
   const connections = property?.platform_connections || {}
   const now         = new Date()
 
@@ -212,6 +230,35 @@ export default function Dashboard() {
             </div>
           </div>
           <Button size="sm" onClick={() => navigate('/inbox')} style={{ background:'#B85C38', color:'#fff' }}>Reply Now →</Button>
+        </div>
+      )}
+
+      {/* ── New reviews notification banner ── */}
+      {newReviews.length > 0 && (
+        <div style={{ background:'rgba(201,169,110,0.06)', border:'1px solid rgba(201,169,110,0.2)', borderRadius:'var(--r-md)', padding:'14px 18px', marginBottom:14, display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--gold)', flexShrink:0 }} />
+            <div>
+              <div style={{ fontSize:'13px', fontWeight:700, color:'var(--gold)', marginBottom:2 }}>
+                {newReviews.length} new review{newReviews.length > 1 ? 's' : ''} since your last visit
+              </div>
+              <div style={{ fontSize:'11px', color:'var(--text3)' }}>
+                {newReviews.filter(r => r.rating <= 2).length > 0
+                  ? `⚠ ${newReviews.filter(r => r.rating <= 2).length} negative — respond quickly to protect your ranking`
+                  : 'Open Inbox to review and respond'}
+              </div>
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+            <button onClick={() => setNewReviews([])}
+              style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:'16px', padding:'4px 8px', lineHeight:1 }}>
+              ×
+            </button>
+            <button onClick={() => navigate('/inbox')}
+              style={{ background:'var(--gold)', border:'none', borderRadius:8, color:'var(--bg)', fontSize:'12px', fontWeight:700, cursor:'pointer', padding:'8px 16px', fontFamily:'var(--font-sans)', whiteSpace:'nowrap' }}>
+              Open Inbox →
+            </button>
+          </div>
         </div>
       )}
 

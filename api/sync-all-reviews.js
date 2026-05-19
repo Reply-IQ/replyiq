@@ -91,42 +91,122 @@ export default async function handler(req, res) {
         console.log('[sync-all]', clinic.name, '— saved', newCount, 'new reviews')
         results.push({ clinic: clinic.name, fetched: reviewsData.length, newReviews: newCount })
 
-        // Send email notification if there are new reviews and clinic has an email
+        // Send professional email notification when new reviews arrive
         if (newCount > 0 && clinic.owner_email) {
-          const newReviews = upserted.slice(0, 3) // show up to 3 in email
-          const negCount   = newReviews.filter(r => r.rating <= 2).length
-          const subject    = negCount > 0
-            ? `⚠ ${newCount} new review${newCount>1?'s':''} — ${negCount} need${negCount===1?'s':''} attention · ${clinic.name}`
-            : `${newCount} new review${newCount>1?'s':''} imported · ${clinic.name}`
+          const toShow   = upserted.slice(0, 3)
+          const negCount = toShow.filter(r => r.rating <= 2).length
+          const posCount = toShow.filter(r => r.rating >= 4).length
+          const dateStr  = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' })
 
-          const previewRows = newReviews.map(r =>
-            '<div style="padding:12px;background:#1C2430;border-radius:8px;margin-bottom:8px;border-left:3px solid ' +
-            (r.rating<=2?'#B85C38':r.rating>=4?'#4A7C6F':'#C9A96E') + '">' +
-            '<div style="font-size:11px;color:#6B7280;margin-bottom:4px">' + '★'.repeat(r.rating||3) + '  ' + (r.author||'Guest') + '</div>' +
-            '<div style="font-size:12px;color:#A0A0B8;line-height:1.5">' + (r.text||'(No text)').slice(0,120) + (r.text?.length>120?'…':'') + '</div></div>'
-          ).join('')
+          const subject = negCount > 0
+            ? `⚠ ${newCount} new review${newCount>1?'s':''} — ${negCount} need${negCount===1?'s':''} urgent attention · ${clinic.name}`
+            : `${newCount} new review${newCount>1?'s':''} — ${posCount > 0 ? posCount+' positive' : 'ready to reply'} · ${clinic.name}`
+
+          // Build review preview cards
+          const reviewCards = toShow.map(r => {
+            const stars  = parseInt(r.rating) || 3
+            const color  = stars <= 2 ? '#B85C38' : stars >= 4 ? '#4A7C6F' : '#C9A96E'
+            const starStr= '★'.repeat(stars) + '☆'.repeat(5 - stars)
+            const urgent = stars <= 2
+            return (
+              '<div style="margin-bottom:10px;border-radius:10px;overflow:hidden;border:1px solid ' + (urgent ? 'rgba(184,92,56,0.3)' : '#2A3545') + '">' +
+              '<div style="padding:10px 14px;background:' + (urgent ? 'rgba(184,92,56,0.08)' : '#1C2430') + ';display:flex;justify-content:space-between;align-items:center">' +
+              '<div>' +
+              '<span style="color:' + color + ';font-size:13px;font-weight:700;letter-spacing:0.5px">' + starStr + '</span>' +
+              '<span style="color:#6B7280;font-size:11px;margin-left:8px">' + (r.author || 'Guest') + '</span>' +
+              '</div>' +
+              (urgent ? '<span style="background:rgba(184,92,56,0.15);color:#B85C38;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:1px">URGENT</span>' : '') +
+              '</div>' +
+              '<div style="padding:12px 14px;background:#13131A">' +
+              '<div style="font-size:13px;color:#A0A0B8;line-height:1.65;font-style:italic">' +
+              (r.text && r.text !== '(No text)' ? '"' + r.text.slice(0, 160) + (r.text.length > 160 ? '…"' : '"') : '<span style="color:#404060">(No text — star rating only)</span>') +
+              '</div>' +
+              '</div>' +
+              '</div>'
+            )
+          }).join('')
+
+          // Score bar — response rate context
+          const responded  = toShow.filter(r => r.responded).length
+          const totalInDB  = parseInt(clinic._reviewCount) || newCount
+          const swissFlag  = '<svg width="11" height="11" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px"><rect width="20" height="20" fill="#FF0000"/><rect x="3" y="7" width="14" height="6" fill="white"/><rect x="7" y="3" width="6" height="14" fill="white"/></svg>'
+
+          const html =
+            '<!DOCTYPE html><html>' +
+            '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+            '<body style="margin:0;padding:0;background:#0A0A0F;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#E8E4DC">' +
+            '<div style="max-width:560px;margin:0 auto;padding:32px 20px">' +
+
+            // Header
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px">' +
+            '<div>' +
+            '<div style="font-family:Georgia,serif;font-size:24px;font-weight:700;color:#fff;letter-spacing:-0.5px">Reply<span style="color:#C9A96E">IQ</span></div>' +
+            '<div style="font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:2.5px;text-transform:uppercase;margin-top:3px">Reputation Intelligence</div>' +
+            '</div>' +
+            '<div style="text-align:right">' +
+            '<div style="font-size:12px;color:#C9A96E;font-weight:600">' + clinic.name + '</div>' +
+            '<div style="font-size:10px;color:#6B7280;margin-top:2px">' + dateStr + '</div>' +
+            '</div>' +
+            '</div>' +
+
+            // Alert banner
+            '<div style="background:' + (negCount > 0 ? 'rgba(184,92,56,0.08)' : 'rgba(74,124,111,0.06)') + ';border:1px solid ' + (negCount > 0 ? 'rgba(184,92,56,0.25)' : 'rgba(74,124,111,0.2)') + ';border-left:4px solid ' + (negCount > 0 ? '#B85C38' : '#4A7C6F') + ';border-radius:10px;padding:16px 20px;margin-bottom:20px">' +
+            '<div style="font-family:Georgia,serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">' +
+            (negCount > 0
+              ? '⚠ ' + negCount + ' review' + (negCount > 1 ? 's need' : ' needs') + ' urgent attention'
+              : newCount + ' new review' + (newCount > 1 ? 's' : '') + ' arrived overnight') +
+            '</div>' +
+            '<div style="font-size:13px;color:#A0A0B8;line-height:1.6">' +
+            (negCount > 0
+              ? 'Unanswered negative reviews hurt your Google ranking and deter future guests. Respond within 24 hours to show prospective guests you care.'
+              : 'Your guests took time to share their experience. A personal reply builds loyalty and improves your visibility on Google and TripAdvisor.') +
+            '</div>' +
+            '</div>' +
+
+            // Review cards
+            '<div style="margin-bottom:20px">' +
+            '<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;font-weight:600;margin-bottom:12px">' +
+            (toShow.length < newCount ? 'Preview — ' + toShow.length + ' of ' + newCount + ' new reviews' : newCount + ' new review' + (newCount > 1 ? 's' : '')) +
+            '</div>' +
+            reviewCards +
+            (newCount > toShow.length
+              ? '<div style="text-align:center;font-size:12px;color:#6B7280;padding:8px 0">+ ' + (newCount - toShow.length) + ' more in your inbox</div>'
+              : '') +
+            '</div>' +
+
+            // CTA button
+            '<a href="https://app.replyiq.ch/inbox" style="display:block;padding:16px;background:linear-gradient(135deg,#F5C842,#D4860E);border-radius:12px;color:#141920;font-size:15px;font-weight:700;text-decoration:none;text-align:center;margin-bottom:20px;letter-spacing:0.3px">' +
+            (negCount > 0 ? '⚡ Respond Now — Protect Your Rating →' : 'Open Inbox and Reply →') +
+            '</a>' +
+
+            // Why respond tip
+            '<div style="background:#1C2430;border-radius:10px;padding:14px 18px;margin-bottom:20px;border:1px solid #2A3545">' +
+            '<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#C9A96E;font-weight:600;margin-bottom:8px">Why responding matters</div>' +
+            '<div style="font-size:12px;color:#6B7280;line-height:1.8">' +
+            '📈 Properties that respond to every review rank <strong style="color:#A0A0B8">higher on Google</strong><br>' +
+            '⭐ Responding to 1-star reviews <strong style="color:#A0A0B8">increases trust</strong> with future guests<br>' +
+            '💬 Guests who feel heard are <strong style="color:#A0A0B8">2× more likely to return</strong>' +
+            '</div>' +
+            '</div>' +
+
+            // Footer
+            '<div style="text-align:center;padding-top:16px;border-top:1px solid #1C2430;font-size:10px;color:#2A3545;line-height:1.8">' +
+            swissFlag + ' ReplyIQ &nbsp;·&nbsp; <a href="https://app.replyiq.ch" style="color:#C9A96E;text-decoration:none">app.replyiq.ch</a> &nbsp;·&nbsp; Zürich, Switzerland<br>' +
+            'You receive this because you are a ReplyIQ client. <a href="mailto:info@replyiq.ch" style="color:#404060;text-decoration:none">Unsubscribe</a>' +
+            '</div>' +
+
+            '</div></body></html>'
 
           await fetch('https://api.resend.com/emails', {
-            method: 'POST',
+            method:  'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
             body: JSON.stringify({
-              from: 'ReplyIQ <info@replyiq.ch>',
-              to: [clinic.owner_email],
+              from:    'ReplyIQ Alerts <info@replyiq.ch>',
+              to:      [clinic.owner_email],
               subject,
-              html: '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0A0A0F;font-family:-apple-system,sans-serif;color:#E8E4DC">' +
-                '<div style="max-width:520px;margin:0 auto;padding:28px 20px">' +
-                '<div style="font-family:Georgia,serif;font-size:22px;color:#fff;margin-bottom:4px">Reply<span style="color:#C9A96E">IQ</span></div>' +
-                '<div style="font-size:10px;color:#6B7280;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px">New Reviews Detected</div>' +
-                '<div style="background:#1C2430;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid #2A3545">' +
-                '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">' + newCount + ' new review' + (newCount>1?'s':'') + ' for ' + clinic.name + '</div>' +
-                '<div style="font-size:12px;color:#6B7280;margin-bottom:16px">Imported overnight · ' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long'}) + '</div>' +
-                previewRows +
-                '</div>' +
-                '<a href="https://app.replyiq.ch/inbox" style="display:block;padding:14px;background:linear-gradient(135deg,#F5C842,#D4860E);border-radius:10px;color:#141920;font-size:14px;font-weight:700;text-decoration:none;text-align:center;margin-bottom:16px">Open Inbox and Reply →</a>' +
-                '<div style="font-size:10px;color:#2A3545;text-align:center">ReplyIQ · app.replyiq.ch</div>' +
-                '</div></body></html>'
+              html,
             })
-          }).catch(e => console.log('[sync-all] email notify failed:', e.message))
+          }).catch(e => console.log('[sync-all] notify email failed:', e.message))
         }
 
       } catch (e) {
