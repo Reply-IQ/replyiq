@@ -49,15 +49,11 @@ const PLATFORMS = [
   {
     id: 'holidaycheck', icon: '🌞', color: '#FF6600', name: 'HolidayCheck',
     desc: '9.4M German-speaking users. The #1 review platform for German-speaking guests.',
+    comingSoon: true,
     fieldLabel: 'HolidayCheck Property URL',
     fieldPH: 'https://www.holidaycheck.de/h/hotel-name/uuid',
-    steps: [
-      'Go to holidaycheck.de and search for your hotel',
-      'Click on your property page',
-      'Copy the full URL from the address bar',
-      'Paste it below — it must start with holidaycheck.de/h/',
-    ],
-    hint: '⚠ Copy the URL from your property page on HolidayCheck, not from search results.',
+    steps: [],
+    hint: '',
   },
 ]
 
@@ -281,7 +277,13 @@ export default function Platforms() {
                   )}
 
                   {/* Not connected — show step-by-step guide + input */}
-                  {!isConn && !isLoad && (
+                  {!isConn && !isLoad && platform.comingSoon && (
+                    <div style={{ padding:'14px 16px', background:'var(--surface)', borderRadius:10, border:'1px solid var(--border)', textAlign:'center' }}>
+                      <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text3)', marginBottom:4 }}>🔜 Coming Soon</div>
+                      <div style={{ fontSize:'12px', color:'var(--text3)', lineHeight:1.6 }}>HolidayCheck integration is in development. Google and TripAdvisor cover the majority of DACH reviews in the meantime.</div>
+                    </div>
+                  )}
+                  {!isConn && !isLoad && !platform.comingSoon && (
                     <div>
                       {/* Step-by-step instructions */}
                       {platform.steps && (
@@ -331,7 +333,7 @@ export default function Platforms() {
                         </Button>
                       </div>
                     </div>
-                  )}
+                  )} {/* end !comingSoon */}
 
                   {/* Not connected but loading */}
                   {!isConn && isLoad && !msg && (
