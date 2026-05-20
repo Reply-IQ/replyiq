@@ -424,7 +424,7 @@ export function RevenuePage() {
   const { property, reviews } = useApp()
   const { lang } = useLang()
   const [appts, setAppts]   = useState(property?.monthly_covers || 300)
-  const [rev, setRev]       = useState(property?.monthly_revenue || 50000)
+  const [rev, setRev]       = useState(property?.avg_revenue || property?.monthly_revenue || 50000)
   const [target, setTarget] = useState(property?.target_rating || 4.7)
   const [result, setResult] = useState(null)
   // Use real average from imported reviews, fall back to Google business info
@@ -1022,9 +1022,9 @@ export function ReportPage() {
               ['Risk score', `${report.riskScore}/100`, riskScore>60?'#B85C38':'#4A7C6F'],
               ['Revenue risk', report.revenueRisk, '#C9A96E'],
             ].map(([l,v,c],i,arr)=>(
-              <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
-                <span style={{ color:'var(--text3)' }}>{l}</span>
-                <span style={{ fontFamily:'var(--font-mono)', fontWeight:600, color:c }}>{v}</span>
+              <div key={l} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12, padding:'8px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
+                <span style={{ color:'var(--text3)', flexShrink:0 }}>{l}</span>
+                <span style={{ fontWeight:600, color:c, textAlign:'right', lineHeight:1.5 }}>{v}</span>
               </div>
             ))}
           </Card>

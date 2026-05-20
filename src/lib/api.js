@@ -354,7 +354,7 @@ export async function generateReport(property, reviews, existingRiskScore) {
   const fiveStar     = reviews.filter(r => Number(r.rating) === 5)
 
   // ── Revenue risk — calculated via HBS formula, not AI estimate ─────────────
-  const monthlyRevenue = parseFloat(property?.monthly_revenue) || null
+  const monthlyRevenue = parseFloat(property?.monthly_revenue || property?.avg_revenue) || null
   const currentRating  = parseFloat(avgRating) || 4.0
   const ratingGap      = Math.max(0, 4.8 - currentRating).toFixed(1)
   const upliftPct      = (ratingGap * 9).toFixed(1)
