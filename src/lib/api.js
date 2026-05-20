@@ -353,6 +353,15 @@ export async function generateReport(property, reviews, existingRiskScore) {
   const positive     = reviews.filter(r => Number(r.rating) >= 4)
   const fiveStar     = reviews.filter(r => Number(r.rating) === 5)
 
+  // ── Revenue risk — calculated via HBS formula, not AI estimate ─────────────
+  const monthlyRevenue = parseFloat(property?.monthly_revenue) || null
+  const currentRating  = parseFloat(avgRating) || 4.0
+  const ratingGap      = Math.max(0, 4.8 - currentRating).toFixed(1)
+  const upliftPct      = (ratingGap * 9).toFixed(1)
+  const revenueRiskStr = monthlyRevenue && monthlyRevenue > 0
+    ? `CHF ${Math.round(monthlyRevenue * upliftPct / 100).toLocaleString()}/month — based on ${ratingGap}\u2605 gap to top performers \u00d7 9% per star (HBS, 2016)`
+    : `${ratingGap}\u2605 gap to top performers — each star = ~9% more revenue. Add monthly revenue in Settings for a CHF figure.`
+
   // Sample of 8 recent reviews WITH text for AI context — clearly labelled as sample
   const recentSample = reviews
     .filter(r => r.text && r.text.length > 10)
@@ -376,7 +385,7 @@ EXACT STATISTICS (use these numbers precisely — do not change them):
 SAMPLE of recent reviews (for context only — do NOT use these to count or infer totals):
 ${recentSample || 'No review text available'}
 
-IMPORTANT: The statistics above are the ground truth. Do not say "9 of 10 reviews" or similar — use the exact numbers. The response rate is ${responseRate}%, unanswered is ${unanswered} out of ${total}.
+IMPORTANT: The statistics above are the ground truth. Do not say "9 of 10 reviews" or similar — use the exact numbers. The response rate is ${responseRate}%, unanswered is ${unanswered} out of ${total}. The revenueRisk field is already calculated — copy it exactly as provided, do not change it.
 
 Return ONLY valid JSON with these exact fields:
 {
@@ -386,7 +395,7 @@ Return ONLY valid JSON with these exact fields:
   "positiveCount": ${positive.length},
   "unansweredCount": ${unanswered},
   "responseRate": ${responseRate},
-  "revenueRisk": "CHF estimate of monthly revenue impact from current rating",
+  "revenueRisk": "${revenueRiskStr}",
   "topThreats": ["specific threat based on review content", "threat 2", "threat 3"],
   "topStrengths": ["specific strength from review content", "strength 2"],
   "actions": [
