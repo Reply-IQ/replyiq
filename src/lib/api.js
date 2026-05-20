@@ -342,48 +342,60 @@ Return ONLY raw JSON — no markdown, no backticks, no explanation. Exactly this
 }
 
 // ── WEEKLY REPORT ─────────────────────────────────────────────────────────────
-export async function generateReport(property, reviews) {
-  const name       = property?.name || 'your property'
-  const total      = reviews.length
-  const avgRating  = total ? (reviews.reduce((s,r) => s+r.rating,0)/total).toFixed(1) : 0
-  const unanswered = reviews.filter(r => !r.responded).length
-  const negative   = reviews.filter(r => r.rating <= 2)
-  const positive   = reviews.filter(r => r.rating >= 5)
-  const recent     = reviews.slice(0,10).map(r =>
-    `${r.rating}★ (${r.responded?'answered':'UNANSWERED'}): "${r.text?.slice(0,100)}"`
-  ).join('\n')
+export async function generateReport(property, reviews, existingRiskScore) {
+  const name         = property?.name || 'your property'
+  const total        = reviews.length
+  const avgRating    = total ? (reviews.reduce((s,r) => s+Number(r.rating),0)/total).toFixed(1) : 0
+  const unanswered   = reviews.filter(r => !r.responded).length
+  const responded    = total - unanswered
+  const responseRate = total ? Math.round((responded / total) * 100) : 0
+  const negative     = reviews.filter(r => Number(r.rating) <= 2)
+  const positive     = reviews.filter(r => Number(r.rating) >= 4)
+  const fiveStar     = reviews.filter(r => Number(r.rating) === 5)
+
+  // Sample of 8 recent reviews WITH text for AI context — clearly labelled as sample
+  const recentSample = reviews
+    .filter(r => r.text && r.text.length > 10)
+    .slice(0, 8)
+    .map(r => `  [${r.rating}★ | ${r.responded ? 'REPLIED' : 'NOT REPLIED'} | ${r.platform || 'google'}] "${r.text?.slice(0, 120)}"`)
+    .join('\n')
 
   return ai(
-    `You are the weekly intelligence briefing system for ReplyIQ, a hospitality reputation management platform. Write in a professional but direct tone. Be specific, not generic.`,
-    `Generate the weekly reputation intelligence report for ${name}.
+    `You are a senior hospitality reputation analyst. Write a precise, data-driven weekly report. Use ONLY the exact numbers provided — never invent or estimate counts.`,
+    `Generate the weekly reputation report for ${name}.
 
-This week's data:
-- Total reviews in system: ${total}
+EXACT STATISTICS (use these numbers precisely — do not change them):
+- Total reviews imported: ${total}
+- Responded: ${responded} out of ${total} (${responseRate}% response rate)
+- NOT responded (unanswered): ${unanswered}
 - Average rating: ${avgRating}★
-- Unanswered reviews: ${unanswered} (${total ? Math.round(unanswered/total*100) : 0}% response rate)
 - Negative reviews (1-2★): ${negative.length}
-- 5-star reviews: ${positive.length}
+- Positive reviews (4-5★): ${positive.length}
+- 5-star reviews: ${fiveStar.length}
 
-Recent reviews sample:
-${recent}
+SAMPLE of recent reviews (for context only — do NOT use these to count or infer totals):
+${recentSample || 'No review text available'}
 
-Return JSON with EXACTLY these fields:
+IMPORTANT: The statistics above are the ground truth. Do not say "9 of 10 reviews" or similar — use the exact numbers. The response rate is ${responseRate}%, unanswered is ${unanswered} out of ${total}.
+
+Return ONLY valid JSON with these exact fields:
 {
-  "weekSummary": "3 direct sentences summarising reputation health — be specific and honest",
-  "riskScore": <integer 0-100>,
+  "weekSummary": "3 direct sentences using the exact stats above — mention the ${responseRate}% response rate and ${avgRating}★ rating specifically",
+  "riskScore": ${existingRiskScore || "<calculate 0-100 based on response rate and negative review ratio>"},
   "negativeCount": ${negative.length},
   "positiveCount": ${positive.length},
   "unansweredCount": ${unanswered},
-  "revenueRisk": "e.g. CHF 12,000/month at risk — estimate based on rating gap",
-  "topThreats": ["specific threat 1 from the reviews", "specific threat 2", "specific threat 3"],
-  "topStrengths": ["specific strength from reviews 1", "strength 2"],
+  "responseRate": ${responseRate},
+  "revenueRisk": "CHF estimate of monthly revenue impact from current rating",
+  "topThreats": ["specific threat based on review content", "threat 2", "threat 3"],
+  "topStrengths": ["specific strength from review content", "strength 2"],
   "actions": [
-    {"urgency": "urgent", "action": "specific action to do today", "impact": "why this matters right now"},
+    {"urgency": "urgent", "action": "specific action", "impact": "why this matters"},
     {"urgency": "this-week", "action": "action for this week", "impact": "expected outcome"},
-    {"urgency": "this-month", "action": "strategic action for this month", "impact": "long-term benefit"}
+    {"urgency": "this-month", "action": "strategic action", "impact": "long-term benefit"}
   ],
-  "win": "the single most positive thing from this week's reviews — quote or paraphrase specifically",
-  "nextFocus": "one clear actionable focus area for next week"
+  "win": "the most positive specific thing from the sample reviews",
+  "nextFocus": "one clear focus for next week"
 }`,
     1200
   )

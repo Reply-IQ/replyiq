@@ -27,21 +27,21 @@ export default async function handler(req, res) {
       // Clean URL — remove query params and language suffixes
       const cleanUrl = identifier.split('?')[0].split('#')[0]
       console.log('[fetch-reviews] TripAdvisor import — URL:', cleanUrl)
-      url = `https://api.app.outscraper.com/tripadvisor-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=200&async=true`
+      url = `https://api.app.outscraper.com/tripadvisor-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=500&async=true`
     } else if (platform === 'holidaycheck') {
       if (!identifier.includes('holidaycheck.')) {
         return res.status(400).json({ error: 'Invalid HolidayCheck URL. Must be a full URL like: https://www.holidaycheck.de/h/hotel-name/...' })
       }
       const cleanUrl = identifier.split('?')[0].split('#')[0]
       console.log('[fetch-reviews] HolidayCheck import — URL:', cleanUrl)
-      url = `https://api.app.outscraper.com/holidaycheck-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=200&async=true`
+      url = `https://api.app.outscraper.com/holidaycheck-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=500&async=true`
     } else if (platform === 'booking') {
       if (!identifier.includes('booking.com')) {
         return res.status(400).json({ error: 'Invalid Booking.com URL. Must be a full URL like: https://www.booking.com/hotel/ch/...' })
       }
       const cleanUrl = identifier.split('?')[0].split('#')[0]
       console.log('[fetch-reviews] Booking.com import — URL:', cleanUrl)
-      url = `https://api.app.outscraper.com/booking-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=200&async=true`
+      url = `https://api.app.outscraper.com/booking-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=500&async=true`
     } else {
       // Google — Place IDs need Google Maps URL format
       const query = (identifier.startsWith('ChIJ') || identifier.startsWith('Ei'))

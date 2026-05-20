@@ -905,14 +905,18 @@ function buildReportEmail(r, property) {
     <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#C9A96E;margin-bottom:8px;font-weight:600">Executive Summary</div>
     <div style="font-size:14px;line-height:1.7;color:#C8C3BC">${r.weekSummary||''}</div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:16px;text-align:center">
-      <div style="font-size:28px;font-weight:700;color:${riskColor}">${r.riskScore||0}</div>
-      <div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Risk Score</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
+    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:26px;font-weight:700;color:${riskColor}">${r.riskScore||0}</div>
+      <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Risk Score</div>
     </div>
-    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:16px;text-align:center">
-      <div style="font-size:28px;font-weight:700;color:#C9A96E">${r.unansweredCount||0}</div>
-      <div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Unanswered</div>
+    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:26px;font-weight:700;color:#C9A96E">${r.unansweredCount||0}</div>
+      <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Unanswered</div>
+    </div>
+    <div style="background:#1C2430;border:1px solid #2A3545;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:26px;font-weight:700;color:${(r.responseRate||0)>=80?'#4A7C6F':'#B85C38'}">${r.responseRate||0}%</div>
+      <div style="font-size:10px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:4px">Response Rate</div>
     </div>
   </div>
   ${r.topThreats?.length ? `
@@ -1008,7 +1012,16 @@ export function ReportPage() {
         <Grid cols={isMobile?1:2} gap={16} style={{ marginBottom:16 }}>
           <Card>
             <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--teal)', marginBottom:12, fontWeight:600 }}>Statistics</div>
-            {[['Negative reviews',report.negativeCount,'#B85C38'],['Positive reviews',report.positiveCount,'#4A7C6F'],['Unanswered',report.unansweredCount,'#C9A96E'],['Risk score',`${report.riskScore}/100`,riskScore>60?'#B85C38':'#4A7C6F'],['Revenue risk',report.revenueRisk,'#C9A96E']].map(([l,v,c],i,arr)=>(
+            {[
+              ['Total reviews', reviews.length, 'var(--text1)'],
+              ['Responded', reviews.filter(r=>r.responded).length + ' of ' + reviews.length, '#4A7C6F'],
+              ['Response rate', (reviews.length ? Math.round((reviews.filter(r=>r.responded).length/reviews.length)*100) : 0) + '%', reviews.length && reviews.filter(r=>r.responded).length/reviews.length >= 0.8 ? '#4A7C6F' : '#B85C38'],
+              ['Unanswered', report.unansweredCount, report.unansweredCount > 0 ? '#B85C38' : '#4A7C6F'],
+              ['Negative (1-2★)', report.negativeCount, '#B85C38'],
+              ['Positive (4-5★)', report.positiveCount, '#4A7C6F'],
+              ['Risk score', `${report.riskScore}/100`, riskScore>60?'#B85C38':'#4A7C6F'],
+              ['Revenue risk', report.revenueRisk, '#C9A96E'],
+            ].map(([l,v,c],i,arr)=>(
               <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
                 <span style={{ color:'var(--text3)' }}>{l}</span>
                 <span style={{ fontFamily:'var(--font-mono)', fontWeight:600, color:c }}>{v}</span>
