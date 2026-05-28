@@ -102,7 +102,7 @@ export function ReviewsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder=t(T.inbox.selectReview, lang)
+            placeholder={t(T.inbox.selectReview, lang)}
             style={{ flex:1, minWidth:200, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
             onFocus={e => e.target.style.borderColor='var(--gold)'}
             onBlur={e => e.target.style.borderColor='var(--border)'}
@@ -246,7 +246,7 @@ export function RespondPage() {
   const unanswered = reviews.filter(r => !r.responded)
 
   return (
-    <Layout title="AI Respond" subtitle=t(T.respondPage.pasteHint, lang)>
+    <Layout title="AI Respond" subtitle={t(T.respondPage.pasteHint, lang)}>
       <Grid cols={2} gap={18} style={{ alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <Card>
@@ -301,7 +301,7 @@ export function RespondPage() {
 
         <Card>
           <SectionHeader title={t(T.inbox.aiBrandVoice, lang)} />
-          {!response && !loading && <EmptyState icon="✍" title=t(T.respondPage.responseHere, lang) description="Enter a review and click Generate" />}
+          {!response && !loading && <EmptyState icon="✍" title={t(T.respondPage.responseHere, lang)} description="Enter a review and click Generate" />}
           {loading && <div style={{ padding:'48px 0', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}><Spinner size={24} /><div style={{ color:'var(--gold)', fontSize:'13px' }}>Crafting your response...</div></div>}
           {response && <>
             <div style={{ background:'var(--surface)', borderRadius:10, padding:18, fontSize:'14px', color:'var(--text1)', lineHeight:1.8, fontStyle:'italic', borderLeft:'3px solid var(--gold)', marginBottom:14 }}>
@@ -722,7 +722,7 @@ export function CompetitorsPage() {
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && searchCompetitor()}
-            placeholder=t(T.competitors.sync, lang)
+            placeholder={t(T.competitors.sync, lang)}
             style={{ flex:1, minWidth:180, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
             onFocus={e => e.target.style.borderColor = 'var(--gold)'}
             onBlur={e => e.target.style.borderColor = 'var(--border)'}
@@ -1002,8 +1002,8 @@ export function ReportPage() {
         </div>
       }
     >
-      {!report && !loading && <Card><EmptyState icon="▤" title={t(T.reportExtra.title, lang)} description=t(T.reportExtra.title, lang) action={<Button size="lg" onClick={generate}>Generate This Week's Report</Button>} /></Card>}
-      {loading && <Card><div style={{ padding:48, display:'flex', alignItems:'center', gap:12, color:'var(--gold)', justifyContent:'center' }}><Spinner size={20} />${t(T.reportExtra.generating, lang)}</div></Card>}
+      {!report && !loading && <Card><EmptyState icon="▤" title={t(T.reportExtra.title, lang)} description={t(T.reportExtra.title, lang)} action={<Button size="lg" onClick={generate}>{t(T.report.generate, lang)}</Button>} /></Card>}
+      {loading && <Card><div style={{ padding:48, display:'flex', alignItems:'center', gap:12, color:'var(--gold)', justifyContent:'center' }}><Spinner size={20} />{t(T.reportExtra.generating, lang)}</div></Card>}
       {report && !report.error && <>
         <Card style={{ marginBottom:16, borderLeft:'3px solid var(--gold)' }}>
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--gold)', marginBottom:8, fontWeight:600 }}>Executive Summary</div>
@@ -1036,7 +1036,7 @@ export function ReportPage() {
           </Card>
         </Grid>
         <Card style={{ marginBottom:16 }}>
-          <SectionHeader title=t(T.reportExtra.priorityPlan, lang) subtitle="Organised by urgency" />
+          <SectionHeader title={t(T.reportExtra.priorityPlan, lang)} subtitle="Organised by urgency" />
           {(report.actions||[]).map((a,i)=>(
             <div key={i} style={{ display:'flex', gap:14, padding:12, borderRadius:8, marginBottom:8, background:urgB[a.urgency]||urgB['this-week'], border:`1px solid ${(urgC[a.urgency]||'#5a9080')}22`, alignItems:'flex-start' }}>
               <div style={{ minWidth:80, padding:'3px 8px', borderRadius:5, textAlign:'center', background:`${(urgC[a.urgency]||'#5a9080')}15`, color:urgC[a.urgency]||'#5a9080', fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', flexShrink:0 }}>{a.urgency?.replace('-',' ')}</div>
@@ -1098,7 +1098,7 @@ export function WidgetPage() {
       </Card>
 
       {!pid ? (
-        <EmptyState icon="⊞" title=t(T.platforms.connect, lang)+' Google' description="Your widget is ready once you connect your Google Business profile on the Platforms page." />
+        <EmptyState icon="⊞" title={t(T.platforms.connect, lang)+' Google'} description="Your widget is ready once you connect your Google Business profile on the Platforms page." />
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           {snippets.map((snip, i) => (
