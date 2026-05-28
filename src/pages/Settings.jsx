@@ -232,7 +232,7 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
     const newProfile = { ...profile, autoReply5Star: !enabled }
     const { data, error } = await updateProperty({ ai_profile: newProfile })
     if (error) showToast('Error saving setting', 'error')
-    else { updatePropertyInState(data); showToast(!enabled ? 'Auto-reply enabled' : 'Auto-reply disabled', 'success') }
+    else { updatePropertyInState(data); showToast(!enabled ? '5-star template enabled' : '5-star template disabled', 'success') }
     setSaving(false)
   }
 
@@ -255,7 +255,7 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
     const newProfile = { ...profile, autoReply5StarTemplate: tmpl }
     const { data, error } = await updateProperty({ ai_profile: newProfile })
     if (error) showToast('Error saving template', 'error')
-    else { updatePropertyInState(data); showToast('Template saved!', 'success') }
+    else { updatePropertyInState(data); showToast('5-star template saved', 'success') }
     setSaving(false)
   }
 
@@ -264,10 +264,9 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
       {/* Header + toggle */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
         <div>
-          <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:3 }}>⚡ Auto-Reply for 5-Star Reviews</div>
+          <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:3 }}>⚡ 5-Star Response Template</div>
           <div style={{ fontSize:'12px', color:'var(--text3)', lineHeight:1.5 }}>
-            Automatically posts a personalised thank-you to text-free 5-star reviews.<br/>
-            Your AI brand voice, snippets and sign-off are all applied automatically.
+            Save a pre-written reply for text-free 5-star reviews. When a guest leaves 5 stars with no text, the Inbox pre-fills this template — you review it and post in one click.
           </div>
         </div>
         <button onClick={toggle} disabled={saving} style={{
@@ -345,7 +344,7 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
 
           {saved && (
             <div style={{ marginTop:12, padding:'8px 12px', background:'rgba(74,124,111,.06)', border:'1px solid rgba(74,124,111,.15)', borderRadius:8, fontSize:'11px', color:'#4A7C6F' }}>
-              ✓ Active template saved — auto-replies are live for text-free 5-star reviews
+              ✓ Template saved — pre-fills automatically in Inbox for text-free 5-star reviews
             </div>
           )}
         </>
@@ -353,8 +352,7 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
 
       {!enabled && (
         <div style={{ fontSize:'11px', color:'var(--text3)', fontStyle:'italic', lineHeight:1.7 }}>
-          When enabled, ReplyIQ automatically posts a thank-you to every 5-star review with no text.
-          The AI uses your full brand voice, smart snippets and sign-off style — no approval needed.
+          Save a template that pre-fills in the Inbox whenever a guest leaves 5 stars with no review text. You still approve before posting — but the hard work is already done.
         </div>
       )}
     </Card>

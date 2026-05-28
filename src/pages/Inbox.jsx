@@ -10,8 +10,18 @@ const PLATFORM_META = {
   google:      { icon:'🔍', color:'#4285F4', bg:'rgba(66,133,244,.1)',  label:'Google',      url:'https://business.google.com/reviews' },
   tripadvisor: { icon:'🦉', color:'#00AF87', bg:'rgba(0,175,135,.1)',   label:'TripAdvisor', url:'https://www.tripadvisor.com' },
   booking:     { icon:'🏨', color:'#003580', bg:'rgba(0,53,128,.1)',    label:'Booking.com', url:'https://www.booking.com' },
-  instagram:   { icon:'📸', color:'#E1306C', bg:'rgba(225,48,108,.1)', label:'Instagram',   url:'https://instagram.com' },
-  facebook:    { icon:'📘', color:'#1877F2', bg:'rgba(24,119,242,.1)', label:'Facebook',    url:'https://www.facebook.com' },
+}
+
+// Get the most direct URL to the review — use stored review_link if available
+function getReviewUrl(review, platformMeta) {
+  // TripAdvisor: review_link is the direct URL to the review
+  if (review?.review_link) return review.review_link
+  // Google: deep link to Google Business Profile reviews tab
+  const placeId = review?.google_place_id
+  if (review?.platform === 'google' || !review?.platform) {
+    return 'https://business.google.com/reviews'
+  }
+  return platformMeta?.url || 'https://google.com'
 }
 
 function timeAgo(dateStr) {
@@ -59,10 +69,29 @@ export default function Inbox() {
 
   function selectReview(review) {
     setSelected(review)
-    setDraft(review.response_text || '')
-    setEditMode(false)
     setAiError(false)
+    setEditMode(false)
     if (isMobile) setMobileView('detail')
+
+    // If review already has a response, show it
+    if (review.response_text) {
+      setDraft(review.response_text)
+      return
+    }
+
+    // Pre-fill 5-star template if enabled and review has no text
+    const template = property?.ai_profile?.autoReply5StarTemplate
+    const enabled  = property?.ai_profile?.autoReply5Star
+    const is5Star  = Number(review.rating) === 5
+    const noText   = !review.text || review.text.trim().length < 5
+
+    if (enabled && template && is5Star && noText) {
+      const firstName = (review.author || '').split(' ')[0] || 'Guest'
+      const filled    = template.replace(/\{name\}/gi, firstName)
+      setDraft(filled)
+    } else {
+      setDraft('')
+    }
   }
 
   function goBackToList() {
@@ -115,7 +144,8 @@ setGenerating(true)
       updateReviewInState(data)
       setSelected(data)
       const p = PLATFORM_META[selected.platform?.toLowerCase()]||PLATFORM_META.google
-      window.open(p.url, '_blank', 'noopener')
+      const directUrl = getReviewUrl(selected, p)
+      window.open(directUrl, '_blank', 'noopener')
       showToast(copied ? `✓ Copied! Paste it on ${p.label}` : `Opened ${p.label} — copy your response manually`, 'success')
     }
     setApproving(false)
@@ -340,7 +370,7 @@ setGenerating(true)
               <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={approve} disabled={approving}
                   style={{ flex: 1, minWidth: 140, padding: '12px 16px', background: 'linear-gradient(135deg,var(--gold),var(--amber))', border: 'none', borderRadius: 'var(--r-md)', color: 'var(--bg)', fontSize: '13px', fontWeight: 700, cursor: approving?'not-allowed':'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: approving?0.7:1 }}>
-                  {approving ? <><Spinner /> Copying...</> : <>✓ Copy & Open {selectedMeta?.label || 'Platform'}</>}
+                  {approving ? <><Spinner /> Copying...</> : <>✓ Copy Response & Open {selectedMeta?.label || 'Platform'}</>}
                 </button>
                 <button onClick={() => setEditMode(true)}
                   style={{ padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', color: 'var(--text2)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}
