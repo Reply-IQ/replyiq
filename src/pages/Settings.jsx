@@ -126,7 +126,7 @@ export default function Settings() {
             <div style={{ marginTop:10, fontSize:'11px', color:'var(--text3)', lineHeight:1.6 }}>
               {lang==='en' && 'Dashboard interface language. Reviews always stay in the language your guests wrote them.'}
               {lang==='de' && 'Sprache der Dashboard-Oberfläche. Bewertungen bleiben immer in der Originalsprache Ihrer Gäste.'}
-              {lang==='fr' && 'Langue de l'interface du tableau de bord. Les avis restent toujours dans la langue de vos clients.'}
+              {lang==='fr' && 'Langue de l\'interface du tableau de bord. Les avis restent toujours dans la langue de vos clients.'}
             </div>
           </Card>
 

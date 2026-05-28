@@ -1046,7 +1046,7 @@ export function ReportPage() {
         </Card>
         <Grid cols={isMobile?1:2} gap={16}>
           <Card><div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--gold)', marginBottom:8, fontWeight:600 }}>🏆 Win of the Week</div><div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65 }}>{report.win}</div></Card>
-          <Card><div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'#5a9080', marginBottom:8, fontWeight:600 }}>→ Next Week's Focus</div><div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65 }}>{report.nextFocus}</div></Card>
+          <Card><div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'#5a9080', marginBottom:8, fontWeight:600 }}>→ Next Week Focus</div><div style={{ fontSize:'13px', color:'var(--text2)', lineHeight:1.65 }}>{report.nextFocus}</div></Card>
         </Grid>
       </>}
     </Layout>
