@@ -137,7 +137,7 @@ export default function Dashboard() {
   // Import in progress — show loading state regardless of reviews count
   if (hasPendingImport && reviews.length === 0) {
     return (
-      <Layout title="Dashboard" subtitle="Your reputation command centre">
+      <Layout title={t(T.nav.dashboard, lang)} subtitle={t(T.dashboard.aiBrief, lang)}>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'65vh', textAlign:'center', gap:18 }}>
           <div style={{ width:72, height:72, borderRadius:20, background:'rgba(66,133,244,.08)', border:'1px solid rgba(66,133,244,.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
             <div style={{ width:32, height:32, border:'3px solid rgba(66,133,244,.3)', borderTopColor:'#4285F4', borderRadius:'50%', animation:'spin .8s linear infinite' }} />
@@ -161,7 +161,7 @@ export default function Dashboard() {
   // No platforms and no import and no reviews — show connect screen
   if (connectedPlatforms.length === 0 && reviews.length === 0) {
     return (
-      <Layout title="Dashboard" subtitle="Your reputation command centre">
+      <Layout title={t(T.nav.dashboard, lang)} subtitle={t(T.dashboard.aiBrief, lang)}>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'65vh', textAlign:'center', gap:18 }}>
           <div style={{ width:72, height:72, borderRadius:20, background:'rgba(201,169,110,.08)', border:'1px solid rgba(201,169,110,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>🔗</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.7rem' }}>Connect your first platform</div>
@@ -184,7 +184,7 @@ export default function Dashboard() {
   }
 
   return (
-    <Layout title="Dashboard" topbarRight={
+    <Layout title={t(T.nav.dashboard, lang)} topbarRight={
       <Button onClick={getIntelligenceBrief} disabled={loading} variant="secondary" size="sm">
         {loading ? <><Spinner /> Analysing...</> : '⚡ AI Brief'}
       </Button>
@@ -320,7 +320,7 @@ export default function Dashboard() {
 
         {/* Platform health cards */}
         <Card style={{ minWidth:0, overflow:'hidden' }}>
-          <SectionHeader title="Platform Health" subtitle="Live status across all connected platforms" />
+          <SectionHeader title={t(T.dashboard.platformHealth, lang)} subtitle={t(T.dashboard.liveStatus, lang)} />
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {ALL_PLATFORMS.map(pid => {
               const meta  = PLATFORM_META[pid]
@@ -367,9 +367,9 @@ export default function Dashboard() {
         <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0, overflow:'hidden' }}>
           {/* AI brief */}
           <Card style={{ flex:'none' }}>
-            <SectionHeader title="AI Intelligence Brief" subtitle="Weekly analysis" />
+            <SectionHeader title={t(T.dashboard.aiBrief, lang)} subtitle={t(T.dashboard.weeklyAnalysis, lang)} />
             {!brief && !loading && (
-              <EmptyState icon="🤖" title="Generate your weekly brief" description="AI analyses all reviews and surfaces your top issue, strength, and priority action." action={<Button variant="secondary" size="sm" onClick={getIntelligenceBrief}>Generate Now</Button>} />
+              <EmptyState icon="🤖" title={t(T.dashboard.generateBrief, lang)} description={t(T.dashboard.generateBriefDesc, lang)} action={<Button variant="secondary" size="sm" onClick={getIntelligenceBrief}>{t(T.dashboard.generateBrief, lang)}</Button>} />
             )}
             {loading && <div style={{ padding:'20px 0', display:'flex', alignItems:'center', gap:10, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Analysing {reviews.length.toLocaleString()} reviews...</div>}
             {brief && !brief.error && <>
@@ -419,7 +419,7 @@ export default function Dashboard() {
       {/* ── Rating trend chart ── */}
       {ratingTrend.length >= 2 && (
         <Card>
-          <SectionHeader title="Rating Trend" subtitle="Last 6 months — real data from your reviews" />
+          <SectionHeader title={t(T.dashboard.reviews, lang)} subtitle="Last 6 months — real data from your reviews" />
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={ratingTrend} margin={{ top:5, right:10, left:-20, bottom:0 }}>
               <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#C9A96E" stopOpacity={0.25}/><stop offset="95%" stopColor="#C9A96E" stopOpacity={0}/></linearGradient></defs>

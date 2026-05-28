@@ -184,7 +184,78 @@ export const T = {
     active247:      { en:'Active 24/7',         de:'Aktiv 24/7',              fr:'Actif 24h/24' },
   },
 
-  // ── Common ───────────────────────────────────────────────────────────────────
+  // ── Review History ──────────────────────────────────────────────────────────
+  reviewHistory: {
+    title:         { en:'Review History',         de:'Bewertungsverlauf',         fr:'Historique des avis' },
+    subtitle:      { en:'Your full review archive', de:'Ihr vollständiges Bewertungsarchiv', fr:'Votre archive complète des avis' },
+    totalReviews:  { en:'Total Reviews',           de:'Bewertungen gesamt',        fr:'Total des avis' },
+    unanswered:    { en:'Unanswered',              de:'Unbeantwortet',             fr:'Sans réponse' },
+    negative:      { en:'Negative (1-2★)',         de:'Negativ (1-2★)',            fr:'Négatif (1-2★)' },
+    flagged:       { en:'Risk Flagged',            de:'Risiko markiert',           fr:'Signalé à risque' },
+    noFlagged:     { en:'No flagged reviews',      de:'Keine markierten Bewertungen', fr:'Aucun avis signalé' },
+    classifyHint:  { en:'Negative reviews are automatically classified overnight. Click "Classify Unanalysed" to run AI analysis now.', de:'Negative Bewertungen werden über Nacht automatisch klassifiziert. Klicken Sie auf "Analysieren", um die KI-Analyse jetzt auszuführen.', fr:'Les avis négatifs sont automatiquement classifiés pendant la nuit. Cliquez sur "Classifier" pour lancer l'analyse IA maintenant.' },
+    classifyBtn:   { en:'⚡ Classify Unanalysed',  de:'⚡ Unanalysierte klassifizieren', fr:'⚡ Classifier les non analysés' },
+  },
+
+  // ── Risk ─────────────────────────────────────────────────────────────────────
+  riskPage: {
+    riskRadar:     { en:'Risk Radar',             de:'Risiko-Radar',              fr:'Radar de risque' },
+    runAnalysis:   { en:'Run AI analysis',        de:'KI-Analyse starten',        fr:'Lancer l'analyse IA' },
+    breakdown:     { en:'Component Breakdown',    de:'Komponentenaufschlüsselung',fr:'Décomposition des composants' },
+  },
+
+  // ── Revenue ──────────────────────────────────────────────────────────────────
+  revenuePage: {
+    monthlyGain:   { en:'Monthly Revenue Gain',   de:'Monatlicher Umsatzgewinn',  fr:'Gain mensuel de chiffre d'affaires' },
+    annualGain:    { en:'Annual Revenue Gain',    de:'Jährlicher Umsatzgewinn',   fr:'Gain annuel de chiffre d'affaires' },
+    roiLabel:      { en:'ReplyIQ ROI',            de:'ReplyIQ ROI',               fr:'ROI ReplyIQ' },
+    ratingClose:   { en:'Rating to Close',        de:'Bewertung zu schließen',    fr:'Note à combler' },
+    comparison:    { en:'Revenue Comparison',     de:'Umsatzvergleich',           fr:'Comparaison du chiffre d'affaires' },
+    breakdown:     { en:'Model Breakdown',        de:'Modellaufschlüsselung',     fr:'Décomposition du modèle' },
+  },
+
+  // ── Competitors extra ─────────────────────────────────────────────────────────
+  competitorsExtra: {
+    yourRank:      { en:'Your Rank',              de:'Ihr Rang',                  fr:'Votre rang' },
+    ratingGap:     { en:'Rating Gap to Leader',   de:'Bewertungsabstand zum Marktführer', fr:'Écart de note par rapport au leader' },
+    yourRating:    { en:'Your Rating',            de:'Ihre Bewertung',            fr:'Votre note' },
+    reviewCount:   { en:'Review Count',           de:'Anzahl Bewertungen',        fr:'Nombre d'avis' },
+    localMarket:   { en:'Local Market',           de:'Lokaler Markt',             fr:'Marché local' },
+    marketLeader:  { en:'Market leader',          de:'Marktführer',               fr:'Leader du marché' },
+  },
+
+  // ── Report extra ──────────────────────────────────────────────────────────────
+  reportExtra: {
+    title:         { en:'Weekly Intelligence Report', de:'Wöchentlicher Analysebericht', fr:'Rapport d'intelligence hebdomadaire' },
+    generating:    { en:'Generating your intelligence report...', de:'Ihr Analysebericht wird erstellt...', fr:'Génération de votre rapport d'intelligence...' },
+    priorityPlan:  { en:'Priority Action Plan',   de:'Prioritätsaktionsplan',     fr:'Plan d'actions prioritaires' },
+    thisWeek:      { en:'This Week',              de:'Diese Woche',               fr:'Cette semaine' },
+  },
+
+  // ── Settings extra ────────────────────────────────────────────────────────────
+  settingsExtra: {
+    propertyProfile:{ en:'Property Profile',     de:'Betriebsprofil',            fr:'Profil de l'établissement' },
+    propertyName:  { en:'Property Name',         de:'Betriebsname',              fr:'Nom de l'établissement' },
+    websiteUrl:    { en:'Website URL',           de:'Website-URL',               fr:'URL du site web' },
+    reportEmail:   { en:'Report Email',          de:'Bericht-E-Mail',            fr:'E-mail du rapport' },
+    monthlyRev:    { en:'Monthly Revenue (CHF)', de:'Monatlicher Umsatz (CHF)',  fr:'Chiffre d'affaires mensuel (CHF)' },
+    targetRating:  { en:'Target Rating',         de:'Zielbewertung',             fr:'Note cible' },
+    aiDesc:        { en:'How AI responds on your behalf', de:'Wie die KI in Ihrem Namen antwortet', fr:'Comment l'IA répond en votre nom' },
+    subscription:  { en:'Subscription',         de:'Abonnement',                fr:'Abonnement' },
+    snippetDesc:   { en:'Facts the AI weaves naturally into every response', de:'Fakten, die die KI natürlich in jede Antwort einwebt', fr:'Faits que l'IA intègre naturellement dans chaque réponse' },
+  },
+
+  // ── Respond Page ──────────────────────────────────────────────────────────────
+  respondPage: {
+    title:         { en:'AI Response Tester',    de:'KI-Antwort-Tester',         fr:'Testeur de réponse IA' },
+    pasteHint:     { en:'Paste any review — AI drafts a perfect response in seconds', de:'Fügen Sie eine Bewertung ein — KI erstellt in Sekunden eine perfekte Antwort', fr:'Collez n'importe quel avis — l'IA rédige une réponse parfaite en quelques secondes' },
+    reviewInput:   { en:'Review Input',          de:'Bewertungseingabe',         fr:'Saisie de l'avis' },
+    reviewText:    { en:'Review Text',           de:'Bewertungstext',            fr:'Texte de l'avis' },
+    unanswered:    { en:'Unanswered Reviews',    de:'Unbeantwortete Bewertungen',fr:'Avis sans réponse' },
+    responseHere:  { en:'Response will appear here', de:'Antwort erscheint hier', fr:'La réponse apparaîtra ici' },
+  },
+
+  // ── Common ───────────────────────────────────────────────────────────────────────
   common: {
     loading:        { en:'Loading...',          de:'Laden...',                fr:'Chargement...' },
     error:          { en:'Error',               de:'Fehler',                  fr:'Erreur' },

@@ -68,18 +68,18 @@ export function ReviewsPage() {
   }
 
   const TABS = [
-    { id:'all',        label:'All',         count: stats.total },
-    { id:'unanswered', label:'Unanswered',   count: stats.unanswered },
-    { id:'negative',   label:'⚠ Negative',  count: stats.negative },
+    { id:'all',        label:t(T.inbox.all,lang),         count: stats.total },
+    { id:'unanswered', label:t(T.reviewHistory.unanswered,lang), count: stats.unanswered },
+    { id:'negative',   label:'⚠ '+t(T.common.riskHigh,lang), count: stats.negative },
     { id:'neutral',    label:'Neutral',      count: reviews.filter(r=>r.rating===3).length },
-    { id:'positive',   label:'★ Positive',  count: reviews.filter(r=>r.rating>=4).length },
-    { id:'flagged',    label:'🚩 Flagged',   count: stats.flagged },
+    { id:'positive',   label:'★ '+t(T.inbox.positive,lang), count: reviews.filter(r=>r.rating>=4).length },
+    { id:'flagged',    label:'🚩 '+t(T.reviewHistory.flagged,lang), count: stats.flagged },
   ]
 
   return (
     <Layout
-      title="Review History"
-      subtitle={`${stats.total} reviews · ${stats.avgRating}★ average · ${stats.unanswered} unanswered`}
+      title={t(T.reviewHistory.title, lang)}
+      subtitle={`${stats.total} ${t(T.nav.reviews,lang)} · ${stats.avgRating}★ · ${stats.unanswered} ${t(T.reviewHistory.unanswered,lang)}`}
       topbarRight={
         <div style={{ display:'flex', gap:8 }}>
           <Button variant="secondary" size="sm" onClick={classifyAll}>
@@ -90,10 +90,10 @@ export function ReviewsPage() {
     >
       {/* KPI strip */}
       <Grid cols={4} gap={12} style={{ marginBottom:16 }}>
-        <KpiCard label="Total Reviews"  value={stats.total}      accent="gold" />
-        <KpiCard label="Unanswered"     value={stats.unanswered} sub="open in Inbox" accent={stats.unanswered>0?"red":"teal"} />
-        <KpiCard label="Negative (1-2★)"value={stats.negative}   accent={stats.negative>0?"red":"teal"} />
-        <KpiCard label="Risk Flagged"   value={stats.flagged}    sub="AI identified" accent={stats.flagged>0?"red":"teal"} />
+        <KpiCard label={t(T.reviewHistory.totalReviews,lang)}  value={stats.total}      accent="gold" />
+        <KpiCard label={t(T.reviewHistory.unanswered,lang)}     value={stats.unanswered} sub="→ "+t(T.nav.inbox,lang) accent={stats.unanswered>0?"red":"teal"} />
+        <KpiCard label={t(T.reviewHistory.negative,lang)}value={stats.negative}   accent={stats.negative>0?"red":"teal"} />
+        <KpiCard label={t(T.reviewHistory.flagged,lang)}   value={stats.flagged}    sub="AI identified" accent={stats.flagged>0?"red":"teal"} />
       </Grid>
 
       {/* Search + tabs */}
@@ -102,7 +102,7 @@ export function ReviewsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search reviews or guest names..."
+            placeholder=t(T.inbox.selectReview, lang)
             style={{ flex:1, minWidth:200, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
             onFocus={e => e.target.style.borderColor='var(--gold)'}
             onBlur={e => e.target.style.borderColor='var(--border)'}
@@ -126,13 +126,13 @@ export function ReviewsPage() {
       {/* Review list */}
       {filtered.length === 0 ? (
         <Card><EmptyState icon={filter==='flagged'?'🚩':'✦'}
-          title={filter==='flagged' ? 'No flagged reviews' : 'No reviews here'}
+          title={filter==='flagged' ? t(T.reviewHistory.noFlagged,lang) : t(T.common.noData,lang)}
           description={
             filter==='flagged'
-              ? 'Negative reviews are automatically classified overnight. Click "⚡ Classify Unanalysed" to run AI analysis on all existing reviews right now.'
+              ? t(T.reviewHistory.classifyHint,lang)
               : search ? `No reviews match "${search}"` : "No reviews in this category yet."
           }
-          action={filter==='flagged' ? <Button onClick={classifyAll}>⚡ Classify Unanalysed Reviews</Button> : null}
+          action={filter==='flagged' ? <Button onClick={classifyAll}>{t(T.reviewHistory.classifyBtn,lang)}</Button> : null}
         /></Card>
       ) : (
         filtered.map(review => {
@@ -246,11 +246,11 @@ export function RespondPage() {
   const unanswered = reviews.filter(r => !r.responded)
 
   return (
-    <Layout title="AI Respond" subtitle="Paste any review — AI drafts a perfect response in seconds">
+    <Layout title="AI Respond" subtitle=t(T.respondPage.pasteHint, lang)>
       <Grid cols={2} gap={18} style={{ alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <Card>
-            <SectionHeader title="Review Input" />
+            <SectionHeader title={t(T.respondPage.reviewInput, lang)} />
             <div style={{ marginBottom:14 }}>
               <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:8 }}>Platform</div>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -266,7 +266,7 @@ export function RespondPage() {
               <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:8 }}>Star Rating</div>
               <RatingSelector value={rating} onChange={setRating} />
             </div>
-            <Textarea label="Review Text" value={text} onChange={e=>setText(e.target.value)} placeholder="Paste the guest review here..." rows={5} />
+            <Textarea label={t(T.respondPage.reviewText, lang)} value={text} onChange={e=>setText(e.target.value)} placeholder="Paste the guest review here..." rows={5} />
             <div style={{ marginTop:14 }}>
               <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:8 }}>Tone</div>
               <div style={{ display:'flex', gap:6 }}>
@@ -282,7 +282,7 @@ export function RespondPage() {
 
           {unanswered.length > 0 && (
             <Card>
-              <SectionHeader title="Unanswered Reviews" subtitle="Click to load" />
+              <SectionHeader title={t(T.respondPage.unanswered, lang)} subtitle="" />
               {unanswered.slice(0,5).map(r => (
                 <button key={r.id} onClick={()=>{setText(r.text);setRating(r.rating);setPlatform(r.platform?.toLowerCase()||'google');setResponse('');setApproach('')}}
                   style={{ display:'block', width:'100%', textAlign:'left', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', cursor:'pointer', marginBottom:8, transition:'var(--ease)' }}
@@ -300,8 +300,8 @@ export function RespondPage() {
         </div>
 
         <Card>
-          <SectionHeader title="AI Response" />
-          {!response && !loading && <EmptyState icon="✍" title="Response will appear here" description="Enter a review and click Generate" />}
+          <SectionHeader title={t(T.inbox.aiBrandVoice, lang)} />
+          {!response && !loading && <EmptyState icon="✍" title=t(T.respondPage.responseHere, lang) description="Enter a review and click Generate" />}
           {loading && <div style={{ padding:'48px 0', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}><Spinner size={24} /><div style={{ color:'var(--gold)', fontSize:'13px' }}>Crafting your response...</div></div>}
           {response && <>
             <div style={{ background:'var(--surface)', borderRadius:10, padding:18, fontSize:'14px', color:'var(--text1)', lineHeight:1.8, fontStyle:'italic', borderLeft:'3px solid var(--gold)', marginBottom:14 }}>
@@ -366,7 +366,7 @@ export function RiskPage() {
         </Card>
 
         <Card>
-          <SectionHeader title="Risk Radar" subtitle="5-vector overview" />
+          <SectionHeader title={t(T.riskPage.riskRadar, lang)} subtitle="" />
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarData} margin={{ top:10,right:20,bottom:10,left:20 }}>
               <PolarGrid stroke="rgba(255,255,255,.06)" />
@@ -378,7 +378,7 @@ export function RiskPage() {
         </Card>
 
         <Card>
-          <SectionHeader title="7-Day Plan" subtitle={analysis ? 'AI recommended' : 'Run AI analysis'} />
+          <SectionHeader title="7-Day Plan" subtitle={analysis ? 'AI recommended' : t(T.riskPage.runAnalysis, lang)} />
           {!analysis && !loading && <div style={{ fontSize:'13px', color:'var(--text3)', padding:'12px 0' }}>Click "AI Risk Analysis" to generate your personalised recovery plan.</div>}
           {loading && <div style={{ display:'flex', alignItems:'center', gap:8, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Generating...</div>}
           {analysis?.sevenDayPlan?.map((step, i) => (
@@ -394,7 +394,7 @@ export function RiskPage() {
       </Grid>
 
       <Card>
-        <SectionHeader title="Component Breakdown" subtitle={analysis ? 'AI analysis' : 'Baseline estimate'} />
+        <SectionHeader title={t(T.riskPage.breakdown, lang)} subtitle={analysis ? 'AI analysis' : 'Baseline estimate'} />
         {COMPONENTS.map((c, i) => (
           <div key={c.key} style={{ display:'grid', gridTemplateColumns:'180px 160px 1fr', gap:16, alignItems:'center', padding:'12px 0', borderBottom:i<COMPONENTS.length-1?'1px solid var(--border)':'none' }}>
             <div style={{ fontSize:'13px', fontWeight:500 }}>{c.label}</div>
@@ -462,14 +462,14 @@ export function RevenuePage() {
 
       {result && <>
         <Grid cols={4} gap={14} style={{ marginBottom:18 }}>
-          <KpiCard label="Monthly Revenue Gain" value={`+CHF ${result.monthlyGain.toLocaleString()}`} sub="extra per month at target rating" accent="gold" />
-          <KpiCard label="Annual Revenue Gain"  value={`+CHF ${result.annualGain.toLocaleString()}`}  sub="extra per year at target rating"  accent="emerald" />
-          <KpiCard label="ReplyIQ ROI"          value={`${result.roiX}×`}                            sub={`Payback in ${result.paybackDays} days`} accent="teal" />
-          <KpiCard label="Rating to Close"      value={`${result.ratingGap}★`}                         sub={`${result.upliftPct}% projected uplift`} accent="violet" />
+          <KpiCard label={t(T.revenuePage.monthlyGain, lang)} value={`+CHF ${result.monthlyGain.toLocaleString()}`} sub="extra per month at target rating" accent="gold" />
+          <KpiCard label={t(T.revenuePage.annualGain, lang)}  value={`+CHF ${result.annualGain.toLocaleString()}`}  sub="extra per year at target rating"  accent="emerald" />
+          <KpiCard label={t(T.revenuePage.roiLabel, lang)}          value={`${result.roiX}×`}                            sub={`Payback in ${result.paybackDays} days`} accent="teal" />
+          <KpiCard label={t(T.revenuePage.ratingClose, lang)}      value={`${result.ratingGap}★`}                         sub={`${result.upliftPct}% projected uplift`} accent="violet" />
         </Grid>
         <Grid cols={2} gap={16}>
           <Card>
-            <SectionHeader title="Revenue Comparison" subtitle="Monthly CHF" />
+            <SectionHeader title={t(T.revenuePage.comparison, lang)} subtitle="Monthly CHF" />
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={chartData} margin={{ top:10,right:10,left:-10,bottom:0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,.04)" />
@@ -481,7 +481,7 @@ export function RevenuePage() {
             </ResponsiveContainer>
           </Card>
           <Card>
-            <SectionHeader title="Model Breakdown" />
+            <SectionHeader title={t(T.revenuePage.breakdown, lang)} />
             <div style={{ background:'var(--surface)', borderRadius:8, padding:'12px 14px', fontSize:'13px', color:'var(--text2)', lineHeight:1.7, borderLeft:'3px solid var(--gold)', marginBottom:14 }}>
               Improving from {currentRating}★ to {target}★ ({result.ratingGap}★ gap) = {result.upliftPct}% revenue uplift. Based on HBS research: each full star improvement drives ~9% more revenue.
             </div>
@@ -686,25 +686,25 @@ export function CompetitorsPage() {
       {competitors.length > 0 && (
         <Grid cols={isMobile?2:4} gap={12} style={{ marginBottom:16 }}>
           <KpiCard
-            label="Your Rank"
+            label={t(T.competitorsExtra.yourRank, lang)}
             value={`#${yourRank} of ${allProps.length}`}
             sub={yourRank === 1 ? 'Market leader' : `${aboveYou} above you`}
             accent={yourRank === 1 ? 'teal' : yourRank <= 3 ? 'gold' : 'red'}
           />
           <KpiCard
-            label="Rating Gap to Leader"
+            label={t(T.competitorsExtra.ratingGap, lang)}
             value={ratingGapToLeader === 0 ? 'Leading' : `-${ratingGapToLeader}★`}
             sub={ratingGapToLeader === 0 ? 'You are #1' : `vs ${leader.name?.split(' ')[0]}`}
             accent={ratingGapToLeader === 0 ? 'teal' : ratingGapToLeader <= 0.2 ? 'gold' : 'red'}
           />
           <KpiCard
-            label="Your Rating"
+            label={t(T.competitorsExtra.yourRating, lang)}
             value={`${yourRating}★`}
             sub={`${yourResponseRate}% response rate`}
             accent="gold"
           />
           <KpiCard
-            label="Review Count"
+            label={t(T.competitorsExtra.reviewCount, lang)}
             value={yourReviews.toLocaleString()}
             sub={`vs avg ${Math.round(competitors.reduce((s,c)=>s+(c.reviews||0),0)/Math.max(competitors.length,1)).toLocaleString()} competitors`}
             accent="teal"
@@ -714,7 +714,7 @@ export function CompetitorsPage() {
 
       {/* ── Competitor List ── */}
       <Card style={{ marginBottom:16 }}>
-        <SectionHeader title="Local Market" subtitle={`${allProps.length} properties · sorted by rating`} />
+        <SectionHeader title={t(T.competitorsExtra.localMarket, lang)} subtitle={`${allProps.length} ${t(T.competitors.property,lang)} · ${t(T.competitors.sortedBy,lang)}`} />
 
         {/* Manual search */}
         <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
@@ -722,7 +722,7 @@ export function CompetitorsPage() {
             value={searchQ}
             onChange={e => setSearchQ(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && searchCompetitor()}
-            placeholder="Search for a competitor by name, e.g. Park Hyatt Zurich..."
+            placeholder=t(T.competitors.sync, lang)
             style={{ flex:1, minWidth:180, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', color:'var(--text1)', fontSize:'13px', outline:'none' }}
             onFocus={e => e.target.style.borderColor = 'var(--gold)'}
             onBlur={e => e.target.style.borderColor = 'var(--border)'}
@@ -811,7 +811,7 @@ export function CompetitorsPage() {
                     {!p.isYou && (
                       <button onClick={async(e)=>{e.stopPropagation();await supabase.from('competitors').delete().eq('clinic_id',property.id).eq('name',p.name);await loadAll(true);showToast('Competitor removed','info')}}
                         style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer', fontSize:'14px', padding:'2px 4px', flexShrink:0, lineHeight:1 }}
-                        title="Remove this competitor"
+                        
                         onMouseEnter={e=>e.currentTarget.style.color='#B85C38'}
                         onMouseLeave={e=>e.currentTarget.style.color='var(--text3)'}>
                         ×
@@ -871,7 +871,7 @@ export function CompetitorsPage() {
               <div style={{ background:'var(--surface)', borderRadius:8, padding:'13px 15px', fontSize:'13px', color:'var(--text2)', lineHeight:1.7, borderLeft:'3px solid var(--gold)' }}>{analysis.narrative}</div>
             </Card>
             <Card>
-              <SectionHeader title="This Week" subtitle="3 actions to close the gap" />
+              <SectionHeader title={t(T.reportExtra.thisWeek, lang)} subtitle="" />
               {(analysis.quickWins||[]).map((win,i)=>(
                 <div key={i} style={{ display:'flex', gap:12, padding:'11px 0', borderBottom:i<(analysis.quickWins||[]).length-1?'1px solid var(--border)':'none' }}>
                   <div style={{ width:24, height:24, borderRadius:'50%', background:'rgba(201,169,110,.1)', color:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:700, flexShrink:0 }}>{i+1}</div>
@@ -1002,8 +1002,8 @@ export function ReportPage() {
         </div>
       }
     >
-      {!report && !loading && <Card><EmptyState icon="▤" title="Weekly Intelligence Report" description="ReplyIQ analyses all your reviews across every platform and generates a structured executive brief." action={<Button size="lg" onClick={generate}>Generate This Week's Report</Button>} /></Card>}
-      {loading && <Card><div style={{ padding:48, display:'flex', alignItems:'center', gap:12, color:'var(--gold)', justifyContent:'center' }}><Spinner size={20} />Generating your intelligence report...</div></Card>}
+      {!report && !loading && <Card><EmptyState icon="▤" title={t(T.reportExtra.title, lang)} description=t(T.reportExtra.title, lang) action={<Button size="lg" onClick={generate}>Generate This Week's Report</Button>} /></Card>}
+      {loading && <Card><div style={{ padding:48, display:'flex', alignItems:'center', gap:12, color:'var(--gold)', justifyContent:'center' }}><Spinner size={20} />${t(T.reportExtra.generating, lang)}</div></Card>}
       {report && !report.error && <>
         <Card style={{ marginBottom:16, borderLeft:'3px solid var(--gold)' }}>
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--gold)', marginBottom:8, fontWeight:600 }}>Executive Summary</div>
@@ -1036,7 +1036,7 @@ export function ReportPage() {
           </Card>
         </Grid>
         <Card style={{ marginBottom:16 }}>
-          <SectionHeader title="Priority Action Plan" subtitle="Organised by urgency" />
+          <SectionHeader title=t(T.reportExtra.priorityPlan, lang) subtitle="Organised by urgency" />
           {(report.actions||[]).map((a,i)=>(
             <div key={i} style={{ display:'flex', gap:14, padding:12, borderRadius:8, marginBottom:8, background:urgB[a.urgency]||urgB['this-week'], border:`1px solid ${(urgC[a.urgency]||'#5a9080')}22`, alignItems:'flex-start' }}>
               <div style={{ minWidth:80, padding:'3px 8px', borderRadius:5, textAlign:'center', background:`${(urgC[a.urgency]||'#5a9080')}15`, color:urgC[a.urgency]||'#5a9080', fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', flexShrink:0 }}>{a.urgency?.replace('-',' ')}</div>
@@ -1098,7 +1098,7 @@ export function WidgetPage() {
       </Card>
 
       {!pid ? (
-        <EmptyState icon="⊞" title="Connect Google first" description="Your widget is ready once you connect your Google Business profile on the Platforms page." />
+        <EmptyState icon="⊞" title=t(T.platforms.connect, lang)+' Google' description="Your widget is ready once you connect your Google Business profile on the Platforms page." />
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           {snippets.map((snip, i) => (

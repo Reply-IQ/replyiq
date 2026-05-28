@@ -8,7 +8,7 @@ import { scanWebsite, draft5StarTemplate } from '../lib/api.js'
 
 export default function Settings() {
   const { property, updatePropertyInState, showToast } = useApp()
-  const { lang } = useLang()
+  const { lang, setLang } = useLang()
   const isMobile = useIsMobile()
   const [form,     setForm]     = useState(property || {})
   const [saving,   setSaving]   = useState(false)
@@ -44,9 +44,9 @@ export default function Settings() {
         {/* LEFT */}
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
           <Card>
-            <SectionHeader title="Property Profile" />
+            <SectionHeader title={t(T.settingsExtra.propertyProfile, lang)} />
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-              <Input label="Property Name"         value={form.name||''}           onChange={e=>set('name',e.target.value)} />
+              <Input label={t(T.settingsExtra.propertyName, lang)}         value={form.name||''}           onChange={e=>set('name',e.target.value)} />
               {property?.platform_connections?.google?.identifier && (
                 <div>
                   <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', fontWeight:600, marginBottom:7 }}>Google Place ID</div>
@@ -57,12 +57,12 @@ export default function Settings() {
                   <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:4 }}>Contact support to change your Google property</div>
                 </div>
               )}
-              <Input label="Website URL"           value={form.website_url||''}    onChange={e=>set('website_url',e.target.value)} placeholder="www.yourhotel.ch" />
-              <Input label="Address"               value={form.address||''}        onChange={e=>set('address',e.target.value)} />
-              <Input label="Phone"                 value={form.phone||''}          onChange={e=>set('phone',e.target.value)} />
-              <Input label="Report Email"          value={form.owner_email||''}    onChange={e=>set('owner_email',e.target.value)} type="email" />
-              <Input label="Monthly Revenue (CHF)" value={form.avg_revenue||0}     onChange={e=>set('avg_revenue',+e.target.value)} type="number" prefix="CHF" />
-              <Input label="Target Rating"         value={form.target_rating||4.7} onChange={e=>set('target_rating',+e.target.value)} type="number" step="0.1" min="4" max="5" suffix="★" />
+              <Input label={t(T.settingsExtra.websiteUrl, lang)}           value={form.website_url||''}    onChange={e=>set('website_url',e.target.value)} placeholder="www.yourhotel.ch" />
+              <Input label='Address'               value={form.address||''}        onChange={e=>set('address',e.target.value)} />
+              <Input label='Phone'                 value={form.phone||''}          onChange={e=>set('phone',e.target.value)} />
+              <Input label={t(T.settingsExtra.reportEmail, lang)}          value={form.owner_email||''}    onChange={e=>set('owner_email',e.target.value)} type="email" />
+              <Input label={t(T.settingsExtra.monthlyRev, lang)} value={form.avg_revenue||0}     onChange={e=>set('avg_revenue',+e.target.value)} type="number" prefix="CHF" />
+              <Input label={t(T.settingsExtra.targetRating, lang)}         value={form.target_rating||4.7} onChange={e=>set('target_rating',+e.target.value)} type="number" step="0.1" min="4" max="5" suffix="★" />
             </div>
             <Button fullWidth onClick={save} disabled={saving} style={{ marginTop:18 }}>
               {saving ? <><Spinner /> Saving...</> : 'Save Changes'}
@@ -75,7 +75,7 @@ export default function Settings() {
 
           {/* AI Brand Profile */}
           <Card>
-            <SectionHeader title="🤖 AI Brand Profile" subtitle="How AI responds on your behalf" />
+            <SectionHeader title={"🤖 "+t(T.settingsExtra.aiDesc, lang)} subtitle="" />
             {aiProfile.responsePersonality ? (
               <>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14, fontSize:'12px' }}>
@@ -100,9 +100,39 @@ export default function Settings() {
             </Button>
           </Card>
 
+          {/* Language */}
+          <Card>
+            <SectionHeader title={t(T.settings.language, lang)} subtitle={t(T.settings.langDesc, lang)} />
+            <div style={{ display:'flex', gap:10, marginTop:8 }}>
+              {[
+                { code:'en', label:'English',  flag:'🇬🇧' },
+                { code:'de', label:'Deutsch',  flag:'🇩🇪' },
+                { code:'fr', label:'Français', flag:'🇫🇷' },
+              ].map(l => (
+                <button key={l.code} onClick={() => setLang(l.code)}
+                  style={{
+                    flex:1, padding:'12px 8px', borderRadius:'var(--r-md)', cursor:'pointer',
+                    fontFamily:'var(--font-sans)', fontSize:'13px', fontWeight:lang===l.code?700:400,
+                    background:lang===l.code?'rgba(201,169,110,0.1)':'var(--surface)',
+                    border:lang===l.code?'1.5px solid var(--gold)':'1px solid var(--border)',
+                    color:lang===l.code?'var(--gold)':'var(--text2)',
+                    transition:'var(--ease)',
+                  }}>
+                  <div style={{ fontSize:'20px', marginBottom:4 }}>{l.flag}</div>
+                  {l.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ marginTop:10, fontSize:'11px', color:'var(--text3)', lineHeight:1.6 }}>
+              {lang==='en' && 'Dashboard interface language. Reviews always stay in the language your guests wrote them.'}
+              {lang==='de' && 'Sprache der Dashboard-Oberfläche. Bewertungen bleiben immer in der Originalsprache Ihrer Gäste.'}
+              {lang==='fr' && 'Langue de l'interface du tableau de bord. Les avis restent toujours dans la langue de vos clients.'}
+            </div>
+          </Card>
+
           {/* Subscription */}
           <Card>
-            <SectionHeader title="Subscription" />
+            <SectionHeader title={t(T.settingsExtra.subscription, lang)} />
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 16px', background:'rgba(74,124,111,.05)', border:'1px solid rgba(74,124,111,.2)', borderRadius:'var(--r-md)', marginBottom:14 }}>
               <div>
                 <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.1rem', marginBottom:3 }}>Early Access</div>
@@ -175,7 +205,7 @@ function SnippetsCard({ property, updatePropertyInState, showToast }) {
 
   return (
     <Card>
-      <SectionHeader title="✨ Smart Snippets" subtitle="Facts the AI weaves naturally into every response" />
+      <SectionHeader title={"✨ Smart Snippets"} subtitle={t(T.settingsExtra.snippetDesc, lang)} />
       <div style={{ fontSize:'12px', color:'var(--text3)', marginBottom:14, lineHeight:1.6 }}>
         Add recurring facts about your property. The AI uses these to personalise every reply — parking info, breakfast hours, pet policy, contact details, anything that matters to guests.
       </div>

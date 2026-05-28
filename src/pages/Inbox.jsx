@@ -384,7 +384,7 @@ setGenerating(true)
                   onMouseLeave={e => e.currentTarget.style.borderColor='var(--border)'}>
                   ↻
                 </button>
-                <button onClick={markDone} title="Mark as done without posting"
+                <button onClick={markDone} title={t(T.inbox.markDone, lang)}
                   style={{ padding: '12px 14px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', color: 'var(--text3)', fontSize: '13px', cursor: 'pointer' }}>
                   ✓
                 </button>
@@ -420,7 +420,7 @@ setGenerating(true)
   )
 
   return (
-    <Layout title="Inbox" subtitle="AI drafts the perfect response — you approve and post">
+    <Layout title={t(T.nav.inbox, lang)} subtitle={t(T.inbox.subtitle, lang)}>
       <div style={{ display: 'flex', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
         {/* Mobile: show one panel at a time */}
         {isMobile ? (
