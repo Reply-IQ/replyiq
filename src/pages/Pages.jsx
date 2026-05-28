@@ -91,7 +91,7 @@ export function ReviewsPage() {
       {/* KPI strip */}
       <Grid cols={4} gap={12} style={{ marginBottom:16 }}>
         <KpiCard label={t(T.reviewHistory.totalReviews,lang)}  value={stats.total}      accent="gold" />
-        <KpiCard label={t(T.reviewHistory.unanswered,lang)}     value={stats.unanswered} sub="→ "+t(T.nav.inbox,lang) accent={stats.unanswered>0?"red":"teal"} />
+        <KpiCard label={t(T.reviewHistory.unanswered,lang)}     value={stats.unanswered} sub={`→ ${t(T.nav.inbox,lang)}`} accent={stats.unanswered>0?"red":"teal"} />
         <KpiCard label={t(T.reviewHistory.negative,lang)}value={stats.negative}   accent={stats.negative>0?"red":"teal"} />
         <KpiCard label={t(T.reviewHistory.flagged,lang)}   value={stats.flagged}    sub="AI identified" accent={stats.flagged>0?"red":"teal"} />
       </Grid>
