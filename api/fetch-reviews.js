@@ -32,12 +32,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'HolidayCheck integration is coming soon. Use Google and TripAdvisor in the meantime.' })
 
         } else if (platform === 'booking') {
-      if (!identifier.includes('booking.com')) {
-        return res.status(400).json({ error: 'Invalid Booking.com URL. Must be a full URL like: https://www.booking.com/hotel/ch/...' })
-      }
-      const cleanUrl = identifier.split('?')[0].split('#')[0]
-      console.log('[fetch-reviews] Booking.com import — URL:', cleanUrl)
-      url = `https://api.app.outscraper.com/booking-reviews?query=${encodeURIComponent(cleanUrl)}&reviewsLimit=500&async=true`
+      return res.status(400).json({
+        error: 'Booking.com integration is coming soon. Booking.com actively limits review access. Your Google and TripAdvisor reviews are imported in the meantime.',
+      })
     } else {
       // Google — Place IDs need Google Maps URL format
       const query = (identifier.startsWith('ChIJ') || identifier.startsWith('Ei'))

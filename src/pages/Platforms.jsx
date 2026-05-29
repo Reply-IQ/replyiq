@@ -36,15 +36,11 @@ const PLATFORMS = [
   {
     id: 'booking', icon: '🏨', color: '#003580', name: 'Booking.com',
     desc: 'Essential for hotels. Guests trust Booking.com reviews heavily.',
+    comingSoon: true,
     fieldLabel: 'Booking.com Property URL',
     fieldPH: 'https://www.booking.com/hotel/ch/hotel-name-zurich.en-gb.html',
-    steps: [
-      'Go to booking.com and search for your property',
-      'Click on your property listing',
-      'Copy the full URL from the address bar',
-      'Paste it below. It must contain booking.com/hotel/',
-    ],
-    hint: '⚠ Copy the URL directly from your property page on Booking.com, not from search results.',
+    steps: [],
+    hint: '',
   },
   {
     id: 'holidaycheck', icon: '🌞', color: '#FF6600', name: 'HolidayCheck',
@@ -280,7 +276,11 @@ export default function Platforms() {
                   {!isConn && !isLoad && platform.comingSoon && (
                     <div style={{ padding:'14px 16px', background:'var(--surface)', borderRadius:10, border:'1px solid var(--border)', textAlign:'center' }}>
                       <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text3)', marginBottom:4 }}>🔜 Coming Soon</div>
-                      <div style={{ fontSize:'12px', color:'var(--text3)', lineHeight:1.6 }}>HolidayCheck integration is in development. Google and TripAdvisor cover the majority of DACH reviews in the meantime.</div>
+                      <div style={{ fontSize:'12px', color:'var(--text3)', lineHeight:1.6 }}>
+                        {platform.id === 'booking'
+                          ? 'Booking.com integration is coming soon. Booking.com actively limits review access — we are building a reliable solution. Your Google and TripAdvisor reviews are imported in the meantime.'
+                          : 'HolidayCheck integration is in development. Google and TripAdvisor cover the majority of DACH reviews in the meantime.'}
+                      </div>
                     </div>
                   )}
                   {!isConn && !isLoad && !platform.comingSoon && (

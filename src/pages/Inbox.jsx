@@ -14,13 +14,29 @@ const PLATFORM_META = {
 
 // Get the most direct URL to the review — use stored review_link if available
 function getReviewUrl(review, platformMeta) {
-  // TripAdvisor: review_link is the direct URL to the review
+  // TripAdvisor / Booking: stored review_link goes directly to the review
   if (review?.review_link) return review.review_link
-  // Google: deep link to Google Business Profile reviews tab
-  const placeId = review?.google_place_id
-  if (review?.platform === 'google' || !review?.platform) {
+
+  const platform = review?.platform || 'google'
+
+  if (platform === 'google') {
+    // Deep-link to Google Business Profile filtered by reviewer name
+    // This takes the GM directly to reviews filtered by that guest's name
+    const name = (review?.author || '').trim()
+    if (name) {
+      return `https://business.google.com/reviews?q=${encodeURIComponent(name)}`
+    }
     return 'https://business.google.com/reviews'
   }
+
+  if (platform === 'tripadvisor') {
+    return 'https://www.tripadvisor.com/UserReviewEdit'
+  }
+
+  if (platform === 'booking') {
+    return 'https://extranet.booking.com/hotel/hoteladmin/guest_reviews.html'
+  }
+
   return platformMeta?.url || 'https://google.com'
 }
 
@@ -53,6 +69,7 @@ export default function Inbox() {
   const [tone,          setTone]         = useState('professional')
   const [generating,    setGenerating]   = useState(false)
   const [approving,     setApproving]    = useState(false)
+  const [showGoogleInstructions, setShowGoogleInstructions] = useState(null) // reviewer name or null
   const [editMode,      setEditMode]     = useState(false)
   const [aiError,       setAiError]      = useState(false)
   // Mobile: track which panel is visible
@@ -71,6 +88,7 @@ export default function Inbox() {
     setSelected(review)
     setAiError(false)
     setEditMode(false)
+    setShowGoogleInstructions(null)
     if (isMobile) setMobileView('detail')
 
     // If review already has a response, show it
@@ -144,9 +162,22 @@ setGenerating(true)
       updateReviewInState(data)
       setSelected(data)
       const p = PLATFORM_META[selected.platform?.toLowerCase()]||PLATFORM_META.google
-      const directUrl = getReviewUrl(selected, p)
-      window.open(directUrl, '_blank', 'noopener')
-      showToast(copied ? `✓ Copied! Paste it on ${p.label}` : `Opened ${p.label} — copy your response manually`, 'success')
+      const platform = selected.platform?.toLowerCase() || 'google'
+
+      if (platform === 'tripadvisor' && selected.review_link) {
+        // TripAdvisor: open the direct review page
+        window.open(selected.review_link, '_blank', 'noopener')
+        showToast(copied ? '✓ Copied. Paste your response on TripAdvisor and click Submit.' : 'Opened TripAdvisor. Copy your response and paste it.', 'success')
+      } else if (platform === 'google') {
+        // Google: don't open a URL — show step-by-step toast and set instruction state
+        setShowGoogleInstructions(selected.author || 'the guest')
+        showToast(copied ? '✓ Response copied. Follow the steps below to post it on Google.' : '✓ See steps below to post on Google.', 'success')
+      } else {
+        // Other platforms: open their management URL
+        const directUrl = getReviewUrl(selected, p)
+        window.open(directUrl, '_blank', 'noopener')
+        showToast(copied ? `✓ Copied. Paste your response on ${p.label}.` : `Opened ${p.label}.`, 'success')
+      }
     }
     setApproving(false)
   }
@@ -366,6 +397,37 @@ setGenerating(true)
             )}
 
             {/* Action buttons */}
+            {/* Google posting instructions */}
+            {showGoogleInstructions && (
+              <div style={{ margin:'0 16px 12px', padding:'14px 16px', background:'rgba(66,133,244,0.06)', border:'1px solid rgba(66,133,244,0.2)', borderRadius:'var(--r-md)' }}>
+                <div style={{ fontSize:'12px', fontWeight:700, color:'#4285F4', marginBottom:10 }}>
+                  🔍 How to post on Google Business
+                </div>
+                {[
+                  'Open business.google.com on your computer (or the Google Maps app)',
+                  'Make sure you are signed in with your business Google account',
+                  'Go to Reviews in the left menu',
+                  `Search for "${showGoogleInstructions}" or scroll to find the review`,
+                  'Click Reply, paste your response (Ctrl+V), click Post reply',
+                ].map((step, i) => (
+                  <div key={i} style={{ display:'flex', gap:10, marginBottom: i < 4 ? 8 : 0, alignItems:'flex-start' }}>
+                    <div style={{ width:18, height:18, borderRadius:'50%', background:'rgba(66,133,244,0.15)', color:'#4285F4', fontSize:'10px', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 }}>{i+1}</div>
+                    <div style={{ fontSize:'12px', color:'var(--text2)', lineHeight:1.5 }}>{step}</div>
+                  </div>
+                ))}
+                <div style={{ marginTop:12, display:'flex', gap:8 }}>
+                  <a href="https://business.google.com/reviews" target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize:'12px', color:'#4285F4', fontWeight:600, textDecoration:'none', padding:'6px 12px', background:'rgba(66,133,244,0.1)', borderRadius:6, border:'1px solid rgba(66,133,244,0.2)' }}>
+                    Open Google Business →
+                  </a>
+                  <button onClick={() => setShowGoogleInstructions(null)}
+                    style={{ fontSize:'12px', color:'var(--text3)', background:'none', border:'none', cursor:'pointer', padding:'6px 12px' }}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {!isDone && draft && !generating && !aiError && (
               <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button onClick={approve} disabled={approving}
