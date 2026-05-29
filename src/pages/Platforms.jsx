@@ -353,6 +353,19 @@ export default function Platforms() {
                           <span style={{ fontSize: '10px', color: 'var(--text3)', flexShrink: 0 }}>🔒 Locked</span>
                         </div>
                       )}
+                      {/* Login tip for Google */}
+                      {platform.id === 'google' && (
+                        <div style={{ padding:'10px 14px', background:'rgba(66,133,244,0.06)', border:'1px solid rgba(66,133,244,0.15)', borderRadius:8, display:'flex', alignItems:'center', gap:10 }}>
+                          <span style={{ fontSize:'13px', flexShrink:0 }}>💡</span>
+                          <span style={{ fontSize:'12px', color:'var(--text2)', lineHeight:1.5, flex:1 }}>
+                            Stay logged into Google Business Profile in your browser to reply to reviews in one click.
+                          </span>
+                          <a href="https://business.google.com/reviews" target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize:'11px', color:'#4285F4', fontWeight:700, textDecoration:'none', whiteSpace:'nowrap', padding:'4px 10px', background:'rgba(66,133,244,0.1)', borderRadius:6, border:'1px solid rgba(66,133,244,0.2)' }}>
+                            Log in →
+                          </a>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', gap: 8 }}>
                         <Button variant="secondary" size="sm" onClick={() => syncReviews(platform)}>
                           🔄 Sync Reviews

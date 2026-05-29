@@ -169,9 +169,16 @@ setGenerating(true)
         window.open(selected.review_link, '_blank', 'noopener')
         showToast(copied ? '✓ Copied. Paste your response on TripAdvisor and click Submit.' : 'Opened TripAdvisor. Copy your response and paste it.', 'success')
       } else if (platform === 'google') {
-        // Google: don't open a URL — show step-by-step toast and set instruction state
+        // Open the specific review on Google Maps (so GM can see which review it is)
+        if (selected?.review_link) {
+          window.open(selected.review_link, '_blank', 'noopener')
+        }
+        // Also open Business Profile reviews page (GM should already be logged in)
+        setTimeout(() => {
+          window.open('https://business.google.com/reviews', '_blank', 'noopener')
+        }, 400) // slight delay so both tabs open cleanly
         setShowGoogleInstructions(selected.author || 'the guest')
-        showToast(copied ? '✓ Response copied. Follow the steps below to post it on Google.' : '✓ See steps below to post on Google.', 'success')
+        showToast(copied ? '✓ Response copied. Two tabs opened — see the review, then paste in Business Profile.' : '✓ Two tabs opened. Copy your response and paste in Business Profile.', 'success')
       } else {
         // Other platforms: open their management URL
         const directUrl = getReviewUrl(selected, p)
@@ -404,8 +411,8 @@ setGenerating(true)
                   🔍 How to post on Google Business
                 </div>
                 {[
-                  'Open business.google.com on your computer (or the Google Maps app)',
-                  'Make sure you are signed in with your business Google account',
+                  'Log in to business.google.com with your business Google account (the one managing this property)',
+                  'Click "Reviews" in the left sidebar',
                   'Go to Reviews in the left menu',
                   `Search for "${showGoogleInstructions}" or scroll to find the review`,
                   'Click Reply, paste your response (Ctrl+V), click Post reply',
@@ -418,7 +425,7 @@ setGenerating(true)
                 <div style={{ marginTop:12, display:'flex', gap:8 }}>
                   <a href="https://business.google.com/reviews" target="_blank" rel="noopener noreferrer"
                     style={{ fontSize:'12px', color:'#4285F4', fontWeight:600, textDecoration:'none', padding:'6px 12px', background:'rgba(66,133,244,0.1)', borderRadius:6, border:'1px solid rgba(66,133,244,0.2)' }}>
-                    Open Google Business →
+                    Open Business Profile →
                   </a>
                   <button onClick={() => setShowGoogleInstructions(null)}
                     style={{ fontSize:'12px', color:'var(--text3)', background:'none', border:'none', cursor:'pointer', padding:'6px 12px' }}>
