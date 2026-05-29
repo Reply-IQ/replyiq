@@ -166,10 +166,10 @@ export default function Settings() {
           </Card>
 
           {/* SMART SNIPPETS */}
-          <SnippetsCard property={property} updatePropertyInState={updatePropertyInState} showToast={showToast} />
+          <SnippetsCard property={property} updatePropertyInState={updatePropertyInState} showToast={showToast} lang={lang} />
 
           {/* AUTO-REPLY */}
-          <AutoReplyCard property={property} updatePropertyInState={updatePropertyInState} showToast={showToast} />
+          <AutoReplyCard property={property} updatePropertyInState={updatePropertyInState} showToast={showToast} lang={lang} />
 
         </div>
       </Grid>
@@ -179,7 +179,7 @@ export default function Settings() {
 }
 
 // ── Smart Snippets Card ───────────────────────────────────────────────────────
-function SnippetsCard({ property, updatePropertyInState, showToast }) {
+function SnippetsCard({ property, updatePropertyInState, showToast, lang }) {
   const snippets = property?.ai_profile?.smartSnippets || []
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
@@ -245,7 +245,7 @@ function SnippetsCard({ property, updatePropertyInState, showToast }) {
 }
 
 // ── Auto-Reply Card ───────────────────────────────────────────────────────────
-function AutoReplyCard({ property, updatePropertyInState, showToast }) {
+function AutoReplyCard({ property, updatePropertyInState, showToast, lang }) {
   const profile  = property?.ai_profile || {}
   const enabled  = profile.autoReply5Star || false
   const saved    = profile.autoReply5StarTemplate || ''
