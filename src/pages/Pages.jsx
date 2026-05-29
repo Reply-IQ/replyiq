@@ -330,8 +330,10 @@ function rC(s) { return s>=80?'#B85C38':s>=55?'#C9A96E':'#4A7C6F' }
 export function RiskPage() {
   const { reviews, property, showToast } = useApp()
   const { lang } = useLang()
-  const [analysis, setAnalysis] = useState(null)
-  const [loading, setLoading]   = useState(false)
+  const [analysis,  setAnalysis]  = useState(null)
+  const [loading,   setLoading]   = useState(false)
+  const [planLoading, setPlanLoading] = useState(false)
+  const [sevenDay,  setSevenDay]  = useState(null)
   const score = useRiskScore(reviews)
 
   const COMPONENTS = [
@@ -345,17 +347,120 @@ export function RiskPage() {
 
   async function run() {
     setLoading(true)
+    setSevenDay(null) // reset plan when re-running analysis
     const r = await generateRiskAnalysis(reviews, property)
-    if (r.error) showToast('AI error', 'error')
+    if (r.error) showToast('AI error. Please try again.', 'error')
     else setAnalysis(r)
     setLoading(false)
+  }
+
+  async function generate7DayPlan() {
+    if (!analysis) return
+    setPlanLoading(true)
+
+    // ── Build rich business context from everything we know ─────────────────
+    const totalReviews    = reviews.length
+    const unanswered      = reviews.filter(r => !r.responded).length
+    const responseRate    = totalReviews ? Math.round((totalReviews - unanswered) / totalReviews * 100) : 0
+    const avgRating       = totalReviews ? (reviews.reduce((s,r) => s + Number(r.rating), 0) / totalReviews).toFixed(1) : 0
+    const negativeReviews = reviews.filter(r => Number(r.rating) <= 2)
+    const recentNeg       = negativeReviews.slice(0, 8)
+    const platforms       = [...new Set(reviews.map(r => r.platform).filter(Boolean))].join(', ')
+    const propertyType    = property?.ai_profile?.propertyType || 'hotel'
+    const city            = property?.address || property?.city || ''
+    const brandVoice      = property?.ai_profile?.brandVoice || ''
+    const snippets        = property?.ai_profile?.smartSnippets || []
+
+    // Sample of recent negative reviews for real context
+    const negSample = recentNeg.map(r =>
+      `  ${r.rating}★ (${r.platform || 'google'}) by ${r.author || 'Guest'}: "${(r.text || '').slice(0, 150)}"`
+    ).join('\n')
+
+    // All risk component details
+    const allComponents = COMPONENTS
+      .sort((a,b) => b.score - a.score)
+      .map(c => `  ${c.label}: ${c.score}/100 — ${c.detail}`)
+      .join('\n')
+
+    const prompt = `You are a senior hospitality reputation consultant generating a personalised 7-day improvement plan.
+
+PROPERTY PROFILE:
+- Name: ${property?.name || 'This property'}
+- Type: ${propertyType}
+- Location: ${city}
+- Platforms active: ${platforms || 'Google, TripAdvisor'}
+- Brand voice: ${brandVoice ? brandVoice.slice(0, 200) : 'Professional hospitality'}
+- Property facts: ${snippets.length ? snippets.join(', ') : 'Not specified'}
+
+CURRENT REPUTATION DATA:
+- Total reviews imported: ${totalReviews}
+- Average rating: ${avgRating}★
+- Unanswered reviews: ${unanswered} (${100 - responseRate}% left without reply)
+- Response rate: ${responseRate}%
+- Negative reviews (1-2★): ${negativeReviews.length}
+
+RISK ANALYSIS RESULTS:
+- Overall Risk Score: ${score}/100 (${score >= 80 ? 'HIGH RISK' : score >= 55 ? 'MODERATE' : 'STABLE'})
+- AI Summary: ${analysis.summary || analysis.topIssue || analysis.executiveSummary || ''}
+- Top threats identified: ${(analysis.topThreats || []).join('; ')}
+- Key strengths: ${(analysis.topStrengths || []).join('; ')}
+
+RISK VECTOR BREAKDOWN (higher score = worse):
+${allComponents}
+
+SAMPLE OF RECENT NEGATIVE REVIEWS (what real guests said):
+${negSample || '  No negative reviews in recent data'}
+
+TASK: Generate a concrete, personalised 7-day action plan for the GM and team to improve the specific risks above. 
+- Each action must be specific to THIS property based on the real guest feedback above
+- Reference specific issues from the negative reviews where relevant  
+- Assign the right team member for each task
+- Focus on the highest-scoring risk vectors first
+- Day 1-2: urgent actions (respond to negative reviews, fix immediate issues)
+- Day 3-4: operational improvements
+- Day 5-6: team training or process changes
+- Day 7: review and measure progress
+
+Return ONLY valid JSON:
+{
+  "days": [
+    { "day": "Day 1", "focus": "one-word focus", "action": "specific concrete action referencing actual issues from the reviews", "who": "GM / Front Desk / Restaurant Manager / Housekeeping / F&B Manager / etc", "impact": "which risk vector this improves and by how much" },
+    { "day": "Day 2", "focus": "...", "action": "...", "who": "...", "impact": "..." },
+    { "day": "Day 3", "focus": "...", "action": "...", "who": "...", "impact": "..." },
+    { "day": "Day 4", "focus": "...", "action": "...", "who": "...", "impact": "..." },
+    { "day": "Day 5", "focus": "...", "action": "...", "who": "...", "impact": "..." },
+    { "day": "Day 6", "focus": "...", "action": "...", "who": "...", "impact": "..." },
+    { "day": "Day 7", "focus": "...", "action": "...", "who": "...", "impact": "..." }
+  ]
+}`
+
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1200,
+          system: 'You are a hotel reputation consultant. Return only valid JSON, no markdown, no backticks.',
+          messages: [{ role: 'user', content: prompt }],
+        })
+      })
+      const data = await res.json()
+      const text = (data.content?.map(b => b.text||'').join('') || '').replace(/```json|```/g,'').trim()
+      const parsed = JSON.parse(text)
+      setSevenDay(parsed.days || [])
+    } catch(e) {
+      showToast('Could not generate plan. Please try again.', 'error')
+    }
+    setPlanLoading(false)
   }
 
   return (
     <Layout title={t(T.nav.risk, lang)} subtitle={t(T.risk.subtitle, lang)}
       topbarRight={<Button onClick={run} disabled={loading}>{loading?<><Spinner/>{t(T.common.generating,lang)}</>:'⚡ '+t(T.risk.generate,lang)}</Button>}
     >
-      <Grid cols={3} gap={16} style={{ marginBottom:20 }}>
+      {/* ── Row 1: Score + Radar ───────────────────────────────────────────── */}
+      <Grid cols={2} gap={16} style={{ marginBottom:16 }}>
         <Card style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 20px' }}>
           <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10 }}>{t(T.report.riskScore, lang)}</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'5rem', color:rC(score), lineHeight:1 }}>{score}</div>
@@ -363,10 +468,20 @@ export function RiskPage() {
           <div style={{ width:'100%', height:8, background:'var(--surface)', borderRadius:4, margin:'18px 0 6px', overflow:'hidden' }}>
             <div style={{ height:'100%', width:`${score}%`, background:rC(score), borderRadius:4, transition:'width 1s ease' }} />
           </div>
+          {!analysis && !loading && (
+            <div style={{ marginTop:16, fontSize:'12px', color:'var(--text3)', textAlign:'center', lineHeight:1.6 }}>
+              This is your baseline score. Click <strong style={{ color:'var(--gold)' }}>Generate Risk Analysis</strong> above for a full AI breakdown.
+            </div>
+          )}
+          {analysis && (
+            <div style={{ marginTop:16, fontSize:'12px', color:'var(--text2)', textAlign:'center', lineHeight:1.6, borderTop:'1px solid var(--border)', paddingTop:14, width:'100%' }}>
+              {analysis.summary || analysis.topIssue || ''}
+            </div>
+          )}
         </Card>
 
         <Card>
-          <SectionHeader title={t(T.riskPage.riskRadar, lang)} subtitle="" />
+          <SectionHeader title={t(T.riskPage.riskRadar, lang)} subtitle="5-vector risk overview" />
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarData} margin={{ top:10,right:20,bottom:10,left:20 }}>
               <PolarGrid stroke="rgba(255,255,255,.06)" />
@@ -376,25 +491,11 @@ export function RiskPage() {
             </RadarChart>
           </ResponsiveContainer>
         </Card>
-
-        <Card>
-          <SectionHeader title="7-Day Plan" subtitle={analysis ? 'AI recommended' : t(T.riskPage.runAnalysis, lang)} />
-          {!analysis && !loading && <div style={{ fontSize:'13px', color:'var(--text3)', padding:'12px 0' }}>Click "AI Risk Analysis" to generate your personalised recovery plan.</div>}
-          {loading && <div style={{ display:'flex', alignItems:'center', gap:8, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Generating...</div>}
-          {analysis?.sevenDayPlan?.map((step, i) => (
-            <div key={i} style={{ display:'flex', gap:12, padding:'10px 0', borderBottom:i<(analysis.sevenDayPlan.length-1)?'1px solid var(--border)':'none' }}>
-              <div style={{ width:52, flexShrink:0, fontSize:'11px', fontWeight:700, color:'var(--gold)', paddingTop:2 }}>{step.day}</div>
-              <div>
-                <div style={{ fontSize:'13px', fontWeight:600, marginBottom:2 }}>{step.action}</div>
-                <div style={{ fontSize:'12px', color:'var(--text3)' }}>{step.impact}</div>
-              </div>
-            </div>
-          ))}
-        </Card>
       </Grid>
 
-      <Card>
-        <SectionHeader title={t(T.riskPage.breakdown, lang)} subtitle={analysis ? 'AI analysis' : 'Baseline estimate'} />
+      {/* ── Row 2: Component Breakdown ─────────────────────────────────────── */}
+      <Card style={{ marginBottom:16 }}>
+        <SectionHeader title={t(T.riskPage.breakdown, lang)} subtitle={analysis ? 'Based on AI analysis of your reviews' : 'Baseline estimate — run analysis for AI breakdown'} />
         {COMPONENTS.map((c, i) => (
           <div key={c.key} style={{ display:'grid', gridTemplateColumns:'180px 160px 1fr', gap:16, alignItems:'center', padding:'12px 0', borderBottom:i<COMPONENTS.length-1?'1px solid var(--border)':'none' }}>
             <div style={{ fontSize:'13px', fontWeight:500 }}>{c.label}</div>
@@ -408,6 +509,52 @@ export function RiskPage() {
           </div>
         ))}
       </Card>
+
+      {/* ── Row 3: 7-Day Plan — only shown after analysis ──────────────────── */}
+      {analysis && (
+        <Card>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+            <div>
+              <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:2 }}>7-Day Improvement Plan</div>
+              <div style={{ fontSize:'12px', color:'var(--text3)' }}>Based on your risk analysis — specific actions for your team this week</div>
+            </div>
+            {!sevenDay && (
+              <Button onClick={generate7DayPlan} disabled={planLoading} variant="secondary">
+                {planLoading ? <><Spinner /> Generating plan...</> : '📋 Generate 7-Day Plan'}
+              </Button>
+            )}
+            {sevenDay && (
+              <Button onClick={generate7DayPlan} disabled={planLoading} variant="secondary" size="sm">
+                {planLoading ? <Spinner /> : '↺ Regenerate'}
+              </Button>
+            )}
+          </div>
+
+          {planLoading && (
+            <div style={{ display:'flex', alignItems:'center', gap:10, color:'var(--gold)', fontSize:'13px', padding:'16px 0' }}>
+              <Spinner /> Building your personalised 7-day plan based on the risk analysis...
+            </div>
+          )}
+
+          {!sevenDay && !planLoading && (
+            <div style={{ padding:'20px 0', textAlign:'center', color:'var(--text3)', fontSize:'13px', lineHeight:1.8 }}>
+              Click <strong style={{ color:'var(--gold)' }}>Generate 7-Day Plan</strong> to get specific daily actions for your team to improve the risks identified above.
+              <br/>Each action is tailored to your actual scores — not generic advice.
+            </div>
+          )}
+
+          {sevenDay && sevenDay.map((step, i) => (
+            <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 1fr auto', gap:14, alignItems:'start', padding:'14px 0', borderBottom:i<sevenDay.length-1?'1px solid var(--border)':'none' }}>
+              <div style={{ fontSize:'11px', fontWeight:700, color:'var(--gold)', textTransform:'uppercase', letterSpacing:'1px', paddingTop:2 }}>{step.day}</div>
+              <div>
+                <div style={{ fontSize:'13px', fontWeight:600, color:'var(--text1)', marginBottom:4 }}>{step.action}</div>
+                <div style={{ fontSize:'12px', color:'var(--text3)', lineHeight:1.55 }}>{step.impact}</div>
+              </div>
+              <div style={{ fontSize:'11px', color:'var(--text3)', background:'var(--surface)', borderRadius:6, padding:'4px 8px', whiteSpace:'nowrap', flexShrink:0 }}>{step.who}</div>
+            </div>
+          ))}
+        </Card>
+      )}
     </Layout>
   )
 }

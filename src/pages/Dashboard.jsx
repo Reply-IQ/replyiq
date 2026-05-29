@@ -364,20 +364,20 @@ export default function Dashboard() {
         </Card>
 
         {/* AI Brief + Needs Reply */}
-        <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0, overflow:'hidden' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0, overflowX:'hidden', width:'100%' }}>
           {/* AI brief */}
-          <Card style={{ flex:'none' }}>
+          <Card style={{ flex:'none', minWidth:0, overflowX:'hidden', width:'100%' }}>
             <SectionHeader title={t(T.dashboard.aiBrief, lang)} subtitle={t(T.dashboard.weeklyAnalysis, lang)} />
             {!brief && !loading && (
               <EmptyState icon="🤖" title={t(T.dashboard.generateBrief, lang)} description={t(T.dashboard.generateBriefDesc, lang)} action={<Button variant="secondary" size="sm" onClick={getIntelligenceBrief}>{t(T.dashboard.generateBrief, lang)}</Button>} />
             )}
             {loading && <div style={{ padding:'20px 0', display:'flex', alignItems:'center', gap:10, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Analysing {reviews.length.toLocaleString()} reviews...</div>}
             {brief && !brief.error && <>
-              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||'Top Issue'}    body={(brief.topIssueDetail||brief.insight||'').slice(0,140)} />
-              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={(brief.topStrengthDetail||brief.opportunity||'').slice(0,140)} />
-              <InsightItem iconBg="rgba(201,169,110,.1)" iconColor="var(--gold)" icon="→" title="This Week" body={(brief.urgentAction||'').slice(0,140)} last />
+              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||'Top Issue'}    body={brief.topIssueDetail||brief.insight||''} />
+              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={brief.topStrengthDetail||brief.opportunity||''} />
+              <InsightItem iconBg="rgba(201,169,110,.1)" iconColor="var(--gold)" icon="→" title={t(T.reportExtra.thisWeek, lang)} body={brief.urgentAction||''} last />
               <Divider />
-              <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)', overflow:'hidden' }}>{(brief.executiveSummary||brief.insight||'').slice(0,200)}</div>
+              <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)', wordBreak:'break-word', overflowWrap:'break-word' }}>{brief.executiveSummary||brief.insight||''}</div>
             </>}
           </Card>
 

@@ -224,7 +224,7 @@ export function InsightItem({ iconBg, iconColor, icon, title, body, last }) {
       <div style={{ width:32, height:32, borderRadius:8, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:iconBg, color:iconColor, fontSize:'14px' }}>{icon}</div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:'13px', fontWeight:600, marginBottom:3 }}>{title}</div>
-        <div style={{ fontSize:'12px', color:'var(--text2)', lineHeight:1.55 }}>{body}</div>
+        <div style={{ fontSize:'12px', color:'var(--text2)', lineHeight:1.55, wordBreak:'break-word', overflowWrap:'break-word' }}>{body}</div>
       </div>
     </div>
   )
