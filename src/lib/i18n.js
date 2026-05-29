@@ -29,7 +29,7 @@ export const T = {
 
   // ── Trial / Upgrade ──────────────────────────────────────────────────────────
   trial: {
-    banner:      { en:'FREE TRIAL',     de:'KOSTENLOSE TESTPHASE', fr:'ESSAI GRATUIT' },
+    banner:      { en:'EARLY ACCESS',   de:'FRUHER ZUGANG',         fr:'ACCES ANTICIPE' },
     daysLeft:    { en:'days left',      de:'Tage verbleibend',     fr:'jours restants' },
     aiLeft:      { en:'AI generations remaining', de:'KI-Generierungen verbleibend', fr:'generations IA restantes' },
     upgrade:     { en:'Upgrade Now →', de:'Jetzt upgraden →',     fr:'Passer au premium →' },
@@ -74,7 +74,7 @@ export const T = {
   // ── Inbox ────────────────────────────────────────────────────────────────────
   inbox: {
     title:       { en:'Inbox',            de:'Posteingang',      fr:'Boite de reception' },
-    subtitle:    { en:'AI drafts the perfect response — you approve and post', de:'KI erstellt die perfekte Antwort — Sie genehmigen und posten', fr:"L'IA redige la reponse parfaite — vous approuvez et publiez" },
+    subtitle:    { en:'AI drafts the perfect response. You approve and post.', de:'KI erstellt die perfekte Antwort. Sie genehmigen und posten.', fr:"L'IA redige la reponse parfaite. Vous approuvez et publiez." },
     awaiting:    { en:'reviews awaiting response', de:'Bewertungen warten auf Antwort', fr:'avis en attente de reponse' },
     pending:     { en:'Pending',          de:'Ausstehend',       fr:'En attente' },
     urgent:      { en:'Urgent',           de:'Dringend',         fr:'Urgent' },
@@ -130,7 +130,7 @@ export const T = {
   // ── Competitors ──────────────────────────────────────────────────────────────
   competitors: {
     title:      { en:'Competitor Intelligence', de:'Mitbewerber-Analyse', fr:'Intelligence concurrentielle' },
-    subtitle:   { en:'Real-time market benchmarking — 3km radius', de:'Echtzeit-Markt-Benchmarking — 3km Radius', fr:'Benchmarking marche en temps reel — rayon de 3km' },
+    subtitle:   { en:'Real-time market benchmarking within 3km', de:'Echtzeit-Markt-Benchmarking im Umkreis von 3km', fr:'Benchmarking marche en temps reel — rayon de 3km' },
     sync:       { en:'Sync Competitors', de:'Mitbewerber synchronisieren', fr:'Synchroniser les concurrents' },
     syncing:    { en:'Syncing...', de:'Synchronisiere...', fr:'Synchronisation...' },
     aiBenchmark:{ en:'AI Benchmark',    de:'KI-Benchmark',   fr:'Benchmark IA' },
@@ -248,7 +248,7 @@ export const T = {
   // ── Respond Page ──────────────────────────────────────────────────────────────
   respondPage: {
     title:       { en:'AI Response Tester', de:'KI-Antwort-Tester', fr:'Testeur de reponse IA' },
-    pasteHint:   { en:'Paste any review — AI drafts a perfect response in seconds', de:'Fugen Sie eine Bewertung ein — KI erstellt in Sekunden eine perfekte Antwort', fr:'Collez un avis — IA redige une reponse parfaite en quelques secondes' },
+    pasteHint:   { en:'Paste any review. AI drafts a perfect response in seconds.', de:'Fugen Sie eine Bewertung ein. KI erstellt in Sekunden eine perfekte Antwort.', fr:'Collez un avis — IA redige une reponse parfaite en quelques secondes' },
     reviewInput: { en:'Review Input',       de:'Bewertungseingabe', fr:'Saisie de avis' },
     reviewText:  { en:'Review Text',        de:'Bewertungstext',    fr:'Texte de avis' },
     unanswered:  { en:'Unanswered Reviews', de:'Unbeantwortete Bewertungen', fr:'Avis sans reponse' },

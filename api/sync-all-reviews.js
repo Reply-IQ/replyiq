@@ -167,7 +167,7 @@ export default async function handler(req, res) {
             // Review cards
             '<div style="margin-bottom:20px">' +
             '<div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6B7280;font-weight:600;margin-bottom:12px">' +
-            (toShow.length < newCount ? 'Preview — ' + toShow.length + ' of ' + newCount + ' new reviews' : newCount + ' new review' + (newCount > 1 ? 's' : '')) +
+            (toShow.length < newCount ? 'Preview: ' + toShow.length + ' of ' + newCount + ' new reviews' : newCount + ' new review' + (newCount > 1 ? 's' : '')) +
             '</div>' +
             reviewCards +
             (newCount > toShow.length
@@ -177,7 +177,7 @@ export default async function handler(req, res) {
 
             // CTA button
             '<a href="https://app.replyiq.ch/inbox" style="display:block;padding:16px;background:linear-gradient(135deg,#F5C842,#D4860E);border-radius:12px;color:#141920;font-size:15px;font-weight:700;text-decoration:none;text-align:center;margin-bottom:20px;letter-spacing:0.3px">' +
-            (negCount > 0 ? '⚡ Respond Now — Protect Your Rating →' : 'Open Inbox and Reply →') +
+            (negCount > 0 ? 'Respond Now and Protect Your Rating →' : 'Open Inbox and Reply →') +
             '</a>' +
 
             // Why respond tip

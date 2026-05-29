@@ -144,7 +144,7 @@ export default function Settings() {
               </div>
             </div>
             {[
-              'Unlimited AI responses — no per-reply fees, ever',
+              'Unlimited AI responses. No per-reply fees, ever.',
               'All review platforms',
               'Daily automatic sync',
               'Competitor benchmarking',
@@ -274,7 +274,7 @@ function AutoReplyCard({ property, updatePropertyInState, showToast }) {
       setTmpl(result.response || result.raw)
     } else {
       setAiError(true)
-      showToast('AI draft failed — try again', 'error')
+      showToast('AI draft failed. Please try again.', 'error')
     }
     setDrafting(false)
   }

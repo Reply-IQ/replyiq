@@ -238,7 +238,7 @@ export function RespondPage() {
     if (!text.trim()) return
     setLoading(true); setResponse(''); setApproach('')
     const r = await draftResponse({ text, rating, platform, author: 'Guest' }, property, tone)
-    if (r.error) showToast('AI error — check API key', 'error')
+    if (r.error) showToast('AI error. Please check your API key.', 'error')
     else { setResponse(r.response || r.raw || ''); setApproach(r.approach || '') }
     setLoading(false)
   }
@@ -576,7 +576,7 @@ export function CompetitorsPage() {
       const data = await r.json()
       if (data.error) { showToast('API error: ' + data.error, 'error'); setSyncing(false); return }
       const list = data.competitors || []
-      if (list.length === 0) { showToast('No competitors found — check your Google Places API key in Vercel', 'error'); setSyncing(false); return }
+      if (list.length === 0) { showToast('No competitors found. Check your Google Places API key in Vercel.', 'error'); setSyncing(false); return }
 
       // Calculate real trend vs previous sync
       const rows = list.map(c => {
@@ -608,10 +608,10 @@ export function CompetitorsPage() {
           const clean = r.raw.replace(/```json\n?|```/g, '').trim()
           const parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1))
           setAnalysis(parsed)
-        } catch { showToast('Could not parse AI response — try again', 'error') }
+        } catch { showToast('Could not parse AI response. Please try again.', 'error') }
       }
       else if (r.primaryOpportunity || r.narrative || r.quickWins) { setAnalysis(r) }
-      else { showToast('Unexpected AI format — try again', 'error') }
+      else { showToast('Unexpected AI format. Please try again.', 'error') }
     } catch(e) { showToast('AI benchmark failed: ' + e.message, 'error') }
     setLoading(false)
   }
@@ -639,7 +639,7 @@ export function CompetitorsPage() {
       const existingIds = new Set(competitors.map(c => c.place_id).filter(Boolean))
       const fresh = (data.competitors || []).filter(c => !existingIds.has(c.place_id) && c.name?.toLowerCase() !== property.name?.toLowerCase())
       setSearchRes(fresh.slice(0, 8))
-      if (fresh.length === 0) showToast('No new results — try a different search term', 'info')
+      if (fresh.length === 0) showToast('No new results. Try a different search term.', 'info')
     } catch(e) { showToast('Search failed: ' + e.message, 'error') }
     setSearching(false)
   }
@@ -669,7 +669,7 @@ export function CompetitorsPage() {
   return (
     <Layout
       title={t(T.nav.competitors, lang)}
-      subtitle={t(T.competitors.subtitle, lang).replace('5km','3km')}
+      subtitle={t(T.competitors.subtitle, lang)}
       topbarRight={
         <div style={{ display:'flex', gap:8 }}>
           <Button variant="secondary" onClick={sync} disabled={syncing}>
@@ -974,13 +974,13 @@ export function ReportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to,
-          subject: `ReplyIQ Weekly Report — ${property?.name || 'Your Property'} — ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
+          subject: `ReplyIQ Weekly Report: ${property?.name || 'Your Property'} ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
           html,
         })
       })
       const d = await r.json()
       if (d.success || d.skipped) showToast(`✓ Report sent to ${to}`, 'success')
-      else showToast('Email failed — check Resend config', 'error')
+      else showToast('Email failed. Check your Resend configuration.', 'error')
     } catch(e) { showToast('Email error: ' + e.message, 'error') }
     setEmailing(false)
   }

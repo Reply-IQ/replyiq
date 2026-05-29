@@ -29,7 +29,7 @@ const PLATFORMS = [
       'Go to tripadvisor.com and search for your hotel or restaurant',
       'Click on your property page',
       'Copy the full URL from your browser address bar',
-      'Paste it below — it must start with tripadvisor.com/Hotel_Review or /Restaurant_Review',
+      'Paste it below. It must start with tripadvisor.com/Hotel_Review or /Restaurant_Review',
     ],
     hint: '⚠ The URL must be the full property page URL, not a search result. Example: tripadvisor.com/Hotel_Review-g188113-d123456-...',
   },
@@ -42,7 +42,7 @@ const PLATFORMS = [
       'Go to booking.com and search for your property',
       'Click on your property listing',
       'Copy the full URL from the address bar',
-      'Paste it below — it must contain booking.com/hotel/',
+      'Paste it below. It must contain booking.com/hotel/',
     ],
     hint: '⚠ Copy the URL directly from your property page on Booking.com, not from search results.',
   },
@@ -79,7 +79,7 @@ export default function Platforms() {
       const platform = PLATFORMS.find(p => p.id === pending.platformId)
       if (!platform) return
       setLoad(platform.id, true)
-      setMsg(platform.id, 'Resuming import — checking status...')
+      setMsg(platform.id, 'Resuming import. Checking status...')
       pollForResults(platform, pending.jobId, pending.clinicId || property.id, pending.identifier)
     } catch {}
   }, [property?.id])
@@ -150,7 +150,7 @@ export default function Platforms() {
           if (data.count > 0) {
             showToast(`✓ ${data.count} reviews imported successfully!`, 'success')
           } else {
-            showToast(data.warning || 'Import complete — no new reviews found.', 'info')
+            showToast(data.warning || 'Import complete. No new reviews found.', 'info')
           }
           await loadAll()
           setLoad(platform.id, false)
@@ -197,7 +197,7 @@ export default function Platforms() {
       const data = await r.json()
       if (data.error) { showToast(data.error, 'error'); setLoad(platform.id, false); setMsg(platform.id, ''); return }
       if (data.jobId) {
-        setMsg(platform.id, 'Sync running in background — reviews will update automatically ✓')
+        setMsg(platform.id, 'Sync running in background. Reviews will appear shortly.')
         pollForResults(platform, data.jobId, property.id, identifier)
       }
     } catch (e) { showToast(e.message, 'error'); setLoad(platform.id, false); setMsg(platform.id, '') }

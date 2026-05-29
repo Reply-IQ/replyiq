@@ -244,7 +244,7 @@ export default function Dashboard() {
               </div>
               <div style={{ fontSize:'11px', color:'var(--text3)' }}>
                 {newReviews.filter(r => r.rating <= 2).length > 0
-                  ? `⚠ ${newReviews.filter(r => r.rating <= 2).length} negative — respond quickly to protect your ranking`
+                  ? `⚠ ${newReviews.filter(r => r.rating <= 2).length} negative reviews. Respond quickly to protect your ranking.`
                   : 'Open Inbox to review and respond'}
               </div>
             </div>
@@ -419,7 +419,7 @@ export default function Dashboard() {
       {/* ── Rating trend chart ── */}
       {ratingTrend.length >= 2 && (
         <Card>
-          <SectionHeader title={t(T.dashboard.reviews, lang)} subtitle="Last 6 months — real data from your reviews" />
+          <SectionHeader title={t(T.dashboard.reviews, lang)} subtitle="Last 6 months of real review data" />
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={ratingTrend} margin={{ top:5, right:10, left:-20, bottom:0 }}>
               <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#C9A96E" stopOpacity={0.25}/><stop offset="95%" stopColor="#C9A96E" stopOpacity={0}/></linearGradient></defs>

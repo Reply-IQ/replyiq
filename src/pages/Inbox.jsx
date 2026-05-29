@@ -112,7 +112,7 @@ setGenerating(true)
       setAiError(false)
     } else {
       setAiError(true)
-      showToast('AI generation failed — try again', 'error')
+      showToast('AI generation failed. Please try again.', 'error')
     }
     setGenerating(false)
     setEditMode(false)

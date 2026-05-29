@@ -352,7 +352,7 @@ export default function Onboarding() {
                         <span style={{ color:'#4A7C6F' }}>✓</span>
                         <span style={{ fontSize:'12px', color:'#4A7C6F', fontWeight:500 }}>
                           {isDone.delayed
-                            ? 'Import running — your dashboard will show progress and update automatically.'
+                            ? 'Import running. Your dashboard will show progress and update when ready.'
                             : `${(isDone.count||0).toLocaleString()} reviews imported successfully.`}
                         </span>
                       </div>
@@ -389,7 +389,7 @@ export default function Onboarding() {
                         </div>
                         <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:2 }}>
                           {done.delayed
-                            ? 'Your dashboard will show a progress bar — reviews appear automatically when ready.'
+                            ? 'Your dashboard will show a progress bar. Reviews appear when ready.'
                             : 'Reviews are ready in your dashboard.'}
                         </div>
                       </div>
@@ -405,7 +405,7 @@ export default function Onboarding() {
                   ['✓','Inbox shows all unanswered reviews'],
                   ['✓','AI responds in your brand voice'],
                   ['✓','Risk score tracks reputation health'],
-                  ['✓','Competitor benchmarking — 2km radius'],
+                  ['✓','Competitor benchmarking within 3km'],
                   ['✓','Weekly intelligence reports by email'],
                 ].map(([icon, text]) => (
                   <div key={text} style={{ display:'flex', gap:10, alignItems:'center' }}>
