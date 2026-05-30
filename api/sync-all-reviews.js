@@ -93,6 +93,59 @@ export default async function handler(req, res) {
         console.log('[sync-all]', clinic.name, '— saved', newCount, 'new reviews')
         results.push({ clinic: clinic.name, fetched: reviewsData.length, newReviews: newCount })
 
+        // ── TripAdvisor sync ────────────────────────────────────────────────
+        const tripadvisor = conns.tripadvisor
+        if (tripadvisor?.identifier && outscraperKey) {
+          try {
+            console.log('[sync-all]', clinic.name, '— syncing TripAdvisor')
+            const taUrl = `https://api.app.outscraper.com/tripadvisor-reviews?query=${encodeURIComponent(tripadvisor.identifier)}&reviewsLimit=10&sort=newest&async=false`
+            const taRes = await fetch(taUrl, { headers: { 'X-API-KEY': outscraperKey }, signal: AbortSignal.timeout(55000) })
+            const taData = await taRes.json()
+
+            // TripAdvisor returns flat array of review objects
+            const taRaw = taData?.data
+            let taReviews = []
+            if (Array.isArray(taRaw) && taRaw.length > 0) {
+              const first = taRaw[0]
+              taReviews = Array.isArray(first) ? first : taRaw
+              taReviews = taReviews.filter(r => r.review_text || r.review_rating || r.author_title)
+            }
+
+            if (taReviews.length > 0) {
+              const mappedTA = taReviews.map(rv => {
+                const author = rv.author_title || rv.name || 'Guest'
+                const date   = (rv.review_date || rv.review_datetime_utc || '').toString().split('T')[0].split(' ')[0] || new Date().toISOString().split('T')[0]
+                return {
+                  clinic_id:        clinic.id,
+                  author,
+                  rating:           Math.round(Number(rv.review_rating || rv.rating || 3)),
+                  platform:         'tripadvisor',
+                  review_date:      date,
+                  text:             rv.review_text || rv.text || '',
+                  responded:        !!(rv.owner_response || rv.owner_answer),
+                  response_text:    rv.owner_response || rv.owner_answer || null,
+                  review_link:      rv.review_link || null,
+                  google_review_id: rv.review_id || rv.review_link || `ta_${author.replace(/\s/g,'_')}_${date}`,
+                }
+              })
+
+              const taUpsert = await fetch(`${supabaseUrl}/rest/v1/reviews`, {
+                method:  'POST',
+                headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
+                body:    JSON.stringify(mappedTA)
+              })
+              const taSaved = await taUpsert.json()
+              const taNew   = Array.isArray(taSaved) ? taSaved.length : 0
+              console.log('[sync-all]', clinic.name, '— TripAdvisor saved', taNew, 'new reviews')
+
+              // Add to newCount for email notification
+              if (taNew > 0) upserted.push(...(Array.isArray(taSaved) ? taSaved : []))
+            }
+          } catch (taErr) {
+            console.log('[sync-all] TripAdvisor sync error for', clinic.name, ':', taErr.message)
+          }
+        }
+
         // Send professional email notification when new reviews arrive
         if (newCount > 0 && clinic.owner_email) {
           const toShow   = upserted.slice(0, 3)
