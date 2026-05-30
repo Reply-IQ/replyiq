@@ -152,7 +152,7 @@ export default function Dashboard() {
             <div style={{ height:'100%', width:'60%', background:'linear-gradient(90deg,#4285F4,#60a5fa,#4285F4)', backgroundSize:'200% 100%', borderRadius:3, animation:'shimmer 1.5s infinite' }} />
           </div>
           <div style={{ fontSize:'12px', color:'var(--text3)' }}>You can navigate around the app — reviews will appear automatically when done.</div>
-          <Button variant="secondary" size="sm" onClick={() => navigate('/platforms')}>View Import Status →</Button>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/platforms')}>{t(T.platforms.sync, lang)} →</Button>
         </div>
       </Layout>
     )
@@ -166,7 +166,7 @@ export default function Dashboard() {
           <div style={{ width:72, height:72, borderRadius:20, background:'rgba(201,169,110,.08)', border:'1px solid rgba(201,169,110,.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>🔗</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'1.7rem' }}>Connect your first platform</div>
           <div style={{ fontSize:'14px', color:'var(--text3)', maxWidth:420, lineHeight:1.8 }}>Connect Google Business to start importing reviews. Your full dashboard will populate automatically.</div>
-          <Button size="lg" onClick={() => navigate('/platforms')} style={{ marginTop:8 }}>Connect Platforms →</Button>
+          <Button size="lg" onClick={() => navigate('/platforms')} style={{ marginTop:8 }}>{t(T.platforms.connect, lang)} →</Button>
           <div style={{ display:'flex', gap:10, marginTop:4, flexWrap:'wrap', justifyContent:'center' }}>
             {ALL_PLATFORMS.map(pid => { const m=PLATFORM_META[pid]; return <div key={pid} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', background:m.bg, borderRadius:20, fontSize:'12px', color:m.color, fontWeight:600 }}>{m.icon} {m.name}</div> })}
           </div>
@@ -217,7 +217,7 @@ export default function Dashboard() {
               <div style={{ fontSize:'12px', color:'var(--text3)' }}>Businesses that reply to all reviews get 2× more bookings.</div>
             </div>
           </div>
-          <Button size="sm" variant="secondary" onClick={() => navigate('/inbox')}>View Inbox →</Button>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/inbox')}>{t(T.nav.inbox, lang)} →</Button>
         </div>
       )}
       {unans > 10 && (
@@ -225,11 +225,11 @@ export default function Dashboard() {
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ width:36, height:36, borderRadius:10, background:'rgba(184,92,56,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>⚠</div>
             <div>
-              <div style={{ fontWeight:700, fontSize:'13px', color:'#B85C38', marginBottom:2 }}>{unans} reviews are waiting for a response.</div>
+              <div style={{ fontWeight:700, fontSize:'13px', color:'#B85C38', marginBottom:2 }}>{unans} ${t(T.dashboard.urgentAlert, lang)}</div>
               <div style={{ fontSize:'12px', color:'var(--text3)' }}>Unanswered reviews hurt your search ranking on Google and TripAdvisor.</div>
             </div>
           </div>
-          <Button size="sm" onClick={() => navigate('/inbox')} style={{ background:'#B85C38', color:'#fff' }}>Reply Now →</Button>
+          <Button size="sm" onClick={() => navigate('/inbox')} style={{ background:'#B85C38', color:'#fff' }}>{t(T.dashboard.replyNow, lang)}</Button>
         </div>
       )}
 
@@ -266,7 +266,7 @@ export default function Dashboard() {
       <div style={{ display:'grid', gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)', gap:12, marginBottom:16 }}>
         {/* Average Rating — with mini chart */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
-          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>Your average rating</div>
+          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>{t(T.dashboard.avgRating, lang)}</div>
           <div style={{ display:'flex', alignItems:'flex-end', gap:10, marginBottom:8 }}>
             <div style={{ fontFamily:'var(--font-serif)', fontSize:'2.4rem', color:'var(--gold)', lineHeight:1 }}>{avgRating}</div>
             <div style={{ display:'flex', gap:2, marginBottom:6 }}>
@@ -281,37 +281,37 @@ export default function Dashboard() {
               </AreaChart>
             </ResponsiveContainer>
           )}
-          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>Based on your {reviews.length.toLocaleString()} imported reviews</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>{t(T.dashboard.basedOn, lang)} {reviews.length.toLocaleString()} {t(T.dashboard.importedReviews, lang)}</div>
         </div>
 
         {/* Reviews */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
-          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>Reviews</div>
+          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>{t(T.dashboard.reviews, lang)}</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'2.4rem', color:'var(--text1)', lineHeight:1, marginBottom:8 }}>{reviews.length.toLocaleString()}</div>
           <div style={{ display:'flex', align:'center', gap:4, fontSize:'12px' }}>
-            <span style={{ color:'#4A7C6F' }}>↑ {thisMonth.length} this month</span>
+            <span style={{ color:'#4A7C6F' }}>↑ {thisMonth.length} {t(T.dashboard.thisMonth, lang)}</span>
           </div>
-          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>Total across all platforms</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>{t(T.dashboard.allPlatforms, lang)}</div>
         </div>
 
         {/* Awaiting response */}
         <div style={{ background:'var(--card)', border:`1px solid ${unans > 0 ? 'rgba(184,92,56,.2)' : 'var(--border)'}`, borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
-          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>Awaiting response</div>
+          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>{t(T.dashboard.awaiting, lang)}</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'2.4rem', color:unans>0?'#B85C38':'#4A7C6F', lineHeight:1, marginBottom:8 }}>{unans}</div>
           <div style={{ fontSize:'12px', color:unans>0?'#B85C38':'#4A7C6F' }}>
-            {unans > 0 ? `↓ Reply to improve ranking` : '✓ All caught up!'}
+            {unans > 0 ? `↓ ${t(T.dashboard.replyToImprove, lang)}` : `✓ ${t(T.dashboard.allReplied, lang)}`}
           </div>
-          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>Unanswered reviews</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)', marginTop:6 }}>{t(T.dashboard.unanswered, lang)}</div>
         </div>
 
         {/* Response rate */}
         <div style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
-          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>Response rate</div>
+          <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--text3)', marginBottom:10, fontWeight:600 }}>{t(T.dashboard.responseRate, lang)}</div>
           <div style={{ fontFamily:'var(--font-serif)', fontSize:'2.4rem', color:responseRate>=80?'#4A7C6F':'#B85C38', lineHeight:1, marginBottom:8 }}>{responseRate}%</div>
           <div style={{ height:4, background:'var(--surface)', borderRadius:2, overflow:'hidden', marginBottom:6 }}>
             <div style={{ height:'100%', width:`${responseRate}%`, background:responseRate>=80?'#4A7C6F':'#B85C38', borderRadius:2, transition:'width 1s ease' }} />
           </div>
-          <div style={{ fontSize:'11px', color:'var(--text3)' }}>{responseRate>=80?'↑ 15% vs last month':t(T.dashboard.needsImprovement, lang)}</div>
+          <div style={{ fontSize:'11px', color:'var(--text3)' }}>{responseRate>=80?`↑ 15% vs last month`:t(T.dashboard.needsImprovement, lang)}</div>
         </div>
       </div>
 
@@ -373,8 +373,8 @@ export default function Dashboard() {
             )}
             {loading && <div style={{ padding:'20px 0', display:'flex', alignItems:'center', gap:10, color:'var(--gold)', fontSize:'13px' }}><Spinner /> Analysing {reviews.length.toLocaleString()} reviews...</div>}
             {brief && !brief.error && <>
-              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||'Top Issue'}    body={brief.topIssueDetail||brief.insight||''} />
-              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||'Strength'}  body={brief.topStrengthDetail||brief.opportunity||''} />
+              <InsightItem iconBg="rgba(184,92,56,.1)"   iconColor="#B85C38"     icon="⚠" title={brief.topIssue||brief.headline||t(T.common.riskHigh, lang)}    body={brief.topIssueDetail||brief.insight||''} />
+              <InsightItem iconBg="rgba(74,124,111,.1)"  iconColor="#4A7C6F"     icon="✓" title={brief.topStrength||t(T.common.riskStable, lang)}  body={brief.topStrengthDetail||brief.opportunity||''} />
               <InsightItem iconBg="rgba(201,169,110,.1)" iconColor="var(--gold)" icon="→" title={t(T.reportExtra.thisWeek, lang)} body={brief.urgentAction||''} last />
               <Divider />
               <div style={{ background:'var(--surface)', borderRadius:8, padding:'10px 12px', fontSize:'12px', color:'var(--text2)', lineHeight:1.65, borderLeft:'3px solid var(--gold)', wordBreak:'break-word', overflowWrap:'break-word' }}>{brief.executiveSummary||brief.insight||''}</div>
@@ -419,7 +419,7 @@ export default function Dashboard() {
       {/* ── Rating trend chart ── */}
       {ratingTrend.length >= 2 && (
         <Card>
-          <SectionHeader title={t(T.dashboard.reviews, lang)} subtitle="Last 6 months of real review data" />
+          <SectionHeader title={t(T.dashboard.reviews, lang)} subtitle={`Last 6 months of real review data`} />
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={ratingTrend} margin={{ top:5, right:10, left:-20, bottom:0 }}>
               <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#C9A96E" stopOpacity={0.25}/><stop offset="95%" stopColor="#C9A96E" stopOpacity={0}/></linearGradient></defs>
