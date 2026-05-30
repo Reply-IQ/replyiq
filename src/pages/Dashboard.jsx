@@ -225,7 +225,7 @@ export default function Dashboard() {
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ width:36, height:36, borderRadius:10, background:'rgba(184,92,56,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>⚠</div>
             <div>
-              <div style={{ fontWeight:700, fontSize:'13px', color:'#B85C38', marginBottom:2 }}>{unans} ${t(T.dashboard.urgentAlert, lang)}</div>
+              <div style={{ fontWeight:700, fontSize:'13px', color:'#B85C38', marginBottom:2 }}>{unans} {t(T.dashboard.urgentAlert, lang)}</div>
               <div style={{ fontSize:'12px', color:'var(--text3)' }}>Unanswered reviews hurt your search ranking on Google and TripAdvisor.</div>
             </div>
           </div>
