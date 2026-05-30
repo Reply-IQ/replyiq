@@ -337,11 +337,11 @@ export function RiskPage() {
   const score = useRiskScore(reviews)
 
   const COMPONENTS = [
-    { key:'ratingVolatility',   label:'Rating Volatility',    score:analysis?.components?.ratingVolatility?.score   || Math.min(score+5,100), detail:analysis?.components?.ratingVolatility?.detail   || 'Based on recent review trends' },
-    { key:'responseGap',        label:'Response Gap',         score:analysis?.components?.responseGap?.score        || Math.max(score-10,0),  detail:analysis?.components?.responseGap?.detail        || `${reviews.filter(r=>!r.responded).length} reviews unanswered` },
-    { key:'complianceRisk',     label:'Compliance Risk',      score:analysis?.components?.complianceRisk?.score     || 20,                    detail:analysis?.components?.complianceRisk?.detail     || 'No major compliance issues detected' },
-    { key:'sentimentTrend',     label:'Sentiment Trend',      score:analysis?.components?.sentimentTrend?.score     || score,                 detail:analysis?.components?.sentimentTrend?.detail     || 'Based on recent review sentiment' },
-    { key:'competitorPressure', label:'Competitor Pressure',  score:analysis?.components?.competitorPressure?.score || 35,                   detail:analysis?.components?.competitorPressure?.detail || 'Local market competition' },
+    { key:'ratingVolatility',   label:t(T.riskExtra.ratingVolatility,lang),    score:analysis?.components?.ratingVolatility?.score   || Math.min(score+5,100), detail:analysis?.components?.ratingVolatility?.detail   || 'Based on recent review trends' },
+    { key:'responseGap',        label:t(T.riskExtra.responseGap,lang),         score:analysis?.components?.responseGap?.score        || Math.max(score-10,0),  detail:analysis?.components?.responseGap?.detail        || `${reviews.filter(r=>!r.responded).length} reviews unanswered` },
+    { key:'complianceRisk',     label:t(T.riskExtra.complianceRisk,lang),      score:analysis?.components?.complianceRisk?.score     || 20,                    detail:analysis?.components?.complianceRisk?.detail     || 'No major compliance issues detected' },
+    { key:'sentimentTrend',     label:t(T.riskExtra.sentimentTrend,lang),      score:analysis?.components?.sentimentTrend?.score     || score,                 detail:analysis?.components?.sentimentTrend?.detail     || 'Based on recent review sentiment' },
+    { key:'competitorPressure', label:t(T.riskExtra.competitorPressure,lang),  score:analysis?.components?.competitorPressure?.score || 35,                   detail:analysis?.components?.competitorPressure?.detail || 'Local market competition' },
   ]
   const radarData = COMPONENTS.map(c => ({ subject: c.label.split(' ')[0], score: c.score }))
 
@@ -481,7 +481,7 @@ Return ONLY valid JSON:
         </Card>
 
         <Card>
-          <SectionHeader title={t(T.riskPage.riskRadar, lang)} subtitle="5-vector risk overview" />
+          <SectionHeader title={t(T.riskPage.riskRadar, lang)} subtitle={t(T.riskExtra.fiveVectors,lang)} />
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarData} margin={{ top:10,right:20,bottom:10,left:20 }}>
               <PolarGrid stroke="rgba(255,255,255,.06)" />
@@ -495,7 +495,7 @@ Return ONLY valid JSON:
 
       {/* ── Row 2: Component Breakdown ─────────────────────────────────────── */}
       <Card style={{ marginBottom:16 }}>
-        <SectionHeader title={t(T.riskPage.breakdown, lang)} subtitle={analysis ? 'Based on AI analysis of your reviews' : 'Baseline estimate — run analysis for AI breakdown'} />
+        <SectionHeader title={t(T.riskPage.breakdown, lang)} subtitle={analysis ? t(T.riskExtra.aiAnalysis,lang) : t(T.riskExtra.baselineEstimate,lang)} />
         {COMPONENTS.map((c, i) => (
           <div key={c.key} style={{ display:'grid', gridTemplateColumns:'180px 160px 1fr', gap:16, alignItems:'center', padding:'12px 0', borderBottom:i<COMPONENTS.length-1?'1px solid var(--border)':'none' }}>
             <div style={{ fontSize:'13px', fontWeight:500 }}>{c.label}</div>
@@ -515,12 +515,12 @@ Return ONLY valid JSON:
         <Card>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
             <div>
-              <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:2 }}>7-Day Improvement Plan</div>
-              <div style={{ fontSize:'12px', color:'var(--text3)' }}>Based on your risk analysis — specific actions for your team this week</div>
+              <div style={{ fontSize:'14px', fontWeight:700, color:'var(--text1)', marginBottom:2 }}>{t(T.riskExtra.sevenDayTitle,lang)}</div>
+              <div style={{ fontSize:'12px', color:'var(--text3)' }}>{t(T.riskExtra.sevenDayDesc,lang)}</div>
             </div>
             {!sevenDay && (
               <Button onClick={generate7DayPlan} disabled={planLoading} variant="secondary">
-                {planLoading ? <><Spinner /> Generating plan...</> : '📋 Generate 7-Day Plan'}
+                {planLoading ? <><Spinner /> {t(T.riskExtra.generatingPlan,lang)}</> : '📋 Generate 7-Day Plan'}
               </Button>
             )}
             {sevenDay && (
@@ -633,14 +633,14 @@ export function RevenuePage() {
               Improving from {currentRating}★ to {target}★ ({result.ratingGap}★ gap) = {result.upliftPct}% revenue uplift. Based on HBS research: each full star improvement drives ~9% more revenue.
             </div>
             {[
-              ['Current monthly revenue',   `CHF ${result.currentMonthlyRevenue.toLocaleString()}`],
-              ['Projected monthly revenue',  `CHF ${result.projectedMonthlyRevenue.toLocaleString()}`],
-              ['Monthly gain',               `+CHF ${result.monthlyGain.toLocaleString()}`],
-              ['Annual gain',                `+CHF ${result.annualGain.toLocaleString()}`],
-              ['ReplyIQ subscription',       'CHF 149/month'],
-              ['Net monthly gain after sub', `+CHF ${(result.monthlyGain - 149).toLocaleString()}`],
+              [t(T.revenueExtra.currentMonthly,lang),   `CHF ${result.currentMonthlyRevenue.toLocaleString()}`],
+              [t(T.revenueExtra.projectedMonthly,lang),  `CHF ${result.projectedMonthlyRevenue.toLocaleString()}`],
+              [t(T.revenueExtra.monthlyGainRow,lang),               `+CHF ${result.monthlyGain.toLocaleString()}`],
+              [t(T.revenueExtra.annualGain,lang),                `+CHF ${result.annualGain.toLocaleString()}`],
+              [t(T.revenueExtra.subscription,lang),       'CHF 149/month'],
+              [t(T.revenueExtra.netMonthly,lang), `+CHF ${(result.monthlyGain - 149).toLocaleString()}`],
               ['ROI',                        `${result.roiX}× return on CHF 149`],
-              ['Confidence',                 result.confidence],
+              [t(T.revenueExtra.confidence,lang),                 result.confidence],
             ].map(([l,v],i,arr)=>(
               <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
                 <span style={{ color:'var(--text3)' }}>{l}</span>
@@ -677,7 +677,7 @@ export function CompetitorsPage() {
   const yourResponseRate = reviews?.length ? Math.round(((reviews.length - yourUnanswered) / reviews.length) * 100) : 0
 
   // Build full list including self, sorted by rating
-  const you = { name: property?.name || 'Your Property', rating: yourRating, reviews: yourReviews, isYou: true }
+  const you = { name: property?.name || t(T.competitorExtra2.yourProperty,lang), rating: yourRating, reviews: yourReviews, isYou: true }
   const allProps = [you, ...competitors].sort((a,b) => b.rating - a.rating)
   const yourRank = allProps.findIndex(p => p.isYou) + 1
   const leader   = allProps[0]
@@ -835,12 +835,12 @@ export function CompetitorsPage() {
           <KpiCard
             label={t(T.competitorsExtra.yourRank, lang)}
             value={`#${yourRank} of ${allProps.length}`}
-            sub={yourRank === 1 ? 'Market leader' : `${aboveYou} above you`}
+            sub={yourRank === 1 ? t(T.competitorExtra2.leading,lang) : `${aboveYou} above you`}
             accent={yourRank === 1 ? 'teal' : yourRank <= 3 ? 'gold' : 'red'}
           />
           <KpiCard
             label={t(T.competitorsExtra.ratingGap, lang)}
-            value={ratingGapToLeader === 0 ? 'Leading' : `-${ratingGapToLeader}★`}
+            value={ratingGapToLeader === 0 ? t(T.competitorExtra2.leading,lang) : `-${ratingGapToLeader}★`}
             sub={ratingGapToLeader === 0 ? 'You are #1' : `vs ${leader.name?.split(' ')[0]}`}
             accent={ratingGapToLeader === 0 ? 'teal' : ratingGapToLeader <= 0.2 ? 'gold' : 'red'}
           />
@@ -1004,7 +1004,7 @@ export function CompetitorsPage() {
               color: analysis.competitivePosition==='LEADING'?'#4A7C6F':analysis.competitivePosition==='STRONG'?'var(--gold)':analysis.competitivePosition==='AVERAGE'?'#8888CC':'#B85C38',
               border:'1px solid currentColor',
             }}>
-              {analysis.competitivePosition || 'ANALYSED'}
+              {analysis.competitivePosition || t(T.competitorExtra2.analysed,lang)}
             </div>
             {analysis.ratingGap && <span style={{ fontSize:'12px', color:'var(--text3)' }}>{analysis.ratingGap}</span>}
           </div>
@@ -1035,7 +1035,7 @@ export function CompetitorsPage() {
 
 // ── REPORT PAGE ───────────────────────────────────────────────────────────────
 function buildReportEmail(r, property) {
-    const name = property?.name || 'Your Property'
+    const name = property?.name || t(T.competitorExtra2.yourProperty,lang)
     const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})
     const riskColor = (r.riskScore||0) >= 70 ? '#B85C38' : (r.riskScore||0) >= 45 ? '#C9A96E' : '#4A7C6F'
     return `<!DOCTYPE html>
@@ -1121,7 +1121,7 @@ export function ReportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to,
-          subject: `ReplyIQ Weekly Report: ${property?.name || 'Your Property'} ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
+          subject: `ReplyIQ Weekly Report: ${property?.name || t(T.competitorExtra2.yourProperty,lang)} ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`,
           html,
         })
       })
@@ -1161,13 +1161,13 @@ export function ReportPage() {
             <div style={{ fontSize:'11px', textTransform:'uppercase', letterSpacing:'1.5px', color:'var(--teal)', marginBottom:12, fontWeight:600 }}>Statistics</div>
             {[
               ['Total reviews', reviews.length, 'var(--text1)'],
-              ['Responded', reviews.filter(r=>r.responded).length + ' of ' + reviews.length, '#4A7C6F'],
-              ['Response rate', (reviews.length ? Math.round((reviews.filter(r=>r.responded).length/reviews.length)*100) : 0) + '%', reviews.length && reviews.filter(r=>r.responded).length/reviews.length >= 0.8 ? '#4A7C6F' : '#B85C38'],
-              ['Unanswered', report.unansweredCount, report.unansweredCount > 0 ? '#B85C38' : '#4A7C6F'],
+              [t(T.reportStats.responded,lang), reviews.filter(r=>r.responded).length + ' of ' + reviews.length, '#4A7C6F'],
+              [t(T.reportStats.responseRate,lang), (reviews.length ? Math.round((reviews.filter(r=>r.responded).length/reviews.length)*100) : 0) + '%', reviews.length && reviews.filter(r=>r.responded).length/reviews.length >= 0.8 ? '#4A7C6F' : '#B85C38'],
+              [t(T.reportStats.unanswered,lang), report.unansweredCount, report.unansweredCount > 0 ? '#B85C38' : '#4A7C6F'],
               ['Negative (1-2★)', report.negativeCount, '#B85C38'],
               ['Positive (4-5★)', report.positiveCount, '#4A7C6F'],
-              ['Risk score', `${report.riskScore}/100`, riskScore>60?'#B85C38':'#4A7C6F'],
-              ['Revenue risk', report.revenueRisk, '#C9A96E'],
+              [t(T.reportStats.riskScore,lang), `${report.riskScore}/100`, riskScore>60?'#B85C38':'#4A7C6F'],
+              [t(T.reportStats.revenueRisk,lang), report.revenueRisk, '#C9A96E'],
             ].map(([l,v,c],i,arr)=>(
               <div key={l} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12, padding:'8px 0', borderBottom:i<arr.length-1?'1px solid var(--border)':'none', fontSize:'13px' }}>
                 <span style={{ color:'var(--text3)', flexShrink:0 }}>{l}</span>

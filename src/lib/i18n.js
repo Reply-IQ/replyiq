@@ -277,6 +277,54 @@ export const T = {
     proTip:      { en:'Pro Tip',     de:'Profi-Tipp',    fr:'Conseil pro' },
   },
 
+  // ── Risk page extra ───────────────────────────────────────────────────────────
+  riskExtra: {
+    ratingVolatility:   { en:'Rating Volatility',   de:'Bewertungsschwankung',      fr:'Volatilite des notes' },
+    responseGap:        { en:'Response Gap',         de:'Antwortlucke',              fr:'Manque de reponses' },
+    complianceRisk:     { en:'Compliance Risk',      de:'Compliance-Risiko',         fr:'Risque de conformite' },
+    sentimentTrend:     { en:'Sentiment Trend',      de:'Stimmungstrend',            fr:'Tendance des sentiments' },
+    competitorPressure: { en:'Competitor Pressure',  de:'Wettbewerbsdruck',          fr:'Pression concurrentielle' },
+    highRisk:           { en:'HIGH RISK',            de:'HOHES RISIKO',              fr:'RISQUE ELEVE' },
+    aiRecommended:      { en:'AI recommended',       de:'KI empfohlen',              fr:'Recommande par IA' },
+    baselineEstimate:   { en:'Baseline estimate',    de:'Basisschatzung',            fr:'Estimation de base' },
+    aiAnalysis:         { en:'Based on AI analysis of your reviews', de:'Basierend auf KI-Analyse Ihrer Bewertungen', fr:'Base sur analyse IA de vos avis' },
+    sevenDayTitle:      { en:'7-Day Improvement Plan', de:'7-Tage-Verbesserungsplan', fr:'Plan amelioration 7 jours' },
+    sevenDayDesc:       { en:'Based on your risk analysis. Specific actions for your team this week.', de:'Basierend auf Ihrer Risikoanalyse. Konkrete Massnahmen fur Ihr Team diese Woche.', fr:'Base sur votre analyse des risques. Actions concretes pour votre equipe cette semaine.' },
+    generatePlan:       { en:'Generate 7-Day Plan',  de:'7-Tage-Plan generieren',    fr:'Generer plan 7 jours' },
+    regenerate:         { en:'Regenerate',           de:'Neu generieren',            fr:'Regenerer' },
+    generatingPlan:     { en:'Building your personalised 7-day plan...', de:'Ihr personalisierter 7-Tage-Plan wird erstellt...', fr:'Creation de votre plan 7 jours personnalise...' },
+    planPrompt:         { en:'Click Generate 7-Day Plan to get specific daily actions for your team to improve the risks identified above. Each action is tailored to your actual scores.', de:'Klicken Sie auf Plan generieren, um konkrete tagliche Massnahmen fur Ihr Team zu erhalten. Jede Massnahme ist auf Ihre tatsachlichen Werte zugeschnitten.', fr:'Cliquez sur Generer plan pour obtenir des actions quotidiennes specifiques pour votre equipe.' },
+    fiveVectors:        { en:'5-vector risk overview', de:'5-Vektor Risikoubersicht', fr:'Apercu des risques en 5 vecteurs' },
+  },
+
+  // ── Revenue extra ─────────────────────────────────────────────────────────────
+  revenueExtra: {
+    currentMonthly:   { en:'Current monthly revenue',  de:'Aktueller monatlicher Umsatz',     fr:'Chiffre affaires mensuel actuel' },
+    projectedMonthly: { en:'Projected monthly revenue', de:'Prognostizierter monatlicher Umsatz', fr:'Chiffre affaires mensuel projete' },
+    monthlyGainRow:   { en:'Monthly gain',             de:'Monatlicher Gewinn',               fr:'Gain mensuel' },
+    annualGain:       { en:'Annual gain',              de:'Jahrlicher Gewinn',                fr:'Gain annuel' },
+    subscription:     { en:'ReplyIQ subscription',    de:'ReplyIQ-Abonnement',               fr:'Abonnement ReplyIQ' },
+    netMonthly:       { en:'Net monthly gain',         de:'Netto monatlicher Gewinn',         fr:'Gain mensuel net' },
+    confidence:       { en:'Confidence',              de:'Vertrauen',                        fr:'Confiance' },
+  },
+
+  // ── Competitor extra ──────────────────────────────────────────────────────────
+  competitorExtra2: {
+    leading:      { en:'Leading',      de:'Fuhrend',    fr:'En tete' },
+    yourProperty: { en:'Your Property', de:'Ihr Betrieb', fr:'Votre etablissement' },
+    analysed:     { en:'Analysed',     de:'Analysiert', fr:'Analyse' },
+  },
+
+  // ── Report stats ──────────────────────────────────────────────────────────────
+  reportStats: {
+    responded:    { en:'Responded',    de:'Beantwortet',  fr:'Repondu' },
+    responseRate: { en:'Response rate', de:'Antwortquote', fr:'Taux de reponse' },
+    unanswered:   { en:'Unanswered',   de:'Unbeantwortet', fr:'Sans reponse' },
+    riskScore:    { en:'Risk score',   de:'Risiko-Score', fr:'Score de risque' },
+    revenueRisk:  { en:'Revenue risk', de:'Umsatzrisiko', fr:'Risque de revenus' },
+  },
+
+
 }
 
 // Helper — get a translation string
