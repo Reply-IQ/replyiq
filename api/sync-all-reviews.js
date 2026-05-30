@@ -1,5 +1,7 @@
 // Daily cron job — runs at 3am UTC via Vercel cron
 // Fetches new reviews for all connected clinics since last sync
+export const maxDuration = 60 // seconds - Vercel Pro allows 300s, Hobby allows 60s
+
 export default async function handler(req, res) {
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' })
@@ -38,8 +40,8 @@ export default async function handler(req, res) {
           ? `https://www.google.com/maps/place/?q=place_id:${identifier}`
           : identifier
 
-        const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=20&language=en&async=false&reviewsSort=newest`
-        const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey }, signal: AbortSignal.timeout(25000) })
+        const url = `https://api.app.outscraper.com/maps/reviews-v3?query=${encodeURIComponent(query)}&reviewsLimit=10&language=en&async=false&reviewsSort=newest`
+        const r   = await fetch(url, { headers: { 'X-API-KEY': outscraperKey }, signal: AbortSignal.timeout(55000) })
         const data = await r.json()
 
         let placeInfo = null
