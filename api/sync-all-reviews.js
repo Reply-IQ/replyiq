@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk'
 // Daily cron job — runs at 3am UTC via Vercel cron
 // Fetches new reviews for all connected clinics since last sync
 export default async function handler(req, res) {
@@ -213,20 +212,25 @@ export default async function handler(req, res) {
         // Auto-classify new negative reviews (1-2★) so Flagged tab works immediately
         const newNegatives = upserted.filter(r => parseInt(r.rating) <= 2 && !r.ai_analysed_at)
         if (newNegatives.length > 0 && process.env.ANTHROPIC_API_KEY) {
-          const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
           for (const rev of newNegatives.slice(0, 5)) { // max 5 per sync to control cost
             try {
-              const msg = await anthropic.messages.create({
-                model: 'claude-haiku-4-5-20251001', // cheapest model for classification
-                max_tokens: 200,
-                messages: [{ role: 'user', content:
-                  'Classify this hotel/restaurant review. Return JSON only:\n' +
-                  '{"sentiment":"negative","severity":"low|medium|high|critical","categories":["cleanliness|staff|food|location|price|noise|maintenance|other"],"ai_risk_flag":true|false,"ai_summary":"one sentence"}\n\n' +
-                  'ai_risk_flag=true only if review contains: threats, legal language, health/safety concerns, or severe public reputation damage.\n\n' +
-                  'Review ('+rev.rating+'★): "' + (rev.text||'').slice(0,300) + '"'
-                }]
+              const classifyRes = await fetch('https://app.replyiq.ch/api/claude', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  model: 'claude-haiku-4-5-20251001',
+                  max_tokens: 200,
+                  system: 'You are a review classifier. Return only valid JSON, no markdown.',
+                  messages: [{ role: 'user', content:
+                    'Classify this hotel/restaurant review. Return JSON only:\n' +
+                    '{"sentiment":"negative","severity":"low|medium|high|critical","categories":["cleanliness|staff|food|location|price|noise|maintenance|other"],"ai_risk_flag":true,"ai_summary":"one sentence"}\n\n' +
+                    'ai_risk_flag=true only if review contains: threats, legal language, health/safety concerns, or severe public reputation damage.\n\n' +
+                    'Review ('+rev.rating+'★): "' + (rev.text||'').slice(0,300) + '"'
+                  }]
+                })
               })
-              const raw = (msg.content?.[0]?.text || '').trim()
+              const classifyData = await classifyRes.json()
+              const raw = (classifyData.content?.[0]?.text || '').trim()
               const parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}')+1))
               await fetch(`${supabaseUrl}/rest/v1/reviews?id=eq.${rev.id}`, {
                 method: 'PATCH',
