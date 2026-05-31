@@ -69,6 +69,7 @@ export default async function handler(req, res) {
 
     const { lat, lng } = detailData.result.geometry.location
     const ownGoogleRating = detailData.result.rating || starLevel || 4.0
+    const ownPriceLevel   = detailData.result.price_level ?? null  // 0=free, 1=cheap, 2=moderate, 3=expensive, 4=very expensive
     const ownTypes        = detailData.result.types || []
     const vicinity        = detailData.result.vicinity || city || ''
 
@@ -150,8 +151,42 @@ export default async function handler(req, res) {
     }
 
     // ── Step 4: Filter + score by relevance ───────────────────────────────────
-    // Score each result: same type + close distance + similar rating = higher score
-    const scored = pool
+    // HARD filter: hotels only see hotels, restaurants only see restaurants
+    const typeFiltered = pool.filter(p => {
+      if (!p.types || p.types.length === 0) return false
+      if (isRestaurant) {
+        return p.types.some(t => ['restaurant','food','cafe','bar','meal_takeaway','bakery','meal_delivery'].includes(t))
+          && !p.types.includes('lodging')
+      } else {
+        // Hotel: must have lodging type
+        return p.types.some(t => ['lodging','hotel','motel','resort'].includes(t))
+      }
+    })
+
+    // TIER filter: match price_level within +/-1 so luxury hotels don't see budget hostels
+    // Only apply if we have price_level for our own property
+    let tierFiltered = typeFiltered
+    if (ownPriceLevel !== null && typeFiltered.length > 5) {
+      const sameTier = typeFiltered.filter(p =>
+        p.price_level === undefined || p.price_level === null ||
+        Math.abs((p.price_level ?? ownPriceLevel) - ownPriceLevel) <= 1
+      )
+      // Only use tier filter if it leaves at least 3 results
+      if (sameTier.length >= 3) tierFiltered = sameTier
+    }
+
+    // RATING filter: within 1.5 stars of our rating so we see real competition
+    const ratingFiltered = tierFiltered.filter(p =>
+      Math.abs((p.rating || 0) - ownGoogleRating) <= 1.5
+    )
+
+    // Fallback chain: rating filter → tier filter → type filter → full pool
+    const filteredPool = (ratingFiltered.length >= 3 ? ratingFiltered
+      : tierFiltered.length >= 3 ? tierFiltered
+      : typeFiltered.length >= 3 ? typeFiltered
+      : pool).filter(p => p.rating && p.rating > 0)
+
+    const scored = filteredPool
       .filter(p => p.rating && p.rating > 0) // must have a rating
       .map(p => {
         const dLat = ((p.geometry?.location?.lat || lat) - lat) * 111000
@@ -187,14 +222,21 @@ export default async function handler(req, res) {
 
     // Take top 8 — already scored by relevance
     const results = scored.slice(0, 8).map(p => ({
-      name:     p.name,
-      rating:   p.rating || 0,
-      reviews:  p.user_ratings_total || 0,
-      place_id: p.place_id,
-      address:  p._distM < 1000
+      name:        p.name,
+      rating:      p.rating || 0,
+      reviews:     p.user_ratings_total || 0,
+      place_id:    p.place_id,
+      price_level: p.price_level ?? null,
+      address:     p._distM < 1000
         ? `${p._distM}m away`
         : `${(p._distM / 1000).toFixed(1)}km away`,
     }))
+
+    // Also return our own property's Google data for reference
+    const ownData = {
+      rating:      ownGoogleRating,
+      price_level: ownPriceLevel,
+    }
 
     return res.status(200).json({
       competitors: results,
@@ -203,6 +245,8 @@ export default async function handler(req, res) {
       tier,
       cityName,
       queries,
+      ownGoogleRating,
+      ownData,
     })
 
   } catch (e) {

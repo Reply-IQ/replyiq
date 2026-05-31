@@ -668,11 +668,15 @@ export function CompetitorsPage() {
   const [adding,    setAdding]    = useState(null) // place_id being added
   const isMobile = useIsMobile()
 
-  // Your real rating from imported reviews
-  const yourRating = reviews?.length
-    ? +(reviews.reduce((s,r) => s + Number(r.rating), 0) / reviews.length).toFixed(1)
-    : property?.platform_connections?.google?.businessInfo?.rating || 0
-  const yourReviews = property?.platform_connections?.google?.businessInfo?.totalReviews || reviews?.length || 0
+  // Use Google's actual rating (from all their reviews, not just imported ones)
+  // Falls back to average of imported reviews if not available
+  const googleRating  = property?.platform_connections?.google?.businessInfo?.rating
+  const yourRating    = googleRating
+    ? +parseFloat(googleRating).toFixed(1)
+    : reviews?.length
+      ? +(reviews.reduce((s,r) => s + Number(r.rating), 0) / reviews.length).toFixed(1)
+      : 0
+  const yourReviews   = property?.platform_connections?.google?.businessInfo?.totalReviews || reviews?.length || 0
   const yourUnanswered = reviews?.filter(r => !r.responded).length || 0
   const yourResponseRate = reviews?.length ? Math.round(((reviews.length - yourUnanswered) / reviews.length) * 100) : 0
 
@@ -724,6 +728,24 @@ export function CompetitorsPage() {
       if (data.error) { showToast('API error: ' + data.error, 'error'); setSyncing(false); return }
       const list = data.competitors || []
       if (list.length === 0) { showToast('No competitors found. Check your Google Places API key in Vercel.', 'error'); setSyncing(false); return }
+
+      // Update businessInfo.rating with real Google rating from Places API
+      if (data.ownGoogleRating) {
+        const existingConn   = property?.platform_connections || {}
+        const existingGoogle = existingConn.google || {}
+        await supabase.from('clinics').update({
+          platform_connections: {
+            ...existingConn,
+            google: {
+              ...existingGoogle,
+              businessInfo: {
+                ...(existingGoogle.businessInfo || {}),
+                rating: data.ownGoogleRating,
+              }
+            }
+          }
+        }).eq('id', property.id)
+      }
 
       // Calculate real trend vs previous sync
       const rows = list.map(c => {
@@ -973,11 +995,6 @@ export function CompetitorsPage() {
                     </div>
                     <div style={{ fontSize:'11px', color:'var(--text3)', flexShrink:0, minWidth:60, textAlign:'right' }}>
                       {(p.reviews||0).toLocaleString()} reviews
-                      {reviewDelta !== null && (
-                        <span style={{ color: reviewDelta > 0 ? '#B85C38' : '#4A7C6F', marginLeft:4 }}>
-                          ({reviewDelta > 0 ? '+' : ''}{reviewDelta.toLocaleString()})
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1134,6 +1151,23 @@ export function ReportPage() {
 
 
 
+  // ── Calculate this week's deltas ───────────────────────────────────────────
+  const now       = new Date()
+  const weekAgo   = new Date(now); weekAgo.setDate(weekAgo.getDate()-7)
+  const twoWkAgo  = new Date(now); twoWkAgo.setDate(twoWkAgo.getDate()-14)
+
+  const thisWeekRevs  = reviews.filter(r=>r.review_date && new Date(r.review_date)>=weekAgo)
+  const lastWeekRevs  = reviews.filter(r=>r.review_date && new Date(r.review_date)>=twoWkAgo && new Date(r.review_date)<weekAgo)
+
+  const thisWeekNeg   = thisWeekRevs.filter(r=>Number(r.rating)<=2).length
+  const lastWeekNeg   = lastWeekRevs.filter(r=>Number(r.rating)<=2).length
+  const thisWeekResp  = thisWeekRevs.length ? Math.round(thisWeekRevs.filter(r=>r.responded).length/thisWeekRevs.length*100) : 0
+  const lastWeekResp  = lastWeekRevs.length ? Math.round(lastWeekRevs.filter(r=>r.responded).length/lastWeekRevs.length*100) : 0
+  const respDelta     = thisWeekResp - lastWeekResp
+  const negDelta      = thisWeekNeg - lastWeekNeg
+  const avgThisWeek   = thisWeekRevs.length ? (thisWeekRevs.reduce((s,r)=>s+Number(r.rating),0)/thisWeekRevs.length).toFixed(1) : null
+  const avgAllTime    = reviews.length ? (reviews.reduce((s,r)=>s+Number(r.rating),0)/reviews.length).toFixed(1) : null
+
   return (
     <Layout title={t(T.nav.report, lang)} subtitle={`${t(T.report.generate,lang)} ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
       topbarRight={
@@ -1149,6 +1183,41 @@ export function ReportPage() {
         </div>
       }
     >
+      {/* ── This Week Snapshot — always visible, even before generating ── */}
+      {thisWeekRevs.length > 0 && (
+        <Card style={{ marginBottom:16, borderLeft:'3px solid var(--gold)' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+            <div>
+              <div style={{ fontSize:'13px', fontWeight:700, color:'var(--gold)', marginBottom:2 }}>This Week at a Glance</div>
+              <div style={{ fontSize:'11px', color:'var(--text3)' }}>{new Date(weekAgo).toLocaleDateString('en-GB',{day:'numeric',month:'short'})} — {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>
+            </div>
+            <div style={{ fontSize:'11px', color:'var(--text3)', fontStyle:'italic' }}>vs last week</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10 }}>
+            {[
+              { label:'New Reviews', value:thisWeekRevs.length, delta:thisWeekRevs.length-lastWeekRevs.length, good:'up' },
+              { label:'Avg Rating', value:avgThisWeek?avgThisWeek+'★':'N/A', delta:avgThisWeek&&avgAllTime?(avgThisWeek-avgAllTime).toFixed(1):null, good:'up', suffix:'★' },
+              { label:'Negatives', value:thisWeekNeg, delta:negDelta, good:'down' },
+              { label:'Response Rate', value:thisWeekResp+'%', delta:respDelta, good:'up', suffix:'%' },
+            ].map(({label,value,delta,good})=>(
+              <div key={label} style={{ background:'var(--surface)', borderRadius:8, padding:'12px 14px' }}>
+                <div style={{ fontSize:'10px', color:'var(--text3)', marginBottom:6, textTransform:'uppercase', letterSpacing:'1px' }}>{label}</div>
+                <div style={{ fontSize:'20px', fontWeight:700, color:'var(--text1)', marginBottom:4 }}>{value}</div>
+                {delta!==null && delta!==0 && (
+                  <div style={{ fontSize:'11px', fontWeight:600, color:
+                    (good==='up'&&delta>0)||(good==='down'&&delta<0) ? '#4A7C6F' : '#B85C38'
+                  }}>
+                    {delta>0?'▲ +':'▼ '}{delta}{good==='up'&&label.includes('Rate')?'%':''}
+                    <span style={{ color:'var(--text3)', fontWeight:400 }}> vs last week</span>
+                  </div>
+                )}
+                {(delta===0||delta===null) && <div style={{ fontSize:'11px', color:'var(--text3)' }}>No change</div>}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {!report && !loading && <Card><EmptyState icon="▤" title={t(T.reportExtra.title, lang)} description={t(T.reportExtra.title, lang)} action={<Button size="lg" onClick={generate}>{t(T.report.generate, lang)}</Button>} /></Card>}
       {loading && <Card><div style={{ padding:48, display:'flex', alignItems:'center', gap:12, color:'var(--gold)', justifyContent:'center' }}><Spinner size={20} />{t(T.reportExtra.generating, lang)}</div></Card>}
       {report && !report.error && <>
