@@ -695,9 +695,12 @@ export function CompetitorsPage() {
     setSyncing(true)
     try {
       const profile      = property?.ai_profile || {}
+      // Use explicit propertyType from profile first, then fall back to name/desc inference
+      const explicitType = profile.propertyType || profile.industry || ''
       const nameL        = (property?.name || '').toLowerCase()
       const descL        = (profile.responsePersonality || profile.brandTone || '').toLowerCase()
-      const isRestaurant = ['restaurant','ristorante','bistro','brasserie','trattoria','café','cafe','bar','grill','kitchen','dining','pizzeria','sushi','thai','indian','chinese','italian','mexican','french'].some(w => nameL.includes(w) || descL.includes(w))
+      const isRestaurant = explicitType === 'restaurant'
+        || (explicitType === '' && ['restaurant','ristorante','bistro','brasserie','trattoria','café','cafe','bar','grill','kitchen','dining','pizzeria','sushi','thai','indian','chinese','italian','mexican','french'].some(w => nameL.includes(w) || descL.includes(w)))
 
       // Before deleting, save current ratings so we can calculate trend
       const { data: oldComps } = await supabase.from('competitors').select('place_id,rating').eq('clinic_id', property.id)

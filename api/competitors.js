@@ -77,8 +77,9 @@ export default async function handler(req, res) {
     const cityName = city || vicinity.split(',').pop()?.trim() || ''
 
     // ── Step 2: Determine tier keyword ───────────────────────────────────────
+    // ONLY trust what the user set in their profile - never infer from Google types
+    // (Hotels with on-site restaurants would otherwise be misclassified)
     const isRestaurant = propertyType === 'restaurant'
-      || ownTypes.some(t => ['restaurant','food','cafe','bar','meal_takeaway','bakery'].includes(t))
 
     // Map brandTone + Google rating to a tier keyword for Text Search
     // This is the key improvement — we search like a guest would
@@ -194,8 +195,8 @@ export default async function handler(req, res) {
         const distM = Math.round(Math.sqrt(dLat * dLat + dLng * dLng))
 
         const sameType = isRestaurant
-          ? p.types?.some(t => ['restaurant','food','cafe','bar','meal_takeaway','bakery','lodging'].includes(t) === false &&
-              ['restaurant','food','cafe','bar','meal_takeaway','bakery'].includes(t))
+          ? p.types?.some(t => ['restaurant','food','cafe','bar','meal_takeaway','bakery'].includes(t))
+            && !p.types?.includes('lodging')
           : p.types?.some(t => ['lodging','hotel','motel','resort'].includes(t))
 
         const ratingDiff = Math.abs((p.rating || 0) - ownGoogleRating)
