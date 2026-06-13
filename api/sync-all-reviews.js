@@ -3,7 +3,10 @@
 export const maxDuration = 60 // seconds - Vercel Pro allows 300s, Hobby allows 60s
 
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Allow Vercel's own cron runner (no auth header) OR manual curl with CRON_SECRET
+  const isVercelCron  = req.headers['x-vercel-cron'] === '1'
+  const isManualCurl  = req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`
+  if (!isVercelCron && !isManualCurl) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
@@ -98,8 +101,8 @@ export default async function handler(req, res) {
         if (tripadvisor?.identifier && outscraperKey) {
           try {
             console.log('[sync-all]', clinic.name, '— syncing TripAdvisor')
-            const taUrl = `https://api.app.outscraper.com/tripadvisor-reviews?query=${encodeURIComponent(tripadvisor.identifier)}&reviewsLimit=10&sort=newest&async=false`
-            const taRes = await fetch(taUrl, { headers: { 'X-API-KEY': outscraperKey }, signal: AbortSignal.timeout(55000) })
+            const taUrl = `https://api.app.outscraper.com/tripadvisor-reviews?query=${encodeURIComponent(tripadvisor.identifier)}&reviewsLimit=10&async=false`
+            const taRes = await fetch(taUrl, { headers: { 'X-API-KEY': outscraperKey }, signal: AbortSignal.timeout(25000) })
             const taData = await taRes.json()
 
             // TripAdvisor returns flat array of review objects

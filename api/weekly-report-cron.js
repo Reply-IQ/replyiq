@@ -6,20 +6,19 @@
 //   - clinic has an owner_email set
 //   - clinic has at least 10 reviews imported
 
-import Anthropic from '@anthropic-ai/sdk'
+export const maxDuration = 60
 
 export default async function handler(req, res) {
-  // Auth check — only Vercel cron can call this
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  const isVercelCron = req.headers['x-vercel-cron'] === '1'
+  const isManualCurl = req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`
+  if (!isVercelCron && !isManualCurl) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const serviceKey  = process.env.SUPABASE_SERVICE_KEY
   const resendKey   = process.env.RESEND_API_KEY
-  const anthropicKey= process.env.ANTHROPIC_API_KEY
-
-  if (!supabaseUrl || !serviceKey || !resendKey || !anthropicKey) {
+  if (!supabaseUrl || !serviceKey || !resendKey) {
     return res.status(500).json({ error: 'Missing environment variables' })
   }
 
@@ -41,14 +40,16 @@ export default async function handler(req, res) {
       // Must have email
       if (!c.owner_email) return false
 
-      // Must be active paid subscriber OR trial not yet expired
+      // Include active subscribers, trial users, AND manually onboarded clients
+      // (manually onboarded clients won't have subscription_status set)
       const status = c.subscription_status
-      if (status === 'active') return true
+      if (!status || status === 'active' || status === 'paid') return true
       if (status === 'trial') {
         const trialEnd = c.trial_ends_at ? new Date(c.trial_ends_at) : null
         return !trialEnd || trialEnd > now
       }
-      return false
+      if (status === 'cancelled' || status === 'expired') return false
+      return true // include anything else by default
     })
 
     console.log('[weekly-report] Eligible clinics:', eligible.length)
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
         }
 
         // ── 3. Generate the report with Claude ──────────────────────────────
-        const report = await generateWeeklyReport(clinic, reviews, anthropicKey)
+        const report = await generateWeeklyReport(clinic, reviews)
         if (!report || report.error) {
           console.error('[weekly-report] Report generation failed for', clinic.name, ':', report?.error)
           results.push({ clinic: clinic.name, error: 'report generation failed' })
@@ -96,7 +97,7 @@ export default async function handler(req, res) {
             from:     'ReplyIQ Intelligence <info@replyiq.ch>',
             to:       [clinic.owner_email],
             reply_to: 'alexriese410@gmail.com',
-            subject:  `Your Weekly Reputation Report — ${clinic.name} — ${dateStr}`,
+            subject:  `Your Weekly Reputation Report: ${clinic.name} | ${dateStr}`,
             html,
           })
         })
@@ -126,7 +127,7 @@ export default async function handler(req, res) {
 }
 
 // ── Generate report with Claude ───────────────────────────────────────────────
-async function generateWeeklyReport(clinic, reviews, apiKey) {
+async function generateWeeklyReport(clinic, reviews) {
   const total      = reviews.length
   const unanswered = reviews.filter(r => !r.responded).length
   const negative   = reviews.filter(r => r.rating <= 2).length
@@ -142,16 +143,15 @@ async function generateWeeklyReport(clinic, reviews, apiKey) {
     .map(r => `${r.rating}★ — "${(r.text || '').slice(0, 150)}"`)
     .join('\n')
 
-  const client = new Anthropic({ apiKey })
-
   try {
-    const response = await client.messages.create({
-      model:      'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system:     `You are a reputation intelligence analyst specialising in DACH hospitality. You write precise, actionable weekly reports for hotel and restaurant managers. Be direct, specific, and use real numbers.`,
-      messages: [{
-        role: 'user',
-        content: `Generate a weekly reputation intelligence report for ${name} (${industry}).
+    const res = await fetch('https://app.replyiq.ch/api/claude', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model:      'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system:     'You are a reputation intelligence analyst specialising in DACH hospitality. You write precise, actionable weekly reports for hotel and restaurant managers. Be direct, specific, and use real numbers.',
+        messages: [{ role: 'user', content: `Generate a weekly reputation intelligence report for ${name} (${industry}).
 
 Data this week:
 - Total reviews imported: ${total}
@@ -181,10 +181,11 @@ Return JSON with EXACTLY these fields:
   "win": "the single most positive thing from the recent reviews — quote or describe specifically",
   "nextFocus": "one clear actionable focus area for next week"
 }`
-      }]
+        }]
+      })
     })
-
-    const text = response.content?.map(b => b.text || '').join('') || ''
+    const data  = await res.json()
+    const text  = data.content?.map(b => b.text || '').join('') || ''
     const clean = text.replace(/```json\n?|\n?```/g, '').trim()
     const start = clean.indexOf('{'), end = clean.lastIndexOf('}')
     if (start !== -1 && end !== -1) return JSON.parse(clean.slice(start, end + 1))
